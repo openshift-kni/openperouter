@@ -110,6 +110,7 @@ spec:
                   required:
                   - address
                   type: object
+                minItems: 1
                 type: array
               nic:
                 description: |-
@@ -117,6 +118,7 @@ spec:
                   to external routers.
                 items:
                   type: string
+                minItems: 1
                 type: array
               vtepcidr:
                 description: VTEPCIDR is CIDR to be used to assign IPs to the local

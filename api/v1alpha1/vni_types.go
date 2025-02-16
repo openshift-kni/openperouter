@@ -31,6 +31,8 @@ type VNISpec struct {
 
 	// VRF is the name of the linux VRF to be used inside the PERouter namespace.
 	// The field is optional, if not set it the name of the VNI instance will be used.
+	// +kubebuilder:validation:Pattern=`^[a-zA-Z][a-zA-Z0-9_-]*$`
+	// +kubebuilder:validation:MaxLength=15
 	// +optional
 	VRF *string `json:"vrf,omitempty"`
 

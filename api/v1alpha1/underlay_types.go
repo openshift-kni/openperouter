@@ -33,10 +33,14 @@ type UnderlaySpec struct {
 	VTEPCIDR string `json:"vtepcidr,omitempty"`
 
 	// Neighbors is the list of external neighbors to peer with.
+	// +kubebuilder:validation:MinItems=1
 	Neighbors []Neighbor `json:"neighbors,omitempty"`
 
 	// Nics is the list of physical nics to move under the PERouter namespace to connect
 	// to external routers.
+	// +kubebuilder:validation:Items=Pattern=`^[a-zA-Z][a-zA-Z0-9_-]*$`
+	// +kubebuilder:validation:Items=MaxLength=15
+	// +kubebuilder:validation:MinItems=1
 	Nics []string `json:"nic,omitempty"`
 }
 
