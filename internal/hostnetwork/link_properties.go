@@ -101,6 +101,15 @@ func setNeighSuppression(link netlink.Link) error {
 	return nil
 }
 
+type LinkNotFoundError struct {
+	linkName  string
+	namespace string
+}
+
+func (l LinkNotFoundError) Error() string {
+	return fmt.Sprintf("link %s not found in namespace %s", l.linkName, l.namespace)
+}
+
 // moveNicToNamespace takes the given interface and moves it into the given namespace.
 func moveInterfaceToNamespace(ctx context.Context, intf string, ns netns.NsHandle) error {
 	slog.DebugContext(ctx, "move intf to namespace", "intf", intf, "namespace", ns.String())

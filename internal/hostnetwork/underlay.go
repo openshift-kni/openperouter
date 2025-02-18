@@ -126,6 +126,21 @@ func moveUnderlayInterface(ctx context.Context, underlayInterface string, ns net
 	return nil
 }
 
+// HasUnderlayInterface returns true if the given network
+// namespace already has a configured underlay interface.
+func HasUnderlayInterface(namespace string) (bool, error) {
+	ns, err := netns.GetFromName(namespace)
+	if err != nil {
+		return false, fmt.Errorf("HasUnderlayInterface: failed to find network namespace %s: %w", namespace, err)
+	}
+
+	underlayInterface, err := findInterfaceWithIP(ns, underlayInterfaceSpecialAddr)
+	if err != nil {
+		return false, fmt.Errorf("failed to get old underlay interface %w", err)
+	}
+	return underlayInterface != "", nil
+}
+
 // findInterfaceWithIP retrieves the interface assigned to the given ip
 // in the given network ns.
 func findInterfaceWithIP(ns netns.NsHandle, ip string) (string, error) {

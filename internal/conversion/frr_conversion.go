@@ -3,6 +3,7 @@
 package conversion
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"time"
@@ -15,23 +16,21 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-type FRRConversionError struct {
-	msg string
-}
+type FRREmptyConfigError string
 
-func (e FRRConversionError) Error() string {
-	return e.msg
+func (e FRREmptyConfigError) Error() string {
+	return string(e)
 }
 
 func APItoFRR(nodeIndex int, underlays []v1alpha1.Underlay, vnis []v1alpha1.VNI, logLevel string) (frr.Config, error) {
 	if len(underlays) > 1 {
-		return frr.Config{}, FRRConversionError{msg: "can't have more than one underlay"}
+		return frr.Config{}, errors.New("multiple underlays defined")
 	}
 	if len(underlays) == 0 {
-		return frr.Config{}, FRRConversionError{msg: "no underlays defined"}
+		return frr.Config{}, FRREmptyConfigError("no underlays provided")
 	}
 	if len(vnis) == 0 {
-		return frr.Config{}, FRRConversionError{msg: "no vnis defined"}
+		return frr.Config{}, FRREmptyConfigError("no vnis provided")
 	}
 
 	underlay := underlays[0]
