@@ -133,6 +133,11 @@ func HasUnderlayInterface(namespace string) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("HasUnderlayInterface: failed to find network namespace %s: %w", namespace, err)
 	}
+	defer func() {
+		if err := ns.Close(); err != nil {
+			slog.Error("failed to close namespace", "namespace", namespace, "error", err)
+		}
+	}()
 
 	underlayInterface, err := findInterfaceWithIP(ns, underlayInterfaceSpecialAddr)
 	if err != nil {
