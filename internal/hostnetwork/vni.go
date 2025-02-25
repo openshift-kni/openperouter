@@ -45,6 +45,11 @@ func SetupVNI(ctx context.Context, params VNIParams) error {
 	if err != nil {
 		return fmt.Errorf("SetupVNI: Failed to get network namespace %s: %w", params.TargetNS, err)
 	}
+	defer func() {
+		if err := ns.Close(); err != nil {
+			slog.Error("failed to close namespace", "namespace", params.TargetNS, "error", err)
+		}
+	}()
 
 	hostVeth, peVeth, err := setupVeth(ctx, params.VRF, ns)
 	if err != nil {
