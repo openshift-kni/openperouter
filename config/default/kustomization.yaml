@@ -5,4 +5,4 @@ namePrefix: openperouter-
 resources:
 - ../crd
 - ../rbac
-- ../daemons
+- ../pods

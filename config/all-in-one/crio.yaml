@@ -265,6 +265,7 @@ rules:
   verbs:
   - get
   - list
+  - update
   - watch
 - apiGroups:
   - ""
@@ -441,6 +442,48 @@ kind: ConfigMap
 metadata:
   name: openperouter-frr-startup
   namespace: openperouter-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: nodemarker
+    app.kubernetes.io/created-by: nodemarker
+    app.kubernetes.io/instance: nodemarker
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: nodemarker
+    app.kubernetes.io/part-of: nodemarker
+    control-plane: nodemarker
+  name: openperouter-nodemarker
+  namespace: openperouter-system
+spec:
+  selector:
+    matchLabels:
+      control-plane: nodemarker
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: nodemarker
+      labels:
+        app: nodemarker
+        control-plane: nodemarker
+    spec:
+      containers:
+      - args:
+        - --loglevel=debug
+        command:
+        - /nodemarker
+        image: quay.io/openperouter/router:latest
+        imagePullPolicy: IfNotPresent
+        name: nodemarker
+        resources:
+          limits:
+            cpu: 500m
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 64Mi
+      serviceAccountName: openperouter-controller
 ---
 apiVersion: apps/v1
 kind: DaemonSet
