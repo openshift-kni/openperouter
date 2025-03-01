@@ -33,7 +33,7 @@ import (
 
 	"github.com/go-logr/logr"
 	periov1alpha1 "github.com/openperouter/openperouter/api/v1alpha1"
-	"github.com/openperouter/openperouter/internal/controller"
+	"github.com/openperouter/openperouter/internal/controller/routerconfiguration"
 	"github.com/openperouter/openperouter/internal/logging"
 	"github.com/openperouter/openperouter/internal/pods"
 	// +kubebuilder:scaffold:imports
@@ -110,7 +110,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controller.PERouterReconciler{
+	if err = (&routerconfiguration.PERouterReconciler{
 		Client:      mgr.GetClient(),
 		Scheme:      mgr.GetScheme(),
 		MyNode:      nodeName,
