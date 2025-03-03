@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -49,7 +50,7 @@ type PERouterReconciler struct {
 type requestKey string
 
 // +kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch
-// +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;delete
 // +kubebuilder:rbac:groups=openpe.openperouter.github.io,resources=vnis,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=openpe.openperouter.github.io,resources=vnis/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=openpe.openperouter.github.io,resources=vnis/finalizers,verbs=update
@@ -116,7 +117,11 @@ func (r *PERouterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	})
 
 	if nonRecoverableHostError(err) {
-		// TODO kill the router pod, that will result in an event on the new pod
+		logger.Info("breaking configuration change", "killing pod", routerPod.Name)
+		if err := r.Client.Delete(ctx, routerPod); err != nil && !errors.IsNotFound(err) {
+			slog.Error("failed to delete router pod", "error", err)
+			return ctrl.Result{}, err
+		}
 		return ctrl.Result{}, nil
 	}
 	if err != nil {
