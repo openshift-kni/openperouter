@@ -2,11 +2,13 @@
 set -euo pipefail
 
 pushd "$(dirname $(readlink -f $0))"
+
 KUBECONFIG_PATH=${KUBECONFIG_PATH:-"$(pwd)/kubeconfig"}
 KIND_BIN=${KIND_BIN:-"kind"}
 CLAB_VERSION=0.64.0
 
 KIND_CLUSTER_NAME="${KIND_CLUSTER_NAME:-pe-kind}"
+
 
 clusters=$("${KIND_BIN}" get clusters)
 for cluster in $clusters; do
@@ -56,4 +58,8 @@ docker exec clab-kind-leaf1 /setup.sh
 docker exec clab-kind-leaf2 /setup.sh
 docker exec clab-kind-spine /setup.sh
 docker exec clab-kind-HOST1 /setup.sh
+
+sudo ./check_veths.sh kindctrlpl toswitch pe-kind-control-plane 192.168.11.3/24 &
+sudo ./check_veths.sh kindworker toswitch pe-kind-worker 192.168.11.4/24 &
+
 popd
