@@ -17,7 +17,7 @@ CONTAINER_SIDE_IP=$4
 
 echo "keeping $VETH_NAME - $PEER_NAME up in $CONTAINER_NAME"
 while true; do
-  if !container_exists "$CONTAINER_NAME"; then
+  if ! container_exists "$CONTAINER_NAME"; then
     echo "Container $CONTAINER_NAME does not exist. Exiting."
     exit 1
   fi
