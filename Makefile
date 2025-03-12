@@ -158,7 +158,7 @@ deploy-clab: kubectl manifests kustomize load-on-kind ## Deploy a cluster for th
 KUSTOMIZE_LAYER ?= default
 .PHONY: deploy-controller
 deploy-controller: kubectl kustomize ## Deploy controller to the K8s cluster specified in $KUBECONFIG.
-	cd config/daemons && $(KUSTOMIZE) edit set image router=${IMG}
+	cd config/pods && $(KUSTOMIZE) edit set image router=${IMG}
 	$(KUBECTL) -n ${NAMESPACE} delete ds openperouter-controller || true
 	$(KUBECTL) -n ${NAMESPACE} delete ds openperouter-router || true
 
@@ -271,8 +271,8 @@ kind-export-logs:
 
 .PHONY: generate-all-in-one
 generate-all-in-one: manifests kustomize ## Create manifests
-	cd config/daemons && $(KUSTOMIZE) edit set image controller=${IMG}
-	cd config/daemons && $(KUSTOMIZE) edit set namespace $(NAMESPACE)
+	cd config/pods && $(KUSTOMIZE) edit set image controller=${IMG}
+	cd config/pods && $(KUSTOMIZE) edit set namespace $(NAMESPACE)
 
 	$(KUSTOMIZE) build config/default > config/all-in-one/openpe.yaml
 	$(KUSTOMIZE) build config/crio > config/all-in-one/crio.yaml

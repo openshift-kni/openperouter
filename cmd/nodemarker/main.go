@@ -20,7 +20,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"time"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
@@ -33,9 +32,8 @@ import (
 
 	"github.com/go-logr/logr"
 	periov1alpha1 "github.com/openperouter/openperouter/api/v1alpha1"
-	"github.com/openperouter/openperouter/internal/controller/routerconfiguration"
+	"github.com/openperouter/openperouter/internal/controller/nodeindex"
 	"github.com/openperouter/openperouter/internal/logging"
-	"github.com/openperouter/openperouter/internal/pods"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -53,30 +51,15 @@ func init() {
 
 func main() {
 	var (
-		metricsAddr   string
-		probeAddr     string
-		secureMetrics bool
-		enableHTTP2   bool
-		nodeName      string
-		namespace     string
-		logLevel      string
-		frrConfigPath string
-		reloadPort    int
-		criSocket     string
+		nodeName  string
+		namespace string
+		logLevel  string
+		probeAddr string
 	)
-	flag.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
-		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":9081", "The address the probe endpoint binds to.")
-	flag.BoolVar(&secureMetrics, "metrics-secure", true,
-		"If set, the metrics endpoint is served securely via HTTPS. Use --metrics-secure=false to use HTTP instead.")
-	flag.BoolVar(&enableHTTP2, "enable-http2", false,
-		"If set, HTTP/2 will be enabled for the metrics and webhook servers")
 	flag.StringVar(&nodeName, "nodename", "", "The name of the node the controller runs on")
 	flag.StringVar(&namespace, "namespace", "", "The namespace the controller runs in")
 	flag.StringVar(&logLevel, "loglevel", "info", "the verbosity of the process")
-	flag.StringVar(&frrConfigPath, "frrconfig", "/etc/perouter/frr/frr.conf", "the location of the frr configuration file")
-	flag.IntVar(&reloadPort, "reloadport", 9080, "the port of the reloader process")
-	flag.StringVar(&criSocket, "crisocket", "/var/run/containerd/containerd.sock", "the location of the cri socket")
 
 	flag.Parse()
 
@@ -104,24 +87,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	podRuntime, err := pods.NewRuntime(criSocket, 5*time.Minute)
-	if err != nil {
-		setupLog.Error(err, "connect to crio")
-		os.Exit(1)
-	}
-
-	if err = (&routerconfiguration.PERouterReconciler{
-		Client:      mgr.GetClient(),
-		Scheme:      mgr.GetScheme(),
-		MyNode:      nodeName,
-		FRRConfig:   frrConfigPath,
-		ReloadPort:  reloadPort,
-		PodRuntime:  podRuntime,
-		LogLevel:    logLevel,
-		Logger:      logger,
-		MyNamespace: namespace,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Underlay")
+	signalHandlerContext := ctrl.SetupSignalHandler()
+	if err = (&nodeindex.NodesReconciler{
+		Client:   mgr.GetClient(),
+		Scheme:   mgr.GetScheme(),
+		LogLevel: logLevel,
+		Logger:   logger,
+	}).SetupWithManager(signalHandlerContext, mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "NodeReconciler")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder
@@ -136,7 +109,7 @@ func main() {
 	}
 
 	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(signalHandlerContext); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}

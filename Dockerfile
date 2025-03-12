@@ -21,12 +21,15 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
   && \
   CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -o controller cmd/hostcontroller/main.go \
   && \
-  CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -o cp-tool cmd/cp-tool/main.go
+  CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -o cp-tool cmd/cp-tool/main.go \
+  && \
+  CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -o nodemarker cmd/nodemarker/main.go
 
 FROM quay.io/fedora/fedora:43
 WORKDIR /
 COPY --from=builder /go/openperouter/reloader .
 COPY --from=builder /go/openperouter/controller .
 COPY --from=builder /go/openperouter/cp-tool .
+COPY --from=builder /go/openperouter/nodemarker .
 
 ENTRYPOINT ["/controller"]

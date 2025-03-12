@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nodemarker
+  namespace: system
+  labels:
+    control-plane: nodemarker
+    app.kubernetes.io/name: nodemarker
+    app.kubernetes.io/instance: nodemarker
+    app.kubernetes.io/component: nodemarker
+    app.kubernetes.io/created-by: nodemarker
+    app.kubernetes.io/part-of: nodemarker
+    app.kubernetes.io/managed-by: kustomize
+spec:
+  selector:
+    matchLabels:
+      control-plane: nodemarker
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: nodemarker
+      labels:
+        control-plane: nodemarker
+        app: nodemarker
+    spec:
+      containers:
+      - command:
+        - /nodemarker
+        args:
+        - "--loglevel=debug"
+        image: router:latest
+        imagePullPolicy: IfNotPresent
+        name: nodemarker
+        resources:
+          limits:
+            cpu: 500m
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 64Mi
+      serviceAccountName: controller

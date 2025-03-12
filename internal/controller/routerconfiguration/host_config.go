@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:Apache-2.0
 
-package controller
+package routerconfiguration
 
 import (
 	"context"
@@ -40,6 +40,10 @@ func configureInterfaces(ctx context.Context, config interfacesConfiguration) er
 	}
 	if hasAlreadyUnderlay && len(config.Underlays) == 0 {
 		return UnderlayRemovedError{}
+	}
+
+	if len(config.Underlays) == 0 {
+		return nil // nothing to do
 	}
 
 	slog.InfoContext(ctx, "configure interface start", "namespace", targetNS)
