@@ -241,7 +241,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: openperouter
-  name: openperouter-controller
+  name: controller
   namespace: openperouter-system
 ---
 apiVersion: v1
@@ -250,13 +250,13 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: openperouter
-  name: openperouter-perouter
+  name: perouter
   namespace: openperouter-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: openperouter-controller-role
+  name: controller-role
 rules:
 - apiGroups:
   - ""
@@ -335,14 +335,14 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: openperouter
-  name: openperouter-controller-rolebinding
+  name: controller-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: openperouter-controller-role
+  name: controller-role
 subjects:
 - kind: ServiceAccount
-  name: openperouter-controller
+  name: controller
   namespace: openperouter-system
 ---
 apiVersion: v1
@@ -440,7 +440,7 @@ data:
     service integrated-vtysh-config
 kind: ConfigMap
 metadata:
-  name: openperouter-frr-startup
+  name: frr-startup
   namespace: openperouter-system
 ---
 apiVersion: apps/v1
@@ -454,7 +454,7 @@ metadata:
     app.kubernetes.io/name: nodemarker
     app.kubernetes.io/part-of: nodemarker
     control-plane: nodemarker
-  name: openperouter-nodemarker
+  name: nodemarker
   namespace: openperouter-system
 spec:
   selector:
@@ -483,7 +483,7 @@ spec:
           requests:
             cpu: 10m
             memory: 64Mi
-      serviceAccountName: openperouter-controller
+      serviceAccountName: controller
 ---
 apiVersion: apps/v1
 kind: DaemonSet
@@ -496,7 +496,7 @@ metadata:
     app.kubernetes.io/name: controller
     app.kubernetes.io/part-of: controller
     control-plane: controller
-  name: openperouter-controller
+  name: controller
   namespace: openperouter-system
 spec:
   selector:
@@ -557,7 +557,7 @@ spec:
           name: frr-config
       hostNetwork: true
       hostPID: true
-      serviceAccountName: openperouter-controller
+      serviceAccountName: controller
       tolerations:
       - effect: NoSchedule
         key: node-role.kubernetes.io/master
@@ -588,7 +588,7 @@ metadata:
     app.kubernetes.io/name: router
     app.kubernetes.io/part-of: router
     control-plane: router
-  name: openperouter-router
+  name: router
   namespace: openperouter-system
 spec:
   selector:
@@ -672,7 +672,7 @@ spec:
         volumeMounts:
         - mountPath: /etc/frr_reloader
           name: reloader
-      serviceAccountName: openperouter-perouter
+      serviceAccountName: perouter
       shareProcessNamespace: true
       terminationGracePeriodSeconds: 10
       tolerations:
@@ -686,7 +686,7 @@ spec:
       - emptyDir: {}
         name: frr-sockets
       - configMap:
-          name: openperouter-frr-startup
+          name: frr-startup
         name: frr-startup
       - emptyDir: {}
         name: reloader
