@@ -62,9 +62,9 @@ vet: ## Run go vet against code.
 	go vet ./...
 
 .PHONY: test
-test: manifests generate fmt vet envtest ## Run tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $$(go list ./... | grep -v /e2e) -coverprofile cover.out
-	sudo -E sh -c "umask 0; PATH=${GOPATH}/bin:$(pwd)/bin:${PATH} go test -tags=runasroot -v -race ./..."
+test: fmt vet ## Run tests.
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $$(go list ./... | grep -v e2etest) -coverprofile cover.out
+	sudo -E sh -c "umask 0; PATH=${GOPATH}/bin:$(pwd)/bin:${PATH} go test -tags=runasroot -v -race ./internal/hostnetwork"
 
 
 ##@ Build
@@ -113,6 +113,7 @@ GINKGO ?= $(LOCALBIN)/ginkgo
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 HELM ?= $(LOCALBIN)/helm
 KUBECONFIG_PATH ?= $(LOCALBIN)/kubeconfig
+VALIDATOR_PATH ?= $(LOCALBIN)/validatehost
 APIDOCSGEN ?= $(LOCALBIN)/crd-ref-docs
 export KUBECONFIG=$(KUBECONFIG_PATH)
 
@@ -120,7 +121,7 @@ export KUBECONFIG=$(KUBECONFIG_PATH)
 KUSTOMIZE_VERSION ?= v5.0.0
 CONTROLLER_TOOLS_VERSION ?= v0.14.0
 KUBECTL_VERSION ?= v1.27.0
-GINKGO_VERSION ?= v2.19.0
+GINKGO_VERSION ?= v2.23.0
 KIND_VERSION ?= v0.23.0
 KIND_CLUSTER_NAME ?= pe-kind
 HELM_VERSION ?= v3.12.3
@@ -233,8 +234,8 @@ $(APIDOCSGEN): $(LOCALBIN)
 	GOBIN=$(LOCALBIN) go install github.com/elastic/crd-ref-docs@$(APIDOCSGEN_VERSION)
 
 .PHONY: e2etests
-e2etests: ginkgo kubectl
-	$(GINKGO) -v $(GINKGO_ARGS) --timeout=3h ./e2etests -- --kubectl=$(KUBECTL) $(TEST_ARGS)
+e2etests: ginkgo kubectl build-validator
+	$(GINKGO) -v $(GINKGO_ARGS) --timeout=3h ./e2etests -- --kubectl=$(KUBECTL) $(TEST_ARGS) --hostvalidator $(VALIDATOR_PATH)
 
 
 .PHONY: clab-cluster
@@ -293,3 +294,8 @@ bumpversion:
 .PHONY: cutrelease
 cutrelease: bumpversion generate-all-in-one helm-docs
 	hack/release/release.sh
+
+.PHONY: build-validator
+build-validator: ginkgo ## Build Ginkgo test binary.
+	CGO_ENABLED=0 $(GINKGO) build -tags=externaltests ./internal/hostnetwork
+	mv internal/hostnetwork/hostnetwork.test $(VALIDATOR_PATH)
