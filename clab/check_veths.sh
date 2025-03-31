@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -u
+
 function veth_exists {
     ip link show "$1" &> /dev/null
     return $?
@@ -10,28 +12,48 @@ function container_exists {
     return $?
 }
 
-VETH_NAME=$1
-PEER_NAME=$2
-CONTAINER_NAME=$3
-CONTAINER_SIDE_IP=$4
 
-echo "keeping $VETH_NAME - $PEER_NAME up in $CONTAINER_NAME"
-while true; do
-  if ! container_exists "$CONTAINER_NAME"; then
-    echo "Container $CONTAINER_NAME does not exist. Exiting."
-    exit 1
-  fi
+function ensure_veth {
+  VETH_NAME=$1
+  PEER_NAME=$2
+  CONTAINER_NAME=$3
+  CONTAINER_SIDE_IP=$4
 
   if ! veth_exists "$VETH_NAME"; then
     echo "Veth $VETH_NAME not there, recreating"
     ip link add "$VETH_NAME" type veth peer name "$PEER_NAME"
+    echo "Veth $VETH_NAME not there, recreated"
     pid=$(docker inspect -f '{{.State.Pid}}' "$CONTAINER_NAME")
     ip link set "$PEER_NAME" netns "$pid"
     ip link set "$VETH_NAME" up
 
     ip link set "$VETH_NAME" master leaf2-switch
+    echo "Veth $VETH_NAME setting ip"
     docker exec "$CONTAINER_NAME" ip address add $CONTAINER_SIDE_IP dev "$PEER_NAME"
     docker exec "$CONTAINER_NAME" ip link set "$PEER_NAME" up
   fi
-  sleep 10
+}
+
+nodes=("$@")
+
+node_parts=()
+while true; do
+
+for node in "${nodes[@]}"; do
+
+    IFS=':' read -ra node_parts <<< "$node"
+    veth_name="${node_parts[0]}"
+    peer_name="${node_parts[1]}"
+    container_name="${node_parts[2]}"
+    container_side_ip="${node_parts[3]}"
+
+    if ! container_exists "$container_name"; then
+      echo "Container $container_name does not exist. Exiting."
+      exit 1
+    fi
+
+    ensure_veth $veth_name $peer_name $container_name $container_side_ip
 done
+sleep 5s
+done
+
