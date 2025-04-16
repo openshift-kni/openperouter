@@ -5,6 +5,7 @@ package config
 import (
 	"context"
 
+	frrk8sv1beta1 "github.com/metallb/frr-k8s/api/v1beta1"
 	"github.com/openperouter/openperouter/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -14,23 +15,17 @@ import (
 )
 
 type Resources struct {
-	Underlays []v1alpha1.Underlay `json:"underlays"`
-	VNIs      []v1alpha1.VNI      `json:"vnis"`
+	Underlays         []v1alpha1.Underlay `json:"underlays"`
+	VNIs              []v1alpha1.VNI      `json:"vnis"`
+	FRRConfigurations []frrk8sv1beta1.FRRConfiguration
 }
 
-type Updater interface {
-	Update(r Resources) error
-	Clean() error
-	Client() client.Client
-	Namespace() string
-}
-
-type beta1Updater struct {
+type Updater struct {
 	cli       client.Client
 	namespace string
 }
 
-func UpdaterForCRs(r *rest.Config, ns string) (Updater, error) {
+func UpdaterForCRs(r *rest.Config, ns string) (*Updater, error) {
 	myScheme := runtime.NewScheme()
 
 	if err := v1alpha1.AddToScheme(myScheme); err != nil {
@@ -38,6 +33,10 @@ func UpdaterForCRs(r *rest.Config, ns string) (Updater, error) {
 	}
 
 	if err := corev1.AddToScheme(myScheme); err != nil {
+		return nil, err
+	}
+
+	if err := frrk8sv1beta1.AddToScheme(myScheme); err != nil {
 		return nil, err
 	}
 
@@ -49,13 +48,13 @@ func UpdaterForCRs(r *rest.Config, ns string) (Updater, error) {
 		return nil, err
 	}
 
-	return &beta1Updater{
+	return &Updater{
 		cli:       cl,
 		namespace: ns,
 	}, nil
 }
 
-func (o beta1Updater) Update(r Resources) error {
+func (o Updater) Update(r Resources) error {
 	// we fill a map of objects to keep the order we add the resources random, as
 	// it would happen by throwing a set of manifests against a cluster, hoping to
 	// find corner cases that we would not find by adding them always in the same
@@ -73,6 +72,11 @@ func (o beta1Updater) Update(r Resources) error {
 		oldValues[key] = vni.DeepCopy()
 		key++
 	}
+	for _, frrConfig := range r.FRRConfigurations {
+		objects[key] = frrConfig.DeepCopy()
+		oldValues[key] = frrConfig.DeepCopy()
+		key++
+	}
 
 	// Iterating over the map will return the items in a random order.
 	for i, obj := range objects {
@@ -87,6 +91,9 @@ func (o beta1Updater) Update(r Resources) error {
 			case *v1alpha1.VNI:
 				old := oldValues[i].(*v1alpha1.VNI)
 				toChange.Spec = *old.Spec.DeepCopy()
+			case *frrk8sv1beta1.FRRConfiguration:
+				old := oldValues[i].(*frrk8sv1beta1.FRRConfiguration)
+				toChange.Spec = *old.Spec.DeepCopy()
 			}
 
 			return nil
@@ -98,22 +105,37 @@ func (o beta1Updater) Update(r Resources) error {
 	return nil
 }
 
-func (o beta1Updater) Clean() error {
-	err := o.cli.DeleteAllOf(context.Background(), &v1alpha1.Underlay{}, client.InNamespace(o.namespace))
-	if err != nil {
+// CleanAll deletes all relevant resources in the namespace.
+func (o Updater) CleanAll() error {
+	if err := o.cli.DeleteAllOf(context.Background(), &v1alpha1.Underlay{},
+		client.InNamespace(o.namespace)); err != nil {
 		return err
 	}
-	err = o.cli.DeleteAllOf(context.Background(), &v1alpha1.VNI{}, client.InNamespace(o.namespace))
-	if err != nil {
+	if err := o.CleanButUnderlay(); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (o beta1Updater) Client() client.Client {
+// CleanButUnderlay deletes all resources but the underlays.
+// This is needed as deleting underlays is a time consuming operation that
+// will cause the router pods to be recreated.
+func (o Updater) CleanButUnderlay() error {
+	if err := o.cli.DeleteAllOf(context.Background(), &v1alpha1.VNI{},
+		client.InNamespace(o.namespace)); err != nil {
+		return err
+	}
+	if err := o.cli.DeleteAllOf(context.Background(), &frrk8sv1beta1.FRRConfiguration{},
+		client.InNamespace(o.namespace)); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (o Updater) Client() client.Client {
 	return o.cli
 }
 
-func (o beta1Updater) Namespace() string {
+func (o Updater) Namespace() string {
 	return o.namespace
 }

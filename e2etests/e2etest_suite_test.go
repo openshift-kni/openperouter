@@ -9,24 +9,23 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/openperouter/openperouter/e2etests/hostconfiguration"
 	"github.com/openperouter/openperouter/e2etests/pkg/config"
 	"github.com/openperouter/openperouter/e2etests/pkg/executor"
 	"github.com/openperouter/openperouter/e2etests/pkg/k8sclient"
 	"github.com/openperouter/openperouter/e2etests/pkg/openperouter"
+	"github.com/openperouter/openperouter/e2etests/tests"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
 var (
-	updater config.Updater
+	updater *config.Updater
 )
 
 // handleFlags sets up all flags and parses the command line.
 func handleFlags() {
 	flag.StringVar(&executor.Kubectl, "kubectl", "kubectl", "the path for the kubectl binary")
-	flag.StringVar(&hostconfiguration.ValidatorPath, "hostvalidator", "hostvalidator",
-		"the path for the hostvalidator binary")
+	flag.StringVar(&tests.ValidatorPath, "hostvalidator", "hostvalidator", "the path for the hostvalidator binary")
 	flag.Parse()
 }
 
@@ -55,11 +54,11 @@ var _ = ginkgo.BeforeSuite(func() {
 	var err error
 	updater, err = config.UpdaterForCRs(clientconfig, openperouter.Namespace)
 	Expect(err).NotTo(HaveOccurred())
-	hostconfiguration.Updater = updater
+	tests.Updater = updater
 
 })
 
 var _ = ginkgo.AfterSuite(func() {
-	err := updater.Clean()
+	err := updater.CleanAll()
 	Expect(err).NotTo(HaveOccurred())
 })
