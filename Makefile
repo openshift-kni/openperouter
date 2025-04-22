@@ -160,8 +160,9 @@ KUSTOMIZE_LAYER ?= default
 .PHONY: deploy-controller
 deploy-controller: kubectl kustomize ## Deploy controller to the K8s cluster specified in $KUBECONFIG.
 	cd config/pods && $(KUSTOMIZE) edit set image router=${IMG}
-	$(KUBECTL) -n ${NAMESPACE} delete ds openperouter-controller || true
-	$(KUBECTL) -n ${NAMESPACE} delete ds openperouter-router || true
+	$(KUBECTL) -n ${NAMESPACE} delete ds controller || true
+	$(KUBECTL) -n ${NAMESPACE} delete ds router || true
+	$(KUBECTL) -n ${NAMESPACE} delete deployment nodemarker || true
 
 	# todo tweak loglevel
 	$(KUSTOMIZE) build config/$(KUSTOMIZE_LAYER) | $(KUBECTL) apply -f -
