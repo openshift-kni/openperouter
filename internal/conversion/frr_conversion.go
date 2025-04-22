@@ -29,9 +29,6 @@ func APItoFRR(nodeIndex int, underlays []v1alpha1.Underlay, vnis []v1alpha1.VNI,
 	if len(underlays) == 0 {
 		return frr.Config{}, FRREmptyConfigError("no underlays provided")
 	}
-	if len(vnis) == 0 {
-		return frr.Config{}, FRREmptyConfigError("no vnis provided")
-	}
 
 	underlay := underlays[0]
 	vtepIP, err := ipam.VTEPIp(underlay.Spec.VTEPCIDR, nodeIndex)
