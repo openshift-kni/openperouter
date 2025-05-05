@@ -27,7 +27,7 @@ function ensure_veth {
     ip link set "$PEER_NAME" netns "$pid"
     ip link set "$VETH_NAME" up
 
-    ip link set "$VETH_NAME" master leaf2-switch
+    ip link set "$VETH_NAME" master leafkind-switch
     echo "Veth $VETH_NAME setting ip"
     docker exec "$CONTAINER_NAME" ip address add $CONTAINER_SIDE_IP dev "$PEER_NAME"
     docker exec "$CONTAINER_NAME" ip link set "$PEER_NAME" up

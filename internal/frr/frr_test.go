@@ -72,6 +72,30 @@ func TestEmpty(t *testing.T) {
 	testCheckConfigFile(t)
 }
 
+func TestNoVNIs(t *testing.T) {
+	configFile := testSetup(t)
+	updater := testUpdater(configFile)
+
+	config := Config{
+		Underlay: UnderlayConfig{
+			MyASN: 64512,
+			VTEP:  "100.64.0.1/32",
+			Neighbors: []NeighborConfig{
+				{
+					ASN:      64512,
+					Addr:     "192.168.1.2",
+					IPFamily: ipfamily.IPv4,
+				},
+			},
+		},
+	}
+	if err := ApplyConfig(context.TODO(), &config, updater); err != nil {
+		t.Fatalf("Failed to apply config: %s", err)
+	}
+
+	testCheckConfigFile(t)
+}
+
 func testCompareFiles(t *testing.T, configFile, goldenFile string) {
 	var lastError error
 

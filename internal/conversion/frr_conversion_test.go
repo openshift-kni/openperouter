@@ -43,8 +43,26 @@ func TestAPItoFRR(t *testing.T) {
 					},
 				},
 			},
-			vnis:    []v1alpha1.VNI{},
-			wantErr: true,
+			vnis:     []v1alpha1.VNI{},
+			logLevel: "debug",
+			want: frr.Config{
+				Underlay: frr.UnderlayConfig{
+					MyASN: 65000,
+					VTEP:  "192.168.1.0/32",
+					Neighbors: []frr.NeighborConfig{
+						{
+							Name:         "65001@192.168.1.1",
+							ASN:          65001,
+							Addr:         "192.168.1.1",
+							IPFamily:     ipfamily.IPv4,
+							EBGPMultiHop: false,
+						},
+					},
+				},
+				VNIs:     []frr.VNIConfig{},
+				Loglevel: "debug",
+			},
+			wantErr: false,
 		},
 		{
 			name:      "valid input",

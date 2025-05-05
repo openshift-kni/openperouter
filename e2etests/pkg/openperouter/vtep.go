@@ -36,5 +36,4 @@ func VtepIPForNode(cidr string, node *corev1.Node) (string, error) {
 		Mask: net.CIDRMask(32, 32),
 	}
 	return netip.String(), nil
-
 }

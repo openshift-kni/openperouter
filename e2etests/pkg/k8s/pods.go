@@ -57,6 +57,22 @@ func PodIsReady(p *corev1.Pod) bool {
 		podConditionStatus(p, corev1.ContainersReady) == corev1.ConditionTrue
 }
 
+func PodsForLabel(cs clientset.Interface, namespace, labelSelector string) ([]*corev1.Pod, error) {
+	pods, err := cs.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{
+		LabelSelector: labelSelector,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list pods with label %s: %w", labelSelector, err)
+	}
+	if len(pods.Items) == 0 {
+		return nil, fmt.Errorf("no pods found with label %s", labelSelector)
+	}
+	res := make([]*corev1.Pod, 0, len(pods.Items))
+	for i := range pods.Items {
+		res = append(res, &pods.Items[i])
+	}
+	return res, nil
+}
 func SendFileToPod(filePath string, p *corev1.Pod) error {
 	dst := fmt.Sprintf("%s/%s:/", p.Namespace, p.Name)
 	fullargs := []string{"cp", filePath, dst}

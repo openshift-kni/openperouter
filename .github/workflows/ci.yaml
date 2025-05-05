@@ -95,3 +95,35 @@ jobs:
       - name: Lint
         run: |
           ENV=host make lint
+
+  e2etests:
+    runs-on: ubuntu-22.04
+    needs:
+      - unit-tests
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+          cache: true
+
+      - name: Install kernel modules
+        run: |
+          sudo apt-get update
+          sudo apt-get install linux-modules-extra-$(uname -r)
+
+      - name: Build the image
+        run: |
+          make docker-build
+
+      - name: Deploy the cluster
+        run: |
+          make deploy
+
+      - name: Run e2e tests
+        run: |
+          make e2etests

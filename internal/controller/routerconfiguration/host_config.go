@@ -63,6 +63,10 @@ func configureInterfaces(ctx context.Context, config interfacesConfiguration) er
 			return fmt.Errorf("failed to setup vni: %w", err)
 		}
 	}
+	slog.InfoContext(ctx, "removing deleted vnis")
+	if err := hostnetwork.RemoveNonConfiguredVNIs(targetNS, vnis); err != nil {
+		return fmt.Errorf("failed to remove deleted vnis: %w", err)
+	}
 	return nil
 }
 
