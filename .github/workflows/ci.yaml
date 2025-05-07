@@ -131,3 +131,14 @@ jobs:
       - name: Run e2e tests
         run: |
           make e2etests
+
+      - name: Export kind logs
+        if: ${{ failure() }}
+        run:
+          make kind-export-logs
+
+      - name: Collect Logs
+        if: ${{ failure() }}
+        uses: ./.github/workflows/composite/collectlogs
+        with:
+          artifact-name: kind-logs-${{ matrix.deployment }}
