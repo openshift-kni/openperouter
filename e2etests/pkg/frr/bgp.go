@@ -97,9 +97,23 @@ type BFDPeer struct {
 	RemoteDetectMultiplier    int    `json:"remote-detect-multiplier"`
 }
 
+type NoNeighborError struct{}
+
+func (n NoNeighborError) Error() string {
+	return "no such neighbor"
+}
+
 // parseNeighbour takes the result of a show bgp neighbor x.y.w.z
 // and parses the informations related to the neighbour.
 func parseNeighbour(vtyshRes string) (*FRRNeighbor, error) {
+	var rawNeighborReply map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(vtyshRes), &rawNeighborReply); err != nil {
+		return nil, fmt.Errorf("error unmarshalling raw JSON: %v", err)
+	}
+	if _, ok := rawNeighborReply["bgpNoSuchNeighbor"]; ok {
+		return nil, NoNeighborError{}
+	}
+
 	res := map[string]FRRNeighbor{}
 	err := json.Unmarshal([]byte(vtyshRes), &res)
 	if err != nil {
