@@ -68,7 +68,7 @@ var _ = Describe("Router Host configuration", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	It("peers with the tor", func() {
+	validateTORSession := func() {
 		exec := executor.ForContainer(infra.KindLeaf)
 		Eventually(func() error {
 			for _, node := range nodes {
@@ -78,6 +78,9 @@ var _ = Describe("Router Host configuration", Ordered, func() {
 			}
 			return nil
 		}, time.Minute, time.Second).ShouldNot(HaveOccurred())
+	}
+	It("peers with the tor", func() {
+		validateTORSession()
 	})
 
 	Context("with a vni", func() {
@@ -121,6 +124,8 @@ var _ = Describe("Router Host configuration", Ordered, func() {
 
 		// This test must be the last of the ordered describe as it will remove the underlay
 		It("deleting the underlay removes the session with the tor", func() {
+			validateTORSession()
+
 			By("deleting the vni removes the session with the host")
 			err := Updater.Client().Delete(context.Background(), &infra.Underlay)
 			Expect(err).NotTo(HaveOccurred())
