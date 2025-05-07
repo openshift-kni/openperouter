@@ -102,6 +102,8 @@ jobs:
       - unit-tests
     strategy:
       fail-fast: false
+      matrix:
+        deployment: [manifests, helm]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -122,7 +124,9 @@ jobs:
 
       - name: Deploy the cluster
         run: |
-          make deploy
+          MAKE_RULE="deploy"
+          if [ ${{ matrix.deployment }} = "helm" ]; then MAKE_RULE="deploy-helm"; fi
+          IMG_TAG=latest make $MAKE_RULE
 
       - name: Run e2e tests
         run: |
