@@ -96,10 +96,37 @@ jobs:
         run: |
           ENV=host make lint
 
+  build-test-images:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: true
+    steps:
+      - name: Code checkout
+        uses: actions/checkout@v4
+      - name: Setup docker buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and export the image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          tags: quay.io/openperouter/router:latest
+          file: Dockerfile
+          outputs: type=docker,dest=/tmp/openperouter.tar
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Upload openperouter artifact
+        uses: actions/upload-artifact@v4
+        with:
+          retention-days: 1
+          name: image-tar-openperouter
+          path: /tmp/openperouter.tar
+
   e2etests:
     runs-on: ubuntu-22.04
     needs:
       - unit-tests
+      - build-test-images
     strategy:
       fail-fast: false
       matrix:
@@ -118,9 +145,15 @@ jobs:
           sudo apt-get update
           sudo apt-get install linux-modules-extra-$(uname -r)
 
-      - name: Build the image
+      - name: Download openperouter image
+        uses: actions/download-artifact@v4
+        with:
+          path: image
+
+      - name: Load image
+        working-directory: image
         run: |
-          make docker-build
+          docker load -i image-tar-openperouter/openperouter.tar
 
       - name: Deploy the cluster
         run: |
