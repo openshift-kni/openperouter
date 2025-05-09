@@ -64,6 +64,7 @@ var _ = Describe("Router Host configuration", Ordered, func() {
 	})
 
 	AfterEach(func() {
+		dumpIfFails(cs)
 		err := Updater.CleanButUnderlay()
 		Expect(err).NotTo(HaveOccurred())
 	})

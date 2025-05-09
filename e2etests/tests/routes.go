@@ -24,6 +24,7 @@ import (
 )
 
 var (
+	ReportPath string
 	// NOTE: we can't advertise any ip via EVPN from the leaves, they
 	// must be reacheable otherwise FRR will skip them.
 	leafAVRFRedPrefixes  = []string{"192.168.20.0/24"}
@@ -129,6 +130,7 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 	})
 
 	AfterEach(func() {
+		dumpIfFails(cs)
 		err := Updater.CleanButUnderlay()
 		Expect(err).NotTo(HaveOccurred())
 	})
