@@ -1,6 +1,6 @@
 module github.com/openperouter/openperouter/e2etests
 
-go 1.23.6
+go 1.24.3
 
 require (
 	github.com/apparentlymart/go-cidr v1.1.0
