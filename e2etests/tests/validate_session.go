@@ -25,21 +25,21 @@ func validateFRRK8sSessionForVNI(vni v1alpha1.VNI, established bool, frrk8sPods 
 	for _, p := range frrk8sPods {
 		By(fmt.Sprintf("checking the session between %s and vni %s", p.Name, vni.Name))
 		exec := executor.ForPod(p.Namespace, p.Name, "frr")
-		validateSessionWithNeighbor(exec, neighborIP, established)
+		validateSessionWithNeighbor(p.Name, vni.Name, exec, neighborIP, established)
 	}
 }
 
-func validateSessionWithNeighbor(exec executor.Executor, neighborIP string, established bool) {
+func validateSessionWithNeighbor(fromName, toName string, exec executor.Executor, neighborIP string, established bool) {
 	Eventually(func() error {
 		neigh, err := frr.NeighborInfo(neighborIP, exec)
 		if err != nil {
 			return err
 		}
 		if !established && neigh.BgpState == "Established" {
-			return fmt.Errorf("neighbor %s is established", neighborIP)
+			return fmt.Errorf("neighbor from %s to %s - %s is established", fromName, toName, neighborIP)
 		}
 		if established && neigh.BgpState != "Established" {
-			return fmt.Errorf("neighbor %s is not established", neighborIP)
+			return fmt.Errorf("neighbor %s to %s - %s is not established", fromName, toName, neighborIP)
 		}
 		return nil
 	}, 5*time.Minute, time.Second).ShouldNot(HaveOccurred())
