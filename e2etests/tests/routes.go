@@ -95,6 +95,8 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 		routerPods, err = openperouter.RouterPods(cs)
 		Expect(err).NotTo(HaveOccurred())
 
+		DumpPods("Router pods", routerPods)
+
 		err = Updater.Update(config.Resources{
 			Underlays: []v1alpha1.Underlay{
 				infra.Underlay,
@@ -214,6 +216,9 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 		BeforeEach(func() {
 			frrk8sPods, err = frrk8s.Pods(cs)
 			Expect(err).NotTo(HaveOccurred())
+
+			DumpPods("FRRK8s pods", frrk8sPods)
+
 			err := Updater.Update(config.Resources{
 				VNIs: []v1alpha1.VNI{
 					vniRed,
