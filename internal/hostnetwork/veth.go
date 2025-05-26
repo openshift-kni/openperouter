@@ -15,13 +15,13 @@ import (
 
 // setupVeth sets up a veth pair with the name generated from the given name and one leg in the
 // given namespace.
-func setupVeth(ctx context.Context, name string, targetNS netns.NsHandle) (netlink.Link, netlink.Link, error) {
+func setupVeth(ctx context.Context, name string, targetNS netns.NsHandle) (netlink.Link, error) {
 	logger := slog.Default().With("veth", name)
 	logger.DebugContext(ctx, "setting up veth")
 
 	hostSide, err := createVeth(ctx, logger, name)
 	if err != nil {
-		return nil, nil, fmt.Errorf("could not create veth for VRF %s: %w", name, err)
+		return nil, fmt.Errorf("could not create veth for VRF %s: %w", name, err)
 	}
 
 	var peSideNs netlink.Link
@@ -36,30 +36,30 @@ func setupVeth(ctx context.Context, name string, targetNS netns.NsHandle) (netli
 		return nil
 	})
 	if err != nil && !errors.As(err, &netlink.LinkNotFoundError{}) { // real error
-		return nil, nil, fmt.Errorf("could not find peer by name for %s: %w", hostSide.Name, err)
+		return nil, fmt.Errorf("could not find peer by name for %s: %w", hostSide.Name, err)
 	}
 	if err == nil {
-		return hostSide, peSideNs, nil
+		return hostSide, nil
 	}
 
 	// Not in the namespace, let's try locally
 	peerIndex, err := netlink.VethPeerIndex(hostSide)
 	if err != nil {
-		return nil, nil, fmt.Errorf("could not find peer veth for %s: %w", hostSide.Name, err)
+		return nil, fmt.Errorf("could not find peer veth for %s: %w", hostSide.Name, err)
 	}
 	peSide, err := netlink.LinkByIndex(peerIndex)
 
 	if err != nil && !errors.As(err, &netlink.LinkNotFoundError{}) { // real error
-		return nil, nil, fmt.Errorf("could not find peer by index for %s: %w", hostSide.Name, err)
+		return nil, fmt.Errorf("could not find peer by index for %s: %w", hostSide.Name, err)
 	}
 
 	if err = netlink.LinkSetNsFd(peSide, int(targetNS)); err != nil {
-		return nil, nil, fmt.Errorf("setupUnderlay: Failed to move %s to network namespace %s: %w", peSide.Attrs().Name, targetNS.String(), err)
+		return nil, fmt.Errorf("setupUnderlay: Failed to move %s to network namespace %s: %w", peSide.Attrs().Name, targetNS.String(), err)
 	}
 	slog.DebugContext(ctx, "pe leg moved to ns", "pe veth", peSide.Attrs().Name)
 
 	slog.DebugContext(ctx, "veth is set up", "vrf", name)
-	return hostSide, peSide, nil
+	return hostSide, nil
 }
 
 func createVeth(ctx context.Context, logger *slog.Logger, vrfName string) (*netlink.Veth, error) {

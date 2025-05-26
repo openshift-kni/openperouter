@@ -51,7 +51,7 @@ func SetupVNI(ctx context.Context, params VNIParams) error {
 		}
 	}()
 
-	hostVeth, peVeth, err := setupVeth(ctx, params.VRF, ns)
+	hostVeth, err := setupVeth(ctx, params.VRF, ns)
 	if err != nil {
 		return err
 	}
@@ -66,6 +66,11 @@ func SetupVNI(ctx context.Context, params VNIParams) error {
 	}
 
 	if err := inNamespace(ns, func() error {
+		_, peSideName := vethNamesFromVRF(params.VRF)
+		peVeth, err := netlink.LinkByName(peSideName)
+		if err != nil {
+			return fmt.Errorf("could not find peer veth %s in namespace %s: %w", peSideName, params.TargetNS, err)
+		}
 		err = assignIPToInterface(peVeth, params.VethNSIP)
 		if err != nil {
 			return err
