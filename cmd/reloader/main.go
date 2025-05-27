@@ -25,30 +25,37 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
+	"runtime/debug"
 	"time"
 
 	"github.com/openperouter/openperouter/internal/frrconfig"
 	"github.com/openperouter/openperouter/internal/logging"
 )
 
-var frrConfigPath string
-
 func main() {
-	var bindAddress string
-	var logLevel string
-	flag.StringVar(&bindAddress, "bindaddress", "0.0.0.0:9080", "The address the reloader endpoint binds to. ")
-	flag.StringVar(&frrConfigPath, "frrconfig", "/etc/frr/frr.conf", "The path the frr configuration is at")
-	flag.StringVar(&logLevel, "loglevel", "info", "The log level of the process")
+	args := struct {
+		bindAddress   string
+		logLevel      string
+		frrConfigPath string
+	}{}
+	flag.StringVar(&args.bindAddress, "bindaddress", "0.0.0.0:9080", "The address the reloader endpoint binds to. ")
+	flag.StringVar(&args.logLevel, "loglevel", "info", "The log level of the process")
+	flag.StringVar(&args.frrConfigPath, "frrconfig", "/etc/frr/frr.conf", "The path the frr configuration is at")
 	flag.Parse()
 
-	_, err := logging.New(logLevel)
+	_, err := logging.New(args.logLevel)
 	if err != nil {
 		fmt.Println("failed to init logger", err)
 	}
-	slog.Info("listening", "address", bindAddress)
-	http.HandleFunc("/", reloadHandler)
+
+	build, _ := debug.ReadBuildInfo()
+	slog.Info("version", "version", build.Main.Version)
+	slog.Info("arguments", "args", fmt.Sprintf("%+v", args))
+
+	slog.Info("listening", "address", args.bindAddress)
+	http.HandleFunc("/", reloadHandler(args.frrConfigPath))
 	server := &http.Server{
-		Addr:              bindAddress,
+		Addr:              args.bindAddress,
 		ReadHeaderTimeout: 3 * time.Second,
 	}
 
@@ -57,15 +64,17 @@ func main() {
 
 var updateConfig = frrconfig.Update
 
-func reloadHandler(w http.ResponseWriter, req *http.Request) {
-	if req.Method != http.MethodPost {
-		http.Error(w, "invalid method", http.StatusBadRequest)
-		return
-	}
-	slog.Info("reload handler", "event", "received request")
-	err := updateConfig(frrConfigPath)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+func reloadHandler(frrConfigPath string) func(w http.ResponseWriter, req *http.Request) {
+	return func(w http.ResponseWriter, req *http.Request) {
+		if req.Method != http.MethodPost {
+			http.Error(w, "invalid method", http.StatusBadRequest)
+			return
+		}
+		slog.Info("reload handler", "event", "received request")
+		err := updateConfig(frrConfigPath)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 }

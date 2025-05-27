@@ -54,7 +54,7 @@ func TestHandler(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			w := httptest.NewRecorder()
 			req, _ := http.NewRequest(tc.method, "/", nil)
-			handler := http.HandlerFunc(reloadHandler)
+			handler := http.HandlerFunc(reloadHandler("/etc/frr/frr.conf"))
 
 			handler.ServeHTTP(w, req)
 			res := w.Result()
