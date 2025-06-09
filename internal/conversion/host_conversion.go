@@ -10,7 +10,7 @@ import (
 	"github.com/openperouter/openperouter/internal/ipam"
 )
 
-func APItoHostConfig(nodeIndex int, targetNS string, underlays []v1alpha1.Underlay, vnis []v1alpha1.VNI, l2vnis []v1alpha1.L2VNI) (hostnetwork.UnderlayParams, []hostnetwork.L3VNIParams, []hostnetwork.L2VNIParams, error) {
+func APItoHostConfig(nodeIndex int, targetNS string, underlays []v1alpha1.Underlay, vnis []v1alpha1.L3VNI, l2vnis []v1alpha1.L2VNI) (hostnetwork.UnderlayParams, []hostnetwork.L3VNIParams, []hostnetwork.L2VNIParams, error) {
 	if len(underlays) > 1 {
 		return hostnetwork.UnderlayParams{}, nil, nil, fmt.Errorf("can't have more than one underlay")
 	}
@@ -31,7 +31,7 @@ func APItoHostConfig(nodeIndex int, targetNS string, underlays []v1alpha1.Underl
 		VtepIP:            vtepIP.String(),
 	}
 
-	vniParams := []hostnetwork.L3VNIParams{}
+	l3vniParams := []hostnetwork.L3VNIParams{}
 
 	for _, vni := range vnis {
 		vethIPs, err := ipam.VethIPs(vni.Spec.LocalCIDR, nodeIndex)
@@ -50,7 +50,7 @@ func APItoHostConfig(nodeIndex int, targetNS string, underlays []v1alpha1.Underl
 			VethHostIP: vethIPs.HostSide.String(),
 			VethNSIP:   vethIPs.PeSide.String(),
 		}
-		vniParams = append(vniParams, v)
+		l3vniParams = append(l3vniParams, v)
 	}
 
 	l2vniParams := []hostnetwork.L2VNIParams{}
@@ -77,5 +77,5 @@ func APItoHostConfig(nodeIndex int, targetNS string, underlays []v1alpha1.Underl
 		l2vniParams = append(l2vniParams, vni)
 	}
 
-	return underlayParams, vniParams, l2vniParams, nil
+	return underlayParams, l3vniParams, l2vniParams, nil
 }
