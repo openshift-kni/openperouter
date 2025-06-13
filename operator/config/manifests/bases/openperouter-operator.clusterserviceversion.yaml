@@ -16,11 +16,11 @@ spec:
       name: underlays.openpe.openperouter.github.io
       version: v1alpha1
     - description: |-
-        VNI represents a VXLan VNI to receive EVPN type 5 routes
+        L3VNI represents a VXLan VNI to receive EVPN type 5 routes
         from.
-      displayName: VNI
-      kind: VNI
-      name: vnis.openpe.openperouter.github.io
+      displayName: L3VNI
+      kind: L3VNI
+      name: l3vnis.openpe.openperouter.github.io
       version: v1alpha1
     - description: OpenPERouter is the Schema for the openperouters API
       displayName: Open PERouter
