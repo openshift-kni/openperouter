@@ -58,7 +58,7 @@ rules:
 - apiGroups:
   - openpe.openperouter.github.io
   resources:
-  - vnis
+  - l2vnis
   verbs:
   - create
   - delete
@@ -70,13 +70,65 @@ rules:
 - apiGroups:
   - openpe.openperouter.github.io
   resources:
-  - vnis/finalizers
+  - l2vnis/finalizers
   verbs:
   - update
 - apiGroups:
   - openpe.openperouter.github.io
   resources:
-  - vnis/status
+  - l2vnis/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - openpe.openperouter.github.io
+  resources:
+  - l3vnis
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - openpe.openperouter.github.io
+  resources:
+  - l3vnis/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - openpe.openperouter.github.io
+  resources:
+  - l3vnis/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - openpe.openperouter.github.io
+  resources:
+  - l2vnis
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - openpe.openperouter.github.io
+  resources:
+  - l2vnis/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - openpe.openperouter.github.io
+  resources:
+  - l2vnis/status
   verbs:
   - get
   - patch
