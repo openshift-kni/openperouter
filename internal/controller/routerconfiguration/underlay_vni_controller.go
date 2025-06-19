@@ -101,7 +101,7 @@ func (r *PERouterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		slog.Error("failed to list l3vnis", "error", err)
 		return ctrl.Result{}, err
 	}
-	if err := conversion.ValidateVNIs(l3vnis.Items); err != nil {
+	if err := conversion.ValidateL3VNIs(l3vnis.Items); err != nil {
 		slog.Error("failed to validate l3vnis", "error", err)
 		return ctrl.Result{}, nil
 	}
@@ -113,11 +113,10 @@ func (r *PERouterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	logger.Debug("using config", "l3vnis", l3vnis.Items, "l2vnis", l2vnis.Items, "underlays", underlays.Items)
-	/* TODO implement
 	if err := conversion.ValidateL2VNIs(l2vnis.Items); err != nil {
 		slog.Error("failed to validate l2vnis", "error", err)
 		return ctrl.Result{}, nil
-	}*/
+	}
 	if err := configureFRR(ctx, frrConfigData{
 		configFile: r.FRRConfig,
 		address:    routerPod.Status.PodIP,
