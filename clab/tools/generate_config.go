@@ -10,17 +10,19 @@ import (
 )
 
 type LeafConfig struct {
-	NeighborIP         string
-	NetworkToAdvertise string
+	NeighborIP                    string
+	NetworkToAdvertise            string
+	RedistributeConnectedFromVRFs bool
 }
 
 func main() {
 	var (
-		leafName           = flag.String("leaf", "", "Leaf name (e.g., leafA, leafB)")
-		neighborIP         = flag.String("neighbor", "", "Neighbor IP address")
-		networkToAdvertise = flag.String("network", "", "Network to advertise (CIDR format)")
-		outputDir          = flag.String("output", "", "Output directory (default: ../{leaf_name})")
-		templateFile       = flag.String("template", "frr.conf.template", "Template file path")
+		leafName                      = flag.String("leaf", "", "Leaf name (e.g., leafA, leafB)")
+		neighborIP                    = flag.String("neighbor", "", "Neighbor IP address")
+		networkToAdvertise            = flag.String("network", "", "Network to advertise (CIDR format)")
+		redistributeConnectedFromVRFs = flag.Bool("redistribute-connected-from-vrfs", false, "Add redistribute connected to VRF address families")
+		outputDir                     = flag.String("output", "", "Output directory (default: ../{leaf_name})")
+		templateFile                  = flag.String("template", "frr.conf.template", "Template file path")
 	)
 	flag.Parse()
 
@@ -46,8 +48,9 @@ func main() {
 	}
 
 	config := LeafConfig{
-		NeighborIP:         *neighborIP,
-		NetworkToAdvertise: *networkToAdvertise,
+		NeighborIP:                    *neighborIP,
+		NetworkToAdvertise:            *networkToAdvertise,
+		RedistributeConnectedFromVRFs: *redistributeConnectedFromVRFs,
 	}
 
 	if err := os.MkdirAll(*outputDir, 0755); err != nil {

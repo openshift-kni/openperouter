@@ -9,11 +9,16 @@ generate_leaf_configs() {
     echo "Generating leaf configurations..."
     pushd tools
 
+    REDISTRIBUTE_FLAG=""
+    if [[ "${DEMO_MODE:-false}" == "true" ]]; then
+        REDISTRIBUTE_FLAG="-redistribute-connected-from-vrfs"
+    fi
+
     # leafA neighbors with spine at 192.168.1.0 and advertises 100.64.0.1/32
-    go run generate_config.go -leaf leafA -neighbor 192.168.1.0 -network 100.64.0.1/32
+    go run generate_config.go -leaf leafA -neighbor 192.168.1.0 -network 100.64.0.1/32 $REDISTRIBUTE_FLAG
 
     # leafB neighbors with spine at 192.168.1.2 and advertises 100.64.0.2/32
-    go run generate_config.go -leaf leafB -neighbor 192.168.1.2 -network 100.64.0.2/32
+    go run generate_config.go -leaf leafB -neighbor 192.168.1.2 -network 100.64.0.2/32 $REDISTRIBUTE_FLAG
 
     popd
 }

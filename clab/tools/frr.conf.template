@@ -48,6 +48,16 @@ router bgp 64520
 exit
 !
 router bgp 64520 vrf red
+{{- if .RedistributeConnectedFromVRFs }}
+ !
+ address-family ipv4 unicast
+  redistribute connected
+ exit-address-family
+ !
+ address-family ipv6 unicast
+  redistribute connected
+ exit-address-family
+{{- end }}
  !
  address-family l2vpn evpn
   advertise ipv4 unicast
@@ -56,6 +66,16 @@ router bgp 64520 vrf red
 exit
 !
 router bgp 64520 vrf blue
+{{- if .RedistributeConnectedFromVRFs }}
+ !
+ address-family ipv4 unicast
+  redistribute connected
+ exit-address-family
+ !
+ address-family ipv6 unicast
+  redistribute connected
+ exit-address-family
+{{- end }}
  !
  address-family l2vpn evpn
   advertise ipv4 unicast
