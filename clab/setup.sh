@@ -5,6 +5,18 @@ set -x
 pushd "$(dirname $(readlink -f $0))"
 source common.sh
 
+generate_leaf_configs() {
+    echo "Generating leaf configurations..."
+    pushd tools
+
+    # leafA neighbors with spine at 192.168.1.0 and advertises 100.64.0.1/32
+    go run generate_config.go -leaf leafA -neighbor 192.168.1.0 -network 100.64.0.1/32
+
+    # leafB neighbors with spine at 192.168.1.2 and advertises 100.64.0.2/32
+    go run generate_config.go -leaf leafB -neighbor 192.168.1.2 -network 100.64.0.2/32
+
+    popd
+}
 
 clusters=$(${KIND_COMMAND} get clusters)
 for cluster in $clusters; do
@@ -29,6 +41,8 @@ if [ "${running}" != 'true' ]; then
     -d --restart=always -p "5000:5000" --name "kind-registry" \
     registry:2
 fi
+
+generate_leaf_configs
 
 if [[ $CONTAINER_ENGINE == "docker" ]]; then
     docker run --rm --privileged \
