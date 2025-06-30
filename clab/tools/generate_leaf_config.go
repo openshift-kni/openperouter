@@ -1,3 +1,5 @@
+// SPDX-License-Identifier:Apache-2.0
+
 package main
 
 import (
@@ -27,8 +29,8 @@ func main() {
 	flag.Parse()
 
 	if *leafName == "" || *neighborIP == "" || *networkToAdvertise == "" {
-		fmt.Println("Usage: generate_config -leaf <name> -neighbor <ip> -network <cidr> [options]")
-		fmt.Println("Example: generate_config -leaf leafA -neighbor 192.168.1.0 -network 100.64.0.1/32")
+		fmt.Println("Usage: generate_leaf_config -leaf <name> -neighbor <ip> -network <cidr> [options]")
+		fmt.Println("Example: generate_leaf_config -leaf leafA -neighbor 192.168.1.0 -network 100.64.0.1/32")
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
