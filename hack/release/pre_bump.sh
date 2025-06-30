@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-if [ -z "$FRRK8S_VERSION" ]; then
-    echo "must set the FRRK8S_VERSION environment variable"
+if [ -z "$OPENPE_VERSION" ]; then
+    echo "must set the OPENPE_VERSION environment variable"
     exit -1
 fi
 
@@ -14,7 +14,7 @@ if [ -n "$gitstatus" ]; then
 fi
 
 
-VERSION="$FRRK8S_VERSION"
+VERSION="$OPENPE_VERSION"
 VERSION="${VERSION#[vV]}"
 VERSION_MAJOR="${VERSION%%\.*}"
 VERSION_MINOR="${VERSION#*.}"
@@ -23,8 +23,8 @@ VERSION_PATCH="${VERSION##*.}"
 
 git checkout main
 
-if ! grep -q "## Release v$FRRK8S_VERSION" RELEASE_NOTES.md; then
-  echo "Version $FRRK8S_VERSION missing from release notes"
+if ! grep -q "## Release v$OPENPE_VERSION" RELEASE_NOTES.md; then
+  echo "Version $OPENPE_VERSION missing from release notes"
   exit 1
 fi
 
