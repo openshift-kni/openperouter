@@ -21,10 +21,14 @@ generate_leaf_configs() {
     fi
 
     # leafA neighbors with spine at 192.168.1.0 and advertises 100.64.0.1/32
-    go run generate_leaf_config.go -leaf leafA -neighbor 192.168.1.0 -network 100.64.0.1/32 $REDISTRIBUTE_FLAG
+    go run generate_leaf_config/generate_leaf_config.go \
+    -leaf leafA -neighbor 192.168.1.0 -network 100.64.0.1/32 $REDISTRIBUTE_FLAG \
+    -template generate_leaf_config/frr_template/frr.conf.template
 
     # leafB neighbors with spine at 192.168.1.2 and advertises 100.64.0.2/32
-    go run generate_leaf_config.go -leaf leafB -neighbor 192.168.1.2 -network 100.64.0.2/32 $REDISTRIBUTE_FLAG
+    go run generate_leaf_config/generate_leaf_config.go \
+    -leaf leafB -neighbor 192.168.1.2 -network 100.64.0.2/32 $REDISTRIBUTE_FLAG \
+    -template generate_leaf_config/frr_template/frr.conf.template
 
     popd
 }
@@ -56,7 +60,10 @@ if [[ "$CALICO_MODE" == "true" ]]; then
     popd
 fi
 pushd tools
-go run generate_kind_config.go $KIND_CONFIG_ARGS
+go run generate_kind_config/generate_kind_config.go \
+--template generate_kind_config/kind_template/kind-configuration-registry.yaml.template \
+$KIND_CONFIG_ARGS kind-configuration-registry.yaml
+
 popd
 
 # create registry container unless it already exists
@@ -110,7 +117,7 @@ if [[ "$CALICO_MODE" != "true" ]]; then
     kind/frr-k8s/setup.sh
 fi
 
-sudo $(which go) run tools/assign_ips.go -file ip_map.txt -engine ${CONTAINER_ENGINE}
+sudo $(which go) run tools/assign_ips/assign_ips.go -file ip_map.txt -engine ${CONTAINER_ENGINE}
 
 ${CONTAINER_ENGINE_CLI} exec clab-kind-leafA /setup.sh
 ${CONTAINER_ENGINE_CLI} exec clab-kind-leafB /setup.sh

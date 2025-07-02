@@ -18,7 +18,8 @@ func main() {
 	var (
 		includeNetworking = flag.Bool("include-networking", false, "Include networking section in kind config")
 		outputFile        = flag.String("output", "../kind-configuration-registry.yaml", "Kind configuration output file")
-		templateFile      = flag.String("template", "kind-configuration-registry.yaml.template", "Kind template file path")
+		templateFile      = flag.String("template",
+			"../kind_template/kind-configuration-registry.yaml.template", "Kind template file path")
 	)
 	flag.Parse()
 
@@ -45,7 +46,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error creating output file: %v", err)
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			log.Fatalf("Error closing output file: %v", err)
+		}
+	}()
 
 	if err := tmpl.Execute(file, config); err != nil {
 		log.Fatalf("Error executing template: %v", err)

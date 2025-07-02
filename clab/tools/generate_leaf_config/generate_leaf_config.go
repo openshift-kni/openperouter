@@ -22,9 +22,10 @@ func main() {
 		leafName                      = flag.String("leaf", "", "Leaf name (e.g., leafA, leafB)")
 		neighborIP                    = flag.String("neighbor", "", "Neighbor IP address")
 		networkToAdvertise            = flag.String("network", "", "Network to advertise (CIDR format)")
-		redistributeConnectedFromVRFs = flag.Bool("redistribute-connected-from-vrfs", false, "Add redistribute connected to VRF address families")
-		outputDir                     = flag.String("output", "", "Output directory (default: ../{leaf_name})")
-		templateFile                  = flag.String("template", "frr.conf.template", "Template file path")
+		redistributeConnectedFromVRFs = flag.Bool("redistribute-connected-from-vrfs", false,
+			"Add redistribute connected to VRF address families")
+		outputDir    = flag.String("output", "", "Output directory (default: ../{leaf_name})")
+		templateFile = flag.String("template", "frr_template/frr.conf.template", "Template file path")
 	)
 	flag.Parse()
 
@@ -64,7 +65,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error creating output file: %v", err)
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			log.Fatalf("Error closing output file: %v", err)
+		}
+	}()
 
 	if err := tmpl.Execute(file, config); err != nil {
 		log.Fatalf("Error executing template: %v", err)
