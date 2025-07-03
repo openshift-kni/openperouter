@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"strings"
 	"time"
@@ -385,6 +386,9 @@ func validateL2VNI(g Gomega, params L2VNIParams) {
 		hasIP, err := interfaceHasIP(bridgeLink, *params.L2GatewayIP)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(hasIP).To(BeTrue(), "bridge does not have ip", params.L2GatewayIP)
+
+		validateBridgeMacAddress(g, bridgeLink, params.VNI)
+		return
 	} else {
 		hasNoIP, err := interfaceHasNoIP(bridgeLink, netlink.FAMILY_V4)
 		g.Expect(err).NotTo(HaveOccurred())
@@ -488,4 +492,20 @@ func createLinuxBridge(name string) {
 		return
 	}
 	Expect(err).NotTo(HaveOccurred(), "failed to get bridge", name)
+}
+
+func validateBridgeMacAddress(g Gomega, bridge netlink.Link, vni int) {
+	expectedMacs := map[int]net.HardwareAddr{
+		100: {0x00, 0xF3, 0x00, 0x00, 0x00, 0x65}, // VNI+1 = 101 as big-endian int32
+		101: {0x00, 0xF3, 0x00, 0x00, 0x00, 0x66}, // VNI+1 = 102 as big-endian int32
+		300: {0x00, 0xF3, 0x00, 0x00, 0x01, 0x2D}, // VNI+1 = 301 as big-endian int32
+		400: {0x00, 0xF3, 0x00, 0x00, 0x01, 0x91}, // VNI+1 = 401 as big-endian int32
+	}
+
+	expectedMac, exists := expectedMacs[vni]
+	g.Expect(exists).To(BeTrue(), "no expected MAC address defined for VNI %d", vni)
+
+	actualMac := bridge.Attrs().HardwareAddr
+	g.Expect(actualMac).NotTo(BeNil(), "bridge should have a MAC address")
+	g.Expect(actualMac).To(Equal(expectedMac), "bridge MAC address should be %v for VNI %d", expectedMac, vni)
 }
