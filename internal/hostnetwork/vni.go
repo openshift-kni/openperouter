@@ -167,6 +167,11 @@ func SetupL2VNI(ctx context.Context, params L2VNIParams) error {
 			if err := assignIPToInterface(bridge, *params.L2GatewayIP); err != nil {
 				return fmt.Errorf("failed to assign L2 gateway IP %s to bridge %s: %w", *params.L2GatewayIP, name, err)
 			}
+
+			// setting up the same mac address for all the nodes for distributed gateway
+			if err := setBridgeFixedMacAddress(bridge, params.VNI); err != nil {
+				return fmt.Errorf("failed to set bridge mac address %s: %v", name, err)
+			}
 		}
 
 		return nil
