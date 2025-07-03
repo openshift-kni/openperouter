@@ -6,8 +6,8 @@ metadata:
 spec:
   vni: 210
   vrf: red
-  hostMaster:
+  hostmaster:
     type: bridge
-    autoCreate: true
+    autocreate: true
 
 

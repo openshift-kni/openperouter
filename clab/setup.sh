@@ -5,6 +5,33 @@ set -x
 pushd "$(dirname $(readlink -f $0))"
 source common.sh
 
+CALICO_MODE=${CALICO_MODE:-false}
+
+generate_leaf_configs() {
+    echo "Generating leaf configurations..."
+    pushd tools
+
+    # Build the command with redistribute parameter (disabled by default)
+    REDISTRIBUTE_FLAG=""
+    if [[ "${DEMO_MODE:-false}" == "true" ]]; then
+        REDISTRIBUTE_FLAG="-redistribute-connected-from-vrfs"
+        echo "Enabling redistribute connected from VRFs (demo mode)"
+    else
+        echo "Disabling redistribute connected from VRFs (default)"
+    fi
+
+    # leafA neighbors with spine at 192.168.1.0 and advertises 100.64.0.1/32
+    go run generate_leaf_config/generate_leaf_config.go \
+    -leaf leafA -neighbor 192.168.1.0 -network 100.64.0.1/32 $REDISTRIBUTE_FLAG \
+    -template generate_leaf_config/frr_template/frr.conf.template
+
+    # leafB neighbors with spine at 192.168.1.2 and advertises 100.64.0.2/32
+    go run generate_leaf_config/generate_leaf_config.go \
+    -leaf leafB -neighbor 192.168.1.2 -network 100.64.0.2/32 $REDISTRIBUTE_FLAG \
+    -template generate_leaf_config/frr_template/frr.conf.template
+
+    popd
+}
 
 clusters=$(${KIND_COMMAND} get clusters)
 for cluster in $clusters; do
@@ -22,6 +49,23 @@ if [[ $(cat /sys/class/net/leafkind-switch/operstate) != "up" ]]; then
 sudo ip link set dev leafkind-switch up
 fi
 
+# Generate kind-configuration-registry.yaml from template
+KIND_CONFIG_ARGS=""
+if [[ "$CALICO_MODE" == "true" ]]; then
+    KIND_CONFIG_ARGS=" -include-networking"
+    echo "Including networking section in kind-configuration-registry.yaml (CALICO_MODE)"
+    
+    pushd calico
+      ./apply_calico.sh & # required as clab will stop earlier because the cni is not ready
+    popd
+fi
+pushd tools
+go run generate_kind_config/generate_kind_config.go \
+--template generate_kind_config/kind_template/kind-configuration-registry.yaml.template \
+$KIND_CONFIG_ARGS kind-configuration-registry.yaml
+
+popd
+
 # create registry container unless it already exists
 running="$($CONTAINER_ENGINE inspect -f '{{.State.Running}}' "kind-registry" 2>/dev/null || true)"
 if [ "${running}" != 'true' ]; then
@@ -29,6 +73,8 @@ if [ "${running}" != 'true' ]; then
     -d --restart=always -p "5000:5000" --name "kind-registry" \
     registry:2
 fi
+
+generate_leaf_configs
 
 if [[ $CONTAINER_ENGINE == "docker" ]]; then
     docker run --rm --privileged \
@@ -66,9 +112,12 @@ $CONTAINER_ENGINE network connect "kind" "kind-registry" || true
 # https://github.com/kubernetes/enhancements/tree/master/keps/sig-cluster-lifecycle/generic/1755-communicating-a-local-registry
 kubectl apply -f kind-registry_configmap.yaml
 
-kind/frr-k8s/setup.sh
+# Run frr-k8s setup script only if CALICO_MODE is false
+if [[ "$CALICO_MODE" != "true" ]]; then
+    kind/frr-k8s/setup.sh
+fi
 
-sudo $(which go) run tools/assign_ips.go -file ip_map.txt -engine ${CONTAINER_ENGINE}
+sudo $(which go) run tools/assign_ips/assign_ips.go -file ip_map.txt -engine ${CONTAINER_ENGINE}
 
 ${CONTAINER_ENGINE_CLI} exec clab-kind-leafA /setup.sh
 ${CONTAINER_ENGINE_CLI} exec clab-kind-leafB /setup.sh

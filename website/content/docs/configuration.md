@@ -131,9 +131,9 @@ L2VNIs provide Layer 2 connectivity across nodes using EVPN tunnels. Unlike L3VN
 |-------|------|-------------|----------|
 | `vni` | integer | Virtual Network Identifier for the EVPN tunnel | Yes |
 | `vrf` | string | Name of the VRF to associate with this L2VNI | Yes |
-| `hostMaster.type` | string | Type of host interface management (`bridge` or `direct`) | Yes |
-| `hostMaster.autoCreate` | boolean | Whether to automatically create a bridge if type is `bridge` | No |
-| `hostMaster.bridgeName` | string | Name of the bridge to attach to (if not auto-creating) | No |
+| `hostmaster.type` | string | Type of host interface management (`bridge` or `direct`) | Yes |
+| `hostmaster.autocreate` | boolean | Whether to automatically create a bridge if type is `bridge` | No |
+| `hostmaster.bridgeName` | string | Name of the bridge to attach to (if not auto-creating) | No |
 
 ### L2VNI Example
 
@@ -146,9 +146,9 @@ metadata:
 spec:
   vni: 210
   vrf: red
-  hostMaster:
+  hostmaster:
     type: bridge
-    autoCreate: true
+    autocreate: true
 ```
 
 ## What Happens During Reconciliation
@@ -158,8 +158,8 @@ When you create or update VNI configurations, OpenPERouter automatically:
 1. **Creates Network Interfaces**: Sets up VXLAN interface and Linux VRF named after the VNI
 2. **Establishes Connectivity**: Creates veth pair and moves one end to the router's namespace
 3. **Enslaves the veth**: the veth is connected to the bridge corresponding to the l2 domain
-4. **Optionally creates a bridge on the host**: if hostMaster.autoCreate is set to `true`
-5. **Optionally connects the host veth to the bridge on the host**: if hostMaster.autoCreate is set to `true` or name
+4. **Optionally creates a bridge on the host**: if hostmaster.autocreate is set to `true`
+5. **Optionally connects the host veth to the bridge on the host**: if hostmaster.autocreate is set to `true` or name
 is set
 
 ## API Reference

@@ -347,6 +347,18 @@ serve-website: hugo-download api-docs
 build-website: hugo-download api-docs ## Build the website with API documentation
 	$(HUGO) --source website --minify
 
+.PHONY: demo-metallb
+demo-metallb:
+	examples/metallb/prepare.sh
+	
+.PHONY: demo-l2
+demo-l2:
+	examples/layers/prepare.sh
+
+.PHONY: demo-calico
+demo-calico:
+	examples/calico/prepare.sh
+
 #
 # Operator specifics, copied from a Makefile generated on a clean folder by operator-sdk, then modified.
 #
