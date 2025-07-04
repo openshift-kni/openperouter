@@ -6,7 +6,6 @@ import (
 	"context"
 	"time"
 
-	frrk8sv1beta1 "github.com/metallb/frr-k8s/api/v1beta1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openperouter/openperouter/api/v1alpha1"
@@ -112,7 +111,7 @@ var _ = Describe("Router Host configuration", Ordered, func() {
 			frrConfig, err := frrk8s.ConfigFromVNI(vni)
 			Expect(err).ToNot(HaveOccurred())
 			err = Updater.Update(config.Resources{
-				FRRConfigurations: []frrk8sv1beta1.FRRConfiguration{frrConfig},
+				FRRConfigurations: frrConfig,
 			})
 			Expect(err).NotTo(HaveOccurred())
 

@@ -20,52 +20,32 @@ var (
 	frrk8sLabelSelector = "app=frr-k8s"
 )
 
-// ConfigFromVNI converts a VNI object to a FRRConfiguration object.
-func ConfigFromVNI(vni v1alpha1.L3VNI, tweak ...func(*frrk8sapi.FRRConfiguration)) (frrk8sapi.FRRConfiguration, error) {
-	var cidr string
+// ConfigFromVNI converts a VNI object to FRRConfiguration objects.
+// Returns a slice with one configuration for each IP family (IPv4 and/or IPv6).
+func ConfigFromVNI(vni v1alpha1.L3VNI, tweak ...func(*frrk8sapi.FRRConfiguration)) ([]frrk8sapi.FRRConfiguration, error) {
+	var configs []frrk8sapi.FRRConfiguration
+
 	if vni.Spec.LocalCIDR.IPv4 != "" {
-		cidr = vni.Spec.LocalCIDR.IPv4
-	} else if vni.Spec.LocalCIDR.IPv6 != "" {
-		cidr = vni.Spec.LocalCIDR.IPv6
-	} else {
-		return frrk8sapi.FRRConfiguration{}, fmt.Errorf("no IPv4 or IPv6 CIDR provided")
+		config, err := createFRRConfig(vni, vni.Spec.LocalCIDR.IPv4, "-ipv4", tweak...)
+		if err != nil {
+			return nil, err
+		}
+		configs = append(configs, config)
 	}
 
-	routerIP, err := openperouter.RouterIPFromCIDR(cidr)
-	if err != nil {
-		return frrk8sapi.FRRConfiguration{}, err
+	if vni.Spec.LocalCIDR.IPv6 != "" {
+		config, err := createFRRConfig(vni, vni.Spec.LocalCIDR.IPv6, "-ipv6", tweak...)
+		if err != nil {
+			return nil, err
+		}
+		configs = append(configs, config)
 	}
 
-	res := frrk8sapi.FRRConfiguration{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      vni.Name,
-			Namespace: Namespace,
-		},
-		Spec: frrk8sapi.FRRConfigurationSpec{
-			BGP: frrk8sapi.BGPConfig{
-				Routers: []frrk8sapi.Router{
-					{
-						ASN: *vni.Spec.HostASN,
-						Neighbors: []frrk8sapi.Neighbor{
-							{
-								ASN:     vni.Spec.ASN,
-								Address: routerIP,
-								ToReceive: frrk8sapi.Receive{
-									Allowed: frrk8sapi.AllowedInPrefixes{
-										Mode: frrk8sapi.AllowAll,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
+	if len(configs) == 0 {
+		return nil, fmt.Errorf("no IPv4 or IPv6 CIDR provided")
 	}
-	for _, tweak := range tweak {
-		tweak(&res)
-	}
-	return res, nil
+
+	return configs, nil
 }
 
 func WithNodeSelector(nodeSelector map[string]string) func(frrConfig *frrk8sapi.FRRConfiguration) {
@@ -105,4 +85,42 @@ func PodForNode(cs clientset.Interface, nodeName string) (*corev1.Pod, error) {
 		return nil, fmt.Errorf("multiple pods found with label %s for node %s", frrk8sLabelSelector, nodeName)
 	}
 	return &pods.Items[0], nil
+}
+
+func createFRRConfig(vni v1alpha1.L3VNI, cidr string, suffix string, tweak ...func(*frrk8sapi.FRRConfiguration)) (frrk8sapi.FRRConfiguration, error) {
+	routerIP, err := openperouter.RouterIPFromCIDR(cidr)
+	if err != nil {
+		return frrk8sapi.FRRConfiguration{}, err
+	}
+
+	config := frrk8sapi.FRRConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      vni.Name + suffix,
+			Namespace: Namespace,
+		},
+		Spec: frrk8sapi.FRRConfigurationSpec{
+			BGP: frrk8sapi.BGPConfig{
+				Routers: []frrk8sapi.Router{
+					{
+						ASN: *vni.Spec.HostASN,
+						Neighbors: []frrk8sapi.Neighbor{
+							{
+								ASN:     vni.Spec.ASN,
+								Address: routerIP,
+								ToReceive: frrk8sapi.Receive{
+									Allowed: frrk8sapi.AllowedInPrefixes{
+										Mode: frrk8sapi.AllowAll,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, t := range tweak {
+		t(&config)
+	}
+	return config, nil
 }

@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	frrk8sv1beta1 "github.com/metallb/frr-k8s/api/v1beta1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openperouter/openperouter/api/v1alpha1"
@@ -204,15 +203,12 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 
 			DumpPods("FRRK8s pods", frrk8sPods)
 
-			err := Updater.Update(config.Resources{
+			err = Updater.Update(config.Resources{
 				L3VNIs: []v1alpha1.L3VNI{
 					vniRed,
 					vniBlue,
 				},
-				FRRConfigurations: []frrk8sv1beta1.FRRConfiguration{
-					frrK8sConfigRed,
-					frrK8sConfigBlue,
-				},
+				FRRConfigurations: append(frrK8sConfigRed, frrK8sConfigBlue...),
 			})
 			Expect(err).NotTo(HaveOccurred())
 
@@ -221,24 +217,43 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 		})
 
 		It("translates EVPN incoming routes as BGP routes", func() {
+			checkPrefixesForIPFamily := func(frrk8s *corev1.Pod, prefixes []string, localCIDR string,
+				ipFamily string, shouldExist bool, routes frr.BGPRoutes) error {
+				if len(prefixes) == 0 || localCIDR == "" {
+					return nil
+				}
+
+				vniRouterIP, err := openperouter.RouterIPFromCIDR(localCIDR)
+				Expect(err).NotTo(HaveOccurred())
+
+				for _, p := range prefixes {
+					routeExists := routes.HaveRoute(p, vniRouterIP)
+					if shouldExist && !routeExists {
+						return fmt.Errorf("%s prefix %s with nexthop %s not found in routes %v for pod %s", ipFamily, p, vniRouterIP, routes, frrk8s.Name)
+					}
+					if !shouldExist && routeExists {
+						return fmt.Errorf("%s prefix %s with nexthop %s found in routes %v for pod %s", ipFamily, p, vniRouterIP, routes, frrk8s.Name)
+					}
+				}
+				return nil
+			}
+
 			checkBGPPrefixesForVNI := func(frrk8s *corev1.Pod, vni v1alpha1.L3VNI, prefixes []string, shouldExist bool) {
 				exec := executor.ForPod(frrk8s.Namespace, frrk8s.Name, "frr")
 				Eventually(func() error {
-					routes, err := frr.BGPRoutesFor(exec)
+					ipv4Routes, ipv6Routes, err := frr.BGPRoutesFor(exec)
 					Expect(err).NotTo(HaveOccurred())
 
-					vniRouterIP, err := openperouter.RouterIPFromCIDR(vni.Spec.LocalCIDR.IPv4)
-					Expect(err).NotTo(HaveOccurred())
+					ipv4Prefixes, ipv6Prefixes := separateIPFamilies(prefixes)
 
-					for _, p := range prefixes {
-						routeExists := routes.HaveRoute(p, vniRouterIP)
-						if shouldExist && !routeExists {
-							return fmt.Errorf("prefix %s with nexthop %s not found in routes %v for pod %s", p, vniRouterIP, routes, frrk8s.Name)
-						}
-						if !shouldExist && routeExists {
-							return fmt.Errorf("prefix %s with nexthop %s found in routes %v for pod %s", p, vniRouterIP, routes, frrk8s.Name)
-						}
+					if err := checkPrefixesForIPFamily(frrk8s, ipv4Prefixes, vni.Spec.LocalCIDR.IPv4, "IPv4", shouldExist, ipv4Routes); err != nil {
+						return err
 					}
+
+					if err := checkPrefixesForIPFamily(frrk8s, ipv6Prefixes, vni.Spec.LocalCIDR.IPv6, "IPv6", shouldExist, ipv6Routes); err != nil {
+						return err
+					}
+
 					return nil
 				}, 4*time.Minute, time.Second).WithOffset(1).ShouldNot(HaveOccurred())
 			}
@@ -316,10 +331,7 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 					vniRed,
 					vniBlue,
 				},
-				FRRConfigurations: []frrk8sv1beta1.FRRConfiguration{
-					frrK8sConfigRedForPod,
-					frrK8sConfigBlueForPod,
-				},
+				FRRConfigurations: append(frrK8sConfigRedForPod, frrK8sConfigBlueForPod...),
 			})
 			Expect(err).NotTo(HaveOccurred())
 
