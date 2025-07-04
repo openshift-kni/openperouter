@@ -22,7 +22,16 @@ var (
 
 // ConfigFromVNI converts a VNI object to a FRRConfiguration object.
 func ConfigFromVNI(vni v1alpha1.L3VNI, tweak ...func(*frrk8sapi.FRRConfiguration)) (frrk8sapi.FRRConfiguration, error) {
-	routerIP, err := openperouter.RouterIPFromCIDR(vni.Spec.LocalCIDR)
+	var cidr string
+	if vni.Spec.LocalCIDR.IPv4 != "" {
+		cidr = vni.Spec.LocalCIDR.IPv4
+	} else if vni.Spec.LocalCIDR.IPv6 != "" {
+		cidr = vni.Spec.LocalCIDR.IPv6
+	} else {
+		return frrk8sapi.FRRConfiguration{}, fmt.Errorf("no IPv4 or IPv6 CIDR provided")
+	}
+
+	routerIP, err := openperouter.RouterIPFromCIDR(cidr)
 	if err != nil {
 		return frrk8sapi.FRRConfiguration{}, err
 	}

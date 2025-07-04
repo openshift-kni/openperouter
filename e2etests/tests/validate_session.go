@@ -19,7 +19,15 @@ import (
 const Established = true
 
 func validateFRRK8sSessionForVNI(vni v1alpha1.L3VNI, established bool, frrk8sPods ...*corev1.Pod) {
-	neighborIP, err := openperouter.RouterIPFromCIDR(vni.Spec.LocalCIDR)
+	var cidr string
+	Expect(vni.Spec.LocalCIDR.IPv4 != "" || vni.Spec.LocalCIDR.IPv6 != "").To(BeTrue(), "either IPv4 or IPv6 CIDR must be provided")
+	if vni.Spec.LocalCIDR.IPv4 != "" {
+		cidr = vni.Spec.LocalCIDR.IPv4
+	} else if vni.Spec.LocalCIDR.IPv6 != "" {
+		cidr = vni.Spec.LocalCIDR.IPv6
+	}
+
+	neighborIP, err := openperouter.RouterIPFromCIDR(cidr)
 	Expect(err).NotTo(HaveOccurred())
 
 	for _, p := range frrk8sPods {

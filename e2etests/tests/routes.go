@@ -46,10 +46,12 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 			Namespace: openperouter.Namespace,
 		},
 		Spec: v1alpha1.L3VNISpec{
-			ASN:       64514,
-			VNI:       100,
-			LocalCIDR: "192.169.10.0/24",
-			HostASN:   ptr.To(uint32(64515)),
+			ASN: 64514,
+			VNI: 100,
+			LocalCIDR: v1alpha1.LocalCIDRConfig{
+				IPv4: "192.169.10.0/24",
+			},
+			HostASN: ptr.To(uint32(64515)),
 		},
 	}
 
@@ -59,10 +61,12 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 			Namespace: openperouter.Namespace,
 		},
 		Spec: v1alpha1.L3VNISpec{
-			ASN:       64514,
-			VNI:       200,
-			LocalCIDR: "192.169.11.0/24",
-			HostASN:   ptr.To(uint32(64515)),
+			ASN: 64514,
+			VNI: 200,
+			LocalCIDR: v1alpha1.LocalCIDRConfig{
+				IPv4: "192.169.11.0/24",
+			},
+			HostASN: ptr.To(uint32(64515)),
 		},
 	}
 
@@ -221,7 +225,7 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 					routes, err := frr.BGPRoutesFor(exec)
 					Expect(err).NotTo(HaveOccurred())
 
-					vniRouterIP, err := openperouter.RouterIPFromCIDR(vni.Spec.LocalCIDR)
+					vniRouterIP, err := openperouter.RouterIPFromCIDR(vni.Spec.LocalCIDR.IPv4)
 					Expect(err).NotTo(HaveOccurred())
 
 					for _, p := range prefixes {
@@ -341,7 +345,7 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 				{vniBlue, "hostB_blue", infra.HostBBlueIP},
 			}
 			for _, test := range tests {
-				hostSide, err := openperouter.HostIPFromCIDRForNode(test.vni.Spec.LocalCIDR, podNode)
+				hostSide, err := openperouter.HostIPFromCIDRForNode(test.vni.Spec.LocalCIDR.IPv4, podNode)
 				Expect(err).NotTo(HaveOccurred())
 
 				podExecutor := executor.ForPod(testPod.Namespace, testPod.Name, "agnhost")
