@@ -29,10 +29,10 @@ import (
 var (
 	// NOTE: we can't advertise any ip via EVPN from the leaves, they
 	// must be reacheable otherwise FRR will skip them.
-	leafAVRFRedPrefixes  = []string{"192.168.20.0/24"}
-	leafAVRFBluePrefixes = []string{"192.168.21.0/24"}
-	leafBVRFRedPrefixes  = []string{"192.169.20.0/24"}
-	leafBVRFBluePrefixes = []string{"192.169.21.0/24"}
+	leafAVRFRedPrefixes  = []string{"192.168.20.0/24", "2001:db8:20::/64"}
+	leafAVRFBluePrefixes = []string{"192.168.21.0/24", "2001:db8:21::/64"}
+	leafBVRFRedPrefixes  = []string{"192.169.20.0/24", "2001:db8:169:20::/64"}
+	leafBVRFBluePrefixes = []string{"192.169.21.0/24", "2001:db8:169:21::/64"}
 	emptyPrefixes        = []string{}
 )
 
@@ -50,6 +50,7 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 			VNI: 100,
 			LocalCIDR: v1alpha1.LocalCIDRConfig{
 				IPv4: "192.169.10.0/24",
+				IPv6: "2001:db8:1::/64",
 			},
 			HostASN: ptr.To(uint32(64515)),
 		},
@@ -65,6 +66,7 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 			VNI: 200,
 			LocalCIDR: v1alpha1.LocalCIDRConfig{
 				IPv4: "192.169.11.0/24",
+				IPv6: "2001:db8:2::/64",
 			},
 			HostASN: ptr.To(uint32(64515)),
 		},
@@ -322,6 +324,7 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			frrK8sPodOnNode, err := frrk8s.PodForNode(cs, testPod.Spec.NodeName)
+			Expect(err).NotTo(HaveOccurred())
 			validateFRRK8sSessionForVNI(vniRed, Established, frrK8sPodOnNode)
 			validateFRRK8sSessionForVNI(vniBlue, Established, frrK8sPodOnNode)
 
