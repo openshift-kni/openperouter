@@ -33,7 +33,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
   && \
   CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -o nodemarker ./cmd/nodemarker \
   && \
-  CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -o operator ./operator
+  CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -o operatorbinary ./operator
 
 FROM gcr.io/distroless/static:latest
 WORKDIR /
@@ -41,7 +41,7 @@ COPY --from=builder /go/openperouter/reloader .
 COPY --from=builder /go/openperouter/controller .
 COPY --from=builder /go/openperouter/cp-tool .
 COPY --from=builder /go/openperouter/nodemarker .
-COPY --from=builder /go/openperouter/operator .
+COPY --from=builder /go/openperouter/operatorbinary ./operator
 COPY operator/bindata bindata
 
 ENTRYPOINT ["/controller"]

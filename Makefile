@@ -347,6 +347,10 @@ serve-website: hugo-download api-docs
 build-website: hugo-download api-docs ## Build the website with API documentation
 	$(HUGO) --source website --minify
 
+.PHONY: publish-website
+publish-website: ## Build and publish the website to gh-pages branch
+	hack/publish-website.sh
+
 .PHONY: demo-metallb
 demo-metallb:
 	examples/metallb/prepare.sh
