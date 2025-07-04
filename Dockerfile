@@ -7,9 +7,10 @@ ARG TARGETOS
 ARG TARGETARCH
 
 WORKDIR $GOPATH/openperouter
-# Cache the downloads
-COPY go.mod go.sum ./
-RUN go mod download
+RUN --mount=type=cache,target=/go/pkg/mod/ \
+  --mount=type=bind,source=go.sum,target=go.sum \
+  --mount=type=bind,source=go.mod,target=go.mod \
+  go mod download -x
 
 COPY cmd/ cmd/
 COPY api/ api/
@@ -17,7 +18,13 @@ COPY internal/ internal/
 COPY operator/ operator/
 
 RUN --mount=type=cache,target=/root/.cache/go-build \
-  --mount=type=cache,target=/go/pkg \
+  --mount=type=cache,target=/go/pkg/mod \
+  --mount=type=bind,source=go.sum,target=go.sum \
+  --mount=type=bind,source=go.mod,target=go.mod \
+  --mount=type=bind,source=internal,target=internal \
+  --mount=type=bind,source=api,target=api \
+  --mount=type=bind,source=cmd,target=cmd \
+  --mount=type=bind,source=operator,target=operator \
   CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -o reloader ./cmd/reloader \
   && \
   CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -o controller ./cmd/hostcontroller \
