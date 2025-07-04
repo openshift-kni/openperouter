@@ -7,9 +7,10 @@ ARG TARGETOS
 ARG TARGETARCH
 
 WORKDIR $GOPATH/openperouter
-# Cache the downloads
-COPY go.mod go.sum ./
-RUN go mod download
+RUN --mount=type=cache,target=/go/pkg/mod/ \
+  --mount=type=bind,source=go.sum,target=go.sum \
+  --mount=type=bind,source=go.mod,target=go.mod \
+  go mod download -x
 
 COPY cmd/ cmd/
 COPY api/ api/
@@ -17,7 +18,13 @@ COPY internal/ internal/
 COPY operator/ operator/
 
 RUN --mount=type=cache,target=/root/.cache/go-build \
-  --mount=type=cache,target=/go/pkg \
+  --mount=type=cache,target=/go/pkg/mod \
+  --mount=type=bind,source=go.sum,target=go.sum \
+  --mount=type=bind,source=go.mod,target=go.mod \
+  --mount=type=bind,source=internal,target=internal \
+  --mount=type=bind,source=api,target=api \
+  --mount=type=bind,source=cmd,target=cmd \
+  --mount=type=bind,source=operator,target=operator \
   CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -o reloader ./cmd/reloader \
   && \
   CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -o controller ./cmd/hostcontroller \
@@ -26,7 +33,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
   && \
   CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -o nodemarker ./cmd/nodemarker \
   && \
-  CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -o operator ./operator
+  CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -o operatorbinary ./operator
 
 FROM gcr.io/distroless/static:latest
 WORKDIR /
@@ -34,7 +41,7 @@ COPY --from=builder /go/openperouter/reloader .
 COPY --from=builder /go/openperouter/controller .
 COPY --from=builder /go/openperouter/cp-tool .
 COPY --from=builder /go/openperouter/nodemarker .
-COPY --from=builder /go/openperouter/operator .
+COPY --from=builder /go/openperouter/operatorbinary ./operator
 COPY operator/bindata bindata
 
 ENTRYPOINT ["/controller"]
