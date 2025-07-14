@@ -207,7 +207,7 @@ _Appears in:_
 | `asn` _integer_ | ASN is the local AS number to use for the session with the TOR switch. |  | Maximum: 4.294967295e+09 <br />Minimum: 1 <br /> |
 | `vtepcidr` _string_ | VTEPCIDR is CIDR to be used to assign IPs to the local VTEP on each node. |  |  |
 | `neighbors` _[Neighbor](#neighbor) array_ | Neighbors is the list of external neighbors to peer with. |  | MinItems: 1 <br /> |
-| `nics` _string array_ | Nics is the list of physical nics to move under the PERouter namespace to connect<br />to external routers. |  | MinItems: 1 <br /> |
+| `nics` _string array_ | Nics is the list of physical nics to move under the PERouter namespace to connect<br />to external routers. This field is optional when using Multus networks for TOR connectivity. |  |  |
 
 
 #### UnderlayStatus
