@@ -13,6 +13,8 @@ openperouter:
   # -- Controller log level. Must be one of: `debug`, `info`, `warn` or `error`.
   logLevel: info
   tolerateMaster: true
+  # -- Multus network annotation to be added to router pods
+  multusNetworkAnnotation: ""
   image:
     repository: quay.io/openperouter/router
     tag: ""
