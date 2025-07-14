@@ -86,7 +86,8 @@ func (h *Chart) Objects(envConfig envconfig.EnvConfig, crdConfig *operatorapi.Op
 
 func patchChartValues(envConfig envconfig.EnvConfig, crdConfig *operatorapi.OpenPERouter, valuesMap map[string]interface{}) {
 	valuesMap["openperouter"] = map[string]interface{}{
-		"logLevel": logLevelValue(crdConfig),
+		"logLevel":                logLevelValue(crdConfig),
+		"multusNetworkAnnotation": crdConfig.Spec.MultusNetworkAnnotation,
 		"image": map[string]interface{}{
 			"repository": envConfig.ControllerImage.Repo,
 			"tag":        envConfig.ControllerImage.Tag,
