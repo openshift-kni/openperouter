@@ -37,10 +37,9 @@ type UnderlaySpec struct {
 	Neighbors []Neighbor `json:"neighbors,omitempty"`
 
 	// Nics is the list of physical nics to move under the PERouter namespace to connect
-	// to external routers.
+	// to external routers. This field is optional when using Multus networks for TOR connectivity.
 	// +kubebuilder:validation:Items=Pattern=`^[a-zA-Z][a-zA-Z0-9_-]*$`
 	// +kubebuilder:validation:Items=MaxLength=15
-	// +kubebuilder:validation:MinItems=1
 	Nics []string `json:"nics,omitempty"`
 }
 

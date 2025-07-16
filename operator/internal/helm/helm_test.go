@@ -40,6 +40,8 @@ const (
 	controllerDaemonSetName   = "controller"
 	routerDaemonSetName       = "router"
 	nodemarkerDeploymentName  = "nodemarker"
+	daemonSetKind             = "DaemonSet"
+	deploymentKind            = "Deployment"
 )
 
 var defaultEnvConfig = envconfig.EnvConfig{
@@ -101,7 +103,7 @@ func TestParseChartWithCustomValues(t *testing.T) {
 	var routerFound, controllerFound, nodemarkerFound bool
 	for _, obj := range objs {
 		objKind := obj.GetKind()
-		if objKind == "DaemonSet" && obj.GetName() == controllerDaemonSetName {
+		if objKind == daemonSetKind && obj.GetName() == controllerDaemonSetName {
 			controller := appsv1.DaemonSet{}
 			err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &controller)
 			g.Expect(err).ToNot(HaveOccurred())
@@ -109,7 +111,7 @@ func TestParseChartWithCustomValues(t *testing.T) {
 			g.Expect(validateController(controller)).ToNot(HaveOccurred())
 			controllerFound = true
 		}
-		if objKind == "DaemonSet" && obj.GetName() == routerDaemonSetName {
+		if objKind == daemonSetKind && obj.GetName() == routerDaemonSetName {
 			router := appsv1.DaemonSet{}
 			err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &router)
 			g.Expect(err).ToNot(HaveOccurred())
@@ -117,7 +119,7 @@ func TestParseChartWithCustomValues(t *testing.T) {
 			g.Expect(validateRouter(router)).ToNot(HaveOccurred())
 			routerFound = true
 		}
-		if objKind == "Deployment" && obj.GetName() == nodemarkerDeploymentName {
+		if objKind == deploymentKind && obj.GetName() == nodemarkerDeploymentName {
 			g.Expect(obj.GetName()).To(Equal(nodemarkerDeploymentName))
 			nodemarker := appsv1.Deployment{}
 			err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &nodemarker)
@@ -130,6 +132,83 @@ func TestParseChartWithCustomValues(t *testing.T) {
 	g.Expect(controllerFound).To(BeTrue())
 	g.Expect(routerFound).To(BeTrue())
 	g.Expect(nodemarkerFound).To(BeTrue())
+}
+
+func TestParseChartWithMultusAnnotation(t *testing.T) {
+	g := NewGomegaWithT(t)
+	chart, err := NewChart(testChartPath, openperouterChartName, openperouterTestNamespace)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	multusAnnotation := "macvlan-conf"
+	openperouter := &operatorapi.OpenPERouter{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "openperouter",
+			Namespace: openperouterTestNamespace,
+		},
+		Spec: operatorapi.OpenPERouterSpec{
+			LogLevel:                "info",
+			MultusNetworkAnnotation: multusAnnotation,
+		},
+	}
+
+	objs, err := chart.Objects(defaultEnvConfig, openperouter)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	var routerFound bool
+	for _, obj := range objs {
+		objKind := obj.GetKind()
+		if objKind == daemonSetKind && obj.GetName() == routerDaemonSetName {
+			router := appsv1.DaemonSet{}
+			err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &router)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(router.GetName()).To(Equal(routerDaemonSetName))
+
+			// Verify the multus annotation is present in the router pod template
+			annotations := router.Spec.Template.Annotations
+			g.Expect(annotations).ToNot(BeNil())
+			g.Expect(annotations["k8s.v1.cni.cncf.io/networks"]).To(Equal(multusAnnotation))
+			routerFound = true
+		}
+	}
+	g.Expect(routerFound).To(BeTrue())
+}
+
+func TestParseChartWithoutMultusAnnotation(t *testing.T) {
+	g := NewGomegaWithT(t)
+	chart, err := NewChart(testChartPath, openperouterChartName, openperouterTestNamespace)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	openperouter := &operatorapi.OpenPERouter{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "openperouter",
+			Namespace: openperouterTestNamespace,
+		},
+		Spec: operatorapi.OpenPERouterSpec{
+			LogLevel: "info",
+		},
+	}
+
+	objs, err := chart.Objects(defaultEnvConfig, openperouter)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	var routerFound bool
+	for _, obj := range objs {
+		objKind := obj.GetKind()
+		if objKind == daemonSetKind && obj.GetName() == routerDaemonSetName {
+			router := appsv1.DaemonSet{}
+			err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &router)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(router.GetName()).To(Equal(routerDaemonSetName))
+
+			// Verify the multus annotation is not present when not specified
+			annotations := router.Spec.Template.Annotations
+			if annotations != nil {
+				g.Expect(annotations["k8s.v1.cni.cncf.io/networks"]).To(BeEmpty())
+			}
+			routerFound = true
+		}
+	}
+	g.Expect(routerFound).To(BeTrue())
 }
 
 /*

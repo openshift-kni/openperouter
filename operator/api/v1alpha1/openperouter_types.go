@@ -39,6 +39,9 @@ type OpenPERouterSpec struct {
 	// +optional
 	// +kubebuilder:validation:Enum=all;debug;info;warn;error;none
 	LogLevel LogLevel `json:"logLevel,omitempty"`
+	// MultusNetworkAnnotation specifies the Multus network annotation to be added to the router pod.
+	// +optional
+	MultusNetworkAnnotation string `json:"multusNetworkAnnotation,omitempty"`
 }
 
 // OpenPERouterStatus defines the observed state of OpenPERouter

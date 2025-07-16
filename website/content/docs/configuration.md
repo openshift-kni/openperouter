@@ -52,6 +52,48 @@ The `vtepcidr` field defines the IP range used for VTEP (Virtual Tunnel End Poin
 - Node 3: `100.65.0.3`
 - etc.
 
+### Alternative: Multus Network for Top of Rack Connectivity
+
+Instead of declaring physical network interfaces in the underlay configuration, you can use Multus networks to provide connectivity to top of rack switches. In this case, the `nics` field in the underlay configuration can be omitted.
+
+When using this approach, ensure that the router pods are configured with the appropriate Multus network annotation to connect to your top of rack switches.
+
+#### Using Helm Values
+
+You can specify the Multus network annotation using Helm values:
+
+```yaml
+# values.yaml
+openperouter:
+  multusNetworkAnnotation: "macvlan-conf"
+```
+
+Or when installing with Helm:
+
+```bash
+helm install openperouter ./charts/openperouter \
+  --set openperouter.multusNetworkAnnotation="macvlan-conf"
+```
+
+This will add the annotation `k8s.v1.cni.cncf.io/networks: macvlan-conf` to the router pods.
+
+#### Using Kustomize
+
+Alternatively, you can use kustomize to add the annotation to the router pod:
+
+```yaml
+# kustomization.yaml
+patches:
+- target:
+    kind: DaemonSet
+    name: router
+  patch: |-
+    - op: add
+      path: /spec/template/metadata/annotations
+      value:
+        k8s.v1.cni.cncf.io/networks: macvlan-conf
+```
+
 ## L3 VNI Configuration
 
 L3 VNI (Virtual Network Identifier) configurations define EVPN L3 overlays. Each L3VNI creates a separate routing domain and BGP session with the host.

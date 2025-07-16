@@ -67,7 +67,18 @@ func TestValidateUnderlay(t *testing.T) {
 					ASN:      65001,
 				},
 			},
-			wantErr: true,
+			wantErr: false,
+		},
+		{
+			name: "valid underlay with no nics",
+			underlay: v1alpha1.Underlay{
+				Spec: v1alpha1.UnderlaySpec{
+					VTEPCIDR: "192.168.1.0/24",
+					Nics:     nil,
+					ASN:      65001,
+				},
+			},
+			wantErr: false,
 		},
 		{
 			name: "more than one nic",

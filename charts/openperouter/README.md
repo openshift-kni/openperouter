@@ -39,6 +39,7 @@ Kubernetes: `>= 1.19.0-0`
 | openperouter.image.tag | string | `""` |  |
 | openperouter.labels | object | `{}` |  |
 | openperouter.logLevel | string | `"info"` | Controller log level. Must be one of: `debug`, `info`, `warn` or `error`. |
+| openperouter.multusNetworkAnnotation | string | `""` | Multus network annotation to be added to router pods |
 | openperouter.nodemarker.resources | object | `{}` |  |
 | openperouter.podAnnotations | object | `{}` |  |
 | openperouter.priorityClassName | string | `""` |  |
