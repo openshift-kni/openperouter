@@ -35,14 +35,19 @@ func APItoFRR(nodeIndex int, underlays []v1alpha1.Underlay, vnis []v1alpha1.L3VN
 	if err != nil {
 		return frr.Config{}, fmt.Errorf("failed to get vtep ip, cidr %s, nodeIntex %d", underlay.Spec.VTEPCIDR, nodeIndex)
 	}
-
 	underlayNeighbors := []frr.NeighborConfig{}
+	bfdProfiles := []frr.BFDProfile{}
 	for _, n := range underlay.Spec.Neighbors {
 		frrNeigh, err := neighborToFRR(n)
 		if err != nil {
 			return frr.Config{}, fmt.Errorf("failed to translate underlay neighbor %s to frr, err: %w", neighborName(n), err)
 		}
+
+		bfdProfile := bfdProfileForNeighbor(n)
 		underlayNeighbors = append(underlayNeighbors, *frrNeigh)
+		if bfdProfile != nil {
+			bfdProfiles = append(bfdProfiles, *bfdProfile)
+		}
 	}
 	underlayConfig := frr.UnderlayConfig{
 		MyASN:     underlay.Spec.ASN,
@@ -59,9 +64,10 @@ func APItoFRR(nodeIndex int, underlays []v1alpha1.Underlay, vnis []v1alpha1.L3VN
 	}
 
 	return frr.Config{
-		Underlay: underlayConfig,
-		VNIs:     vniConfigs,
-		Loglevel: logLevel,
+		Underlay:    underlayConfig,
+		VNIs:        vniConfigs,
+		BFDProfiles: bfdProfiles,
+		Loglevel:    logLevel,
 	}, nil
 }
 
@@ -159,7 +165,45 @@ func neighborToFRR(n v1alpha1.Neighbor) (*frr.NeighborConfig, error) {
 		res.ConnectTime = ptr.To(connectSecond)
 	}
 
+	if n.BFD == nil {
+		return res, nil
+	}
+
+	res.BFDEnabled = true
+	if ptr.AllPtrFieldsNil(n.BFD) {
+		return res, nil
+	}
+	res.BFDProfile = bfdProfileNameForNeighbor(n)
+
 	return res, nil
+}
+
+func bfdProfileForNeighbor(n v1alpha1.Neighbor) *frr.BFDProfile {
+	if n.BFD == nil {
+		return nil
+	}
+
+	if ptr.AllPtrFieldsNil(n.BFD) {
+		return nil
+	}
+
+	profileName := bfdProfileNameForNeighbor(n)
+	bfdProfile := &frr.BFDProfile{
+		Name:             profileName,
+		ReceiveInterval:  n.BFD.ReceiveInterval,
+		TransmitInterval: n.BFD.TransmitInterval,
+		DetectMultiplier: n.BFD.DetectMultiplier,
+		EchoInterval:     n.BFD.EchoInterval,
+		EchoMode:         ptr.Deref(n.BFD.EchoMode, false),
+		PassiveMode:      ptr.Deref(n.BFD.PassiveMode, false),
+		MinimumTTL:       n.BFD.MinimumTTL,
+	}
+
+	return bfdProfile
+}
+
+func bfdProfileNameForNeighbor(n v1alpha1.Neighbor) string {
+	return fmt.Sprintf("neighbor-%s", n.Address)
 }
 
 func neighborName(n v1alpha1.Neighbor) string {
