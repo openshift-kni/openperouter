@@ -79,7 +79,7 @@ kind: BGPPeer
 metadata:
   name: openpe
 spec:
-  peerIP: 192.169.10.0
+  peerIP: 192.169.10.1
   asNumber: 64514
   numAllowedLocalASNumbers: 5
 ---
@@ -146,7 +146,7 @@ status:
     numberNotEstablishedV4: 0
     numberNotEstablishedV6: 0
     peersV4:
-    - peerIP: 192.169.10.0
+    - peerIP: 192.169.10.1
       since: "15:55:08"
       state: Established
       type: GlobalPeer

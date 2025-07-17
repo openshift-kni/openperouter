@@ -95,7 +95,7 @@ metadata:
 spec:
   myASN: 64515
   peerASN: 64514
-  peerAddress: 192.169.10.0
+  peerAddress: 192.169.10.1
 ---
 apiVersion: metallb.io/v1beta2
 kind: BGPPeer
@@ -105,7 +105,7 @@ metadata:
 spec:
   myASN: 64515
   peerASN: 64514
-  peerAddress: 192.169.11.0
+  peerAddress: 192.169.11.1
 ```
 
 > **Note**: The `peerAddress` field specifies the router-side IP address. MetalLB establishes BGP sessions with OpenPERouter through the veth interfaces created for each VNI. Since the router-side IP is consistent across all nodes, you only need one BGPPeer configuration per VNI.
@@ -159,12 +159,12 @@ spec:
     routers:
     - asn: 64515
       neighbors:
-      - address: 192.169.10.0
+      - address: 192.169.10.1
         asn: 64514
         toReceive:
           allowed:
             mode: all
-      - address: 192.169.11.0
+      - address: 192.169.11.1
         asn: 64514
         toReceive:
           allowed:
@@ -184,10 +184,10 @@ kubectl get bgpsessionstates.frrk8s.metallb.io -A
 Expected output:
 ```
 NAMESPACE        NAME                          NODE                    PEER           VRF   BGP           BFD
-frr-k8s-system   pe-kind-control-plane-94ct2   pe-kind-control-plane   192.169.11.0         Established   N/A
-frr-k8s-system   pe-kind-control-plane-bc9zh   pe-kind-control-plane   192.169.10.0         Established   N/A
-frr-k8s-system   pe-kind-worker-496lk          pe-kind-worker          192.169.11.0         Established   N/A
-frr-k8s-system   pe-kind-worker-s74kn          pe-kind-worker          192.169.10.0         Established   N/A
+frr-k8s-system   pe-kind-control-plane-94ct2   pe-kind-control-plane   192.169.11.1         Established   N/1
+frr-k8s-system   pe-kind-control-plane-bc9zh   pe-kind-control-plane   192.169.10.1         Established   N/A
+frr-k8s-system   pe-kind-worker-496lk          pe-kind-worker          192.169.11.1         Established   N/A
+frr-k8s-system   pe-kind-worker-s74kn          pe-kind-worker          192.169.10.1         Established   N/A
 ```
 
 ### Test Service Connectivity

@@ -6,7 +6,7 @@ metadata:
 spec:
   myASN: 64515
   peerASN: 64514
-  peerAddress: 192.169.10.0
+  peerAddress: 192.169.10.1
 ---
 apiVersion: metallb.io/v1beta2
 kind: BGPPeer
@@ -16,7 +16,7 @@ metadata:
 spec:
   myASN: 64515
   peerASN: 64514
-  peerAddress: 192.169.11.0
+  peerAddress: 192.169.11.1
 ---
 apiVersion: metallb.io/v1beta1
 kind: IPAddressPool

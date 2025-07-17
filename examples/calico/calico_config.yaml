@@ -3,7 +3,7 @@ kind: BGPPeer
 metadata:
   name: openpe
 spec:
-  peerIP: 192.169.10.0
+  peerIP: 192.169.10.1
   asNumber: 64514
   numAllowedLocalASNumbers: 5
 ---
