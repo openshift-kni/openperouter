@@ -15,13 +15,25 @@ TEMP_DIR=$(mktemp -d)
 ORIGINAL_DIR=$(pwd)
 trap "rm -rf $TEMP_DIR" EXIT
 
-DOCS_REPO_URL="https://github.com/openperouter/openperouter.github.io"
+DOCS_REPO_OWNER="openperouter"
+DOCS_REPO_NAME="openperouter.github.io"
+
+if [ -n "${GITHUB_TOKEN:-}" ]; then
+    DOCS_REPO_URL="https://x-access-token:${GITHUB_TOKEN}@github.com/${DOCS_REPO_OWNER}/${DOCS_REPO_NAME}.git"
+else
+    DOCS_REPO_URL="https://github.com/${DOCS_REPO_OWNER}/${DOCS_REPO_NAME}.git"
+fi
 
 echo "[INFO] Cloning repository to temporary directory..."
 git clone "$DOCS_REPO_URL" "$TEMP_DIR/repo"
 
 cd "$TEMP_DIR/repo"
-echo $(pwd)
+
+if [ -n "${GITHUB_TOKEN:-}" ]; then
+    echo "[INFO] Configuring git user for CI..."
+    git config user.name "${GITHUB_ACTOR:-"github-actions[bot]"}"
+    git config user.email "${GITHUB_ACTOR:-"github-actions[bot]"}@users.noreply.github.com"
+fi
 
 echo "[INFO] Clearing existing content..."
 git rm -rf . 2>/dev/null || true
