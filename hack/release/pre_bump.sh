@@ -24,7 +24,7 @@ VERSION_PATCH="${VERSION##*.}"
 git checkout main
 
 BRANCH_NAME="v$VERSION_MAJOR.$VERSION_MINOR"
-if [ $minor = "0" ]; then # patch release
+if [ $VERSION_MINOR = "0" ]; then # patch release
 	git checkout -b $BRANCH_NAME
 else
 	git checkout $BRANCH_NAME
