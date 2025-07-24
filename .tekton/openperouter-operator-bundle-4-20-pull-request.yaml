@@ -9,7 +9,8 @@ metadata:
     pipelinesascode.tekton.dev/cancel-in-progress: "true"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
-      == "main"
+      == "main" && ( "operator/***".pathChanged() || ".tekton/openperouter-operator-bundle-4-20-pull-request.yaml".pathChanged()
+      )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: openperouter-operator-4-20
@@ -31,7 +32,9 @@ spec:
     value:
     - linux/x86_64
   - name: dockerfile
-    value: operator/bundle.Dockerfile
+    value: bundle.Dockerfile
+  - name: path-context
+    value: operator
   pipelineSpec:
     description: |
       This pipeline is ideal for building multi-arch container images from a Containerfile while maintaining trust after pipeline customization.
