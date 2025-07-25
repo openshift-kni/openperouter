@@ -364,7 +364,7 @@ demo-metallb:
 	
 .PHONY: demo-l2
 demo-l2:
-	examples/layers/prepare.sh
+	examples/layer2/prepare.sh
 
 .PHONY: demo-calico
 demo-calico:
