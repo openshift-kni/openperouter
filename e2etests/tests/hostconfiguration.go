@@ -312,7 +312,6 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 
 			resources.L3VNIs[0].Spec.ASN = 64515
 			resources.L3VNIs[0].Spec.VNI = 300
-			resources.L3VNIs[0].Spec.LocalCIDR.IPv4 = "192.171.10.0/24"
 			resources.L3VNIs[0].Spec.HostASN = ptr.To(uint32(64516))
 			err = Updater.Update(resources)
 			Expect(err).NotTo(HaveOccurred())
