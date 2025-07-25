@@ -19,7 +19,7 @@ MetalLB provides load balancing for Kubernetes services by advertising service I
 The full example can be found in the [project repository](https://github.com/openperouter/openperouter/examples/metallb) and can be deployed by running
 
 ```bash
-make demo-metallb
+make docker-build demo-metallb
 ```
 
 This example exposes two different services over two different overlays by configuring two L3 VNIs on the OpenPERouter and peering MetalLB on the sessions corresponding to each VNI.
