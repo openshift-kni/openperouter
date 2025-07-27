@@ -1,21 +1,21 @@
 package opts
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"net"
 	"path"
-	"regexp"
 	"strings"
 
+	"github.com/docker/cli/internal/lazyregexp"
 	"github.com/docker/docker/api/types/filters"
-	units "github.com/docker/go-units"
-	"github.com/pkg/errors"
+	"github.com/docker/go-units"
 )
 
 var (
-	alphaRegexp  = regexp.MustCompile(`[a-zA-Z]`)
-	domainRegexp = regexp.MustCompile(`^(:?(:?[a-zA-Z0-9]|(:?[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9]))(:?\.(:?[a-zA-Z0-9]|(:?[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])))*)\.?\s*$`)
+	alphaRegexp  = lazyregexp.New(`[a-zA-Z]`)
+	domainRegexp = lazyregexp.New(`^(:?(:?[a-zA-Z0-9]|(:?[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9]))(:?\.(:?[a-zA-Z0-9]|(:?[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])))*)\.?\s*$`)
 )
 
 // ListOpts holds a list of values and a validation function.
@@ -80,7 +80,19 @@ func (opts *ListOpts) GetMap() map[string]struct{} {
 }
 
 // GetAll returns the values of slice.
+//
+// Deprecated: use [ListOpts.GetSlice] instead. This method will be removed in a future release.
 func (opts *ListOpts) GetAll() []string {
+	return *opts.values
+}
+
+// GetSlice returns the values of slice.
+//
+// It implements [cobra.SliceValue] to allow shell completion to be provided
+// multiple times.
+//
+// [cobra.SliceValue]: https://pkg.go.dev/github.com/spf13/cobra@v1.9.1#SliceValue
+func (opts *ListOpts) GetSlice() []string {
 	return *opts.values
 }
 
@@ -110,7 +122,7 @@ func (opts *ListOpts) Len() int {
 }
 
 // Type returns a string name for this Option type
-func (opts *ListOpts) Type() string {
+func (*ListOpts) Type() string {
 	return "list"
 }
 
@@ -180,7 +192,7 @@ func (opts *MapOpts) String() string {
 }
 
 // Type returns a string name for this Option type
-func (opts *MapOpts) Type() string {
+func (*MapOpts) Type() string {
 	return "map"
 }
 
@@ -265,6 +277,8 @@ func validateDomain(val string) (string, error) {
 	}
 	return "", fmt.Errorf("%s is not a valid domain", val)
 }
+
+const whiteSpaces = " \t"
 
 // ValidateLabel validates that the specified string is a valid label, and returns it.
 //
@@ -356,7 +370,7 @@ func (o *FilterOpt) Set(value string) error {
 }
 
 // Type returns the option type
-func (o *FilterOpt) Type() string {
+func (*FilterOpt) Type() string {
 	return "filter"
 }
 
@@ -384,7 +398,7 @@ func (c *NanoCPUs) Set(value string) error {
 }
 
 // Type returns the type
-func (c *NanoCPUs) Type() string {
+func (*NanoCPUs) Type() string {
 	return "decimal"
 }
 
@@ -401,7 +415,7 @@ func ParseCPUs(value string) (int64, error) {
 	}
 	nano := cpu.Mul(cpu, big.NewRat(1e9, 1))
 	if !nano.IsInt() {
-		return 0, fmt.Errorf("value is too precise")
+		return 0, errors.New("value is too precise")
 	}
 	return nano.Num().Int64(), nil
 }
@@ -409,14 +423,14 @@ func ParseCPUs(value string) (int64, error) {
 // ParseLink parses and validates the specified string as a link format (name:alias)
 func ParseLink(val string) (string, string, error) {
 	if val == "" {
-		return "", "", fmt.Errorf("empty string specified for links")
+		return "", "", errors.New("empty string specified for links")
 	}
 	// We expect two parts, but restrict to three to allow detecting invalid formats.
 	arr := strings.SplitN(val, ":", 3)
 
 	// TODO(thaJeztah): clean up this logic!!
 	if len(arr) > 2 {
-		return "", "", fmt.Errorf("bad format for links: %s", val)
+		return "", "", errors.New("bad format for links: " + val)
 	}
 	// TODO(thaJeztah): this should trim the "/" prefix as well??
 	if len(arr) == 1 {
@@ -461,7 +475,7 @@ func (m *MemBytes) Set(value string) error {
 }
 
 // Type returns the type
-func (m *MemBytes) Type() string {
+func (*MemBytes) Type() string {
 	return "bytes"
 }
 
@@ -496,7 +510,7 @@ func (m *MemSwapBytes) Set(value string) error {
 }
 
 // Type returns the type
-func (m *MemSwapBytes) Type() string {
+func (*MemSwapBytes) Type() string {
 	return "bytes"
 }
 
