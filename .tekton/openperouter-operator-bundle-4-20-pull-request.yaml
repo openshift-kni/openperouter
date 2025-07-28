@@ -33,8 +33,20 @@ spec:
     - linux/x86_64
   - name: dockerfile
     value: bundle.Dockerfile
+  - name: hermetic
+    value: "true"
+  - name: prefetch-input
+    value: '[{"type": "gomod", "path": "."}]'
+  - name: build-source-image
+    value: 'true'
   - name: path-context
     value: operator
+  - name: build-image-index
+    value: 'false'
+  - name: image-append-platform
+    value: 'false'
+  - name: skip-sast-coverity
+    value: 'true'
   pipelineSpec:
     description: |
       This pipeline is ideal for building multi-arch container images from a Containerfile while maintaining trust after pipeline customization.
@@ -87,6 +99,10 @@ spec:
     - default: "false"
       description: Execute the build with network isolation
       name: hermetic
+      type: string
+    - default: 'false'
+      description: Skip the sast coverity check
+      name: skip-sast-coverity
       type: string
     - default: ""
       description: Build dependencies to be prefetched by Cachi2
@@ -481,6 +497,10 @@ spec:
         operator: in
         values:
         - "false"
+      - input: $(params.skip-sast-coverity)
+        operator: in
+        values:
+        - 'false'
       - input: $(tasks.coverity-availability-check.results.STATUS)
         operator: in
         values:
