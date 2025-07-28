@@ -23,5 +23,5 @@ LABEL com.redhat.component="openperouter-operator" \
     url="https://github.com/openperouter/openperouter" \
     vendor="Red Hat, Inc."
 # Copy files to locations specified by labels.
-COPY bundle/manifests /manifests/
+COPY bundle/stable /manifests/
 COPY bundle/metadata /metadata/
