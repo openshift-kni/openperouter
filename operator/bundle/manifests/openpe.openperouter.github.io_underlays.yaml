@@ -40,8 +40,9 @@ spec:
             description: UnderlaySpec defines the desired state of Underlay.
             properties:
               asn:
-                description: ASN is the local AS number to use for the session with
-                  the TOR switch.
+                description: |-
+                  ASN is the local AS number to use for the session with the TOR switch.
+                  The ASN must be different from the ASN of the neighbors.
                 format: int32
                 maximum: 4294967295
                 minimum: 1
