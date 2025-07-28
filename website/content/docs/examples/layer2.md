@@ -64,7 +64,7 @@ spec:
   hostmaster:
     type: bridge
     autocreate: true
-  l2gatewayip: 192.170.1.0/24
+  l2gatewayip: 192.170.1.1/24
 ```
 
 **Configuration Notes:**
@@ -90,7 +90,7 @@ spec:
          "routes": [
               {
                 "dst": "0.0.0.0/0",
-                "gw": "192.170.1.0"
+                "gw": "192.170.1.1"
               }
             ]
       }
