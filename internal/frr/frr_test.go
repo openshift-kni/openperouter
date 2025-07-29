@@ -15,6 +15,7 @@ import (
 
 	"github.com/openperouter/openperouter/internal/ipfamily"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/utils/ptr"
 )
 
 const testData = "testdata/"
@@ -167,6 +168,63 @@ func TestNoVNIs(t *testing.T) {
 					Addr:     "192.168.1.2",
 					IPFamily: ipfamily.IPv4,
 				},
+			},
+		},
+	}
+	if err := ApplyConfig(context.TODO(), &config, updater); err != nil {
+		t.Fatalf("Failed to apply config: %s", err)
+	}
+
+	testCheckConfigFile(t)
+}
+
+func TestBFDEnabled(t *testing.T) {
+	configFile := testSetup(t)
+	updater := testUpdater(configFile)
+
+	config := Config{
+		Underlay: UnderlayConfig{
+			MyASN: 64512,
+			VTEP:  "100.64.0.1/32",
+			Neighbors: []NeighborConfig{
+				{
+					ASN:        64512,
+					Addr:       "192.168.1.2",
+					IPFamily:   ipfamily.IPv4,
+					BFDEnabled: true,
+				},
+			},
+		},
+	}
+	if err := ApplyConfig(context.TODO(), &config, updater); err != nil {
+		t.Fatalf("Failed to apply config: %s", err)
+	}
+
+	testCheckConfigFile(t)
+}
+
+func TestBFDProfile(t *testing.T) {
+	configFile := testSetup(t)
+	updater := testUpdater(configFile)
+
+	config := Config{
+		Underlay: UnderlayConfig{
+			MyASN: 64512,
+			VTEP:  "100.64.0.1/32",
+			Neighbors: []NeighborConfig{
+				{
+					ASN:        64512,
+					Addr:       "192.168.1.2",
+					IPFamily:   ipfamily.IPv4,
+					BFDEnabled: true,
+					BFDProfile: "foo",
+				},
+			},
+		},
+		BFDProfiles: []BFDProfile{
+			{
+				Name:            "foo",
+				ReceiveInterval: ptr.To(uint32(43)),
 			},
 		},
 	}
