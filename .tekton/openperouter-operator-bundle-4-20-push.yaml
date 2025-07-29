@@ -30,20 +30,8 @@ spec:
     - linux/x86_64
   - name: dockerfile
     value: bundle.Dockerfile
-  - name: hermetic
-    value: "true"
-  - name: prefetch-input
-    value: '[{"type": "gomod", "path": "."}]'
-  - name: build-source-image
-    value: 'true'
   - name: path-context
     value: operator
-  - name: build-image-index
-    value: 'false'
-  - name: image-append-platform
-    value: 'false'
-  - name: skip-sast-coverity
-    value: 'true'
   pipelineSpec:
     description: |
       This pipeline is ideal for building multi-arch container images from a Containerfile while maintaining trust after pipeline customization.
@@ -113,10 +101,6 @@ spec:
     - default: "true"
       description: Add built image into an OCI image index
       name: build-image-index
-      type: string
-    - default: 'false'
-      description: Skip the sast coverity check
-      name: skip-sast-coverity
       type: string
     - default: []
       description: Array of --build-arg values ("arg=value" strings) for buildah
@@ -440,7 +424,7 @@ spec:
         - name: name
           value: clamav-scan
         - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-clamav-scan:0.2@sha256:7749146f7e4fe530846f1b15c9366178ec9f44776ef1922a60d3e7e2b8c6426b
+          value: quay.io/konflux-ci/tekton-catalog/task-clamav-scan:0.3@sha256:cce2dfcc5bd6e91ee54aacdadad523b013eeae5cdaa7f6a4624b8cbcc040f439
         - name: kind
           value: task
         resolver: bundles
@@ -494,10 +478,6 @@ spec:
         operator: in
         values:
         - "false"
-      - input: $(params.skip-sast-coverity)
-        operator: in
-        values:
-        - 'false'
       - input: $(tasks.coverity-availability-check.results.STATUS)
         operator: in
         values:
