@@ -75,6 +75,13 @@ test: fmt vet envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $$(go list ./... | grep -v e2etest) -coverprofile cover.out
 	sudo -E sh -c "umask 0; PATH=${GOPATH}/bin:$(pwd)/bin:${PATH} go test -tags=runasroot -v -race ./internal/hostnetwork"
 
+.PHONY: release-notes
+release-notes: ## Generate release notes
+	@if [ -z "$(OPENPE_VERSION)" ]; then \
+		echo "Usage: make release-notes OPENPE_VERSION=<version>"; \
+		exit 1; \
+	fi
+	hack/release/prepare_release.sh $(OPENPE_VERSION)
 
 ##@ Build
 
@@ -318,7 +325,7 @@ bumpversion:
 	hack/release/bumpversion.sh
 
 .PHONY: cutrelease
-cutrelease: bumpversion generate-all-in-one helm-docs api-docs
+cutrelease: release-notes bumpversion generate-all-in-one helm-docs api-docs
 	hack/release/release.sh
 
 .PHONY: build-validator
@@ -357,7 +364,7 @@ demo-metallb:
 	
 .PHONY: demo-l2
 demo-l2:
-	examples/layers/prepare.sh
+	examples/layer2/prepare.sh
 
 .PHONY: demo-calico
 demo-calico:

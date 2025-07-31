@@ -59,8 +59,9 @@ func TestAPItoFRR(t *testing.T) {
 						},
 					},
 				},
-				VNIs:     []frr.L3VNIConfig{},
-				Loglevel: "debug",
+				VNIs:        []frr.L3VNIConfig{},
+				BFDProfiles: []frr.BFDProfile{},
+				Loglevel:    "debug",
 			},
 			wantErr: false,
 		},
@@ -118,7 +119,8 @@ func TestAPItoFRR(t *testing.T) {
 						ToAdvertiseIPv6: []string{},
 					},
 				},
-				Loglevel: "debug",
+				BFDProfiles: []frr.BFDProfile{},
+				Loglevel:    "debug",
 			},
 			wantErr: false,
 		},
@@ -176,7 +178,8 @@ func TestAPItoFRR(t *testing.T) {
 						ToAdvertiseIPv6: []string{"2001:db8::2/128"},
 					},
 				},
-				Loglevel: "debug",
+				BFDProfiles: []frr.BFDProfile{},
+				Loglevel:    "debug",
 			},
 			wantErr: false,
 		},
@@ -246,7 +249,105 @@ func TestAPItoFRR(t *testing.T) {
 						ToAdvertiseIPv6: []string{"2001:db8::2/128"},
 					},
 				},
+				BFDProfiles: []frr.BFDProfile{},
+				Loglevel:    "debug",
+			},
+			wantErr: false,
+		},
+		{
+			name:      "BFD with custom settings",
+			nodeIndex: 0,
+			underlays: []v1alpha1.Underlay{
+				{
+					Spec: v1alpha1.UnderlaySpec{
+						ASN:      65000,
+						VTEPCIDR: "192.168.1.0/24",
+						Neighbors: []v1alpha1.Neighbor{
+							{
+								Address: "192.168.1.100",
+								ASN:     65001,
+								BFD: &v1alpha1.BFDSettings{
+									ReceiveInterval:  ptr.To(uint32(300)),
+									TransmitInterval: ptr.To(uint32(300)),
+									DetectMultiplier: ptr.To(uint32(3)),
+									EchoMode:         ptr.To(false),
+									PassiveMode:      ptr.To(false),
+								},
+							},
+						},
+					},
+				},
+			},
+			vnis:     []v1alpha1.L3VNI{},
+			logLevel: "debug",
+			want: frr.Config{
+				Underlay: frr.UnderlayConfig{
+					MyASN: 65000,
+					VTEP:  "192.168.1.0/32",
+					Neighbors: []frr.NeighborConfig{
+						{
+							Name:         "65001@192.168.1.100",
+							ASN:          65001,
+							Addr:         "192.168.1.100",
+							IPFamily:     ipfamily.IPv4,
+							EBGPMultiHop: false,
+							BFDEnabled:   true,
+							BFDProfile:   "neighbor-192.168.1.100",
+						},
+					},
+				},
+				VNIs: []frr.L3VNIConfig{},
+				BFDProfiles: []frr.BFDProfile{
+					{
+						Name:             "neighbor-192.168.1.100",
+						ReceiveInterval:  ptr.To(uint32(300)),
+						TransmitInterval: ptr.To(uint32(300)),
+						DetectMultiplier: ptr.To(uint32(3)),
+					},
+				},
 				Loglevel: "debug",
+			},
+			wantErr: false,
+		},
+		{
+			name:      "BFD enabled without settings",
+			nodeIndex: 0,
+			underlays: []v1alpha1.Underlay{
+				{
+					Spec: v1alpha1.UnderlaySpec{
+						ASN:      65000,
+						VTEPCIDR: "192.168.1.0/24",
+						Neighbors: []v1alpha1.Neighbor{
+							{
+								Address: "192.168.1.100",
+								ASN:     65001,
+								BFD:     &v1alpha1.BFDSettings{},
+							},
+						},
+					},
+				},
+			},
+			vnis:     []v1alpha1.L3VNI{},
+			logLevel: "debug",
+			want: frr.Config{
+				Underlay: frr.UnderlayConfig{
+					MyASN: 65000,
+					VTEP:  "192.168.1.0/32",
+					Neighbors: []frr.NeighborConfig{
+						{
+							Name:         "65001@192.168.1.100",
+							ASN:          65001,
+							Addr:         "192.168.1.100",
+							IPFamily:     ipfamily.IPv4,
+							EBGPMultiHop: false,
+							BFDEnabled:   true,
+							BFDProfile:   "",
+						},
+					},
+				},
+				VNIs:        []frr.L3VNIConfig{},
+				BFDProfiles: []frr.BFDProfile{},
+				Loglevel:    "debug",
 			},
 			wantErr: false,
 		},

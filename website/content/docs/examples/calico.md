@@ -19,7 +19,7 @@ Calico allows each node to establish a BGP session with a router to advertise th
 The full example can be found in the [project repository](https://github.com/openperouter/openperouter/examples/calico) and can be deployed by running deployed by running:
 
 ```bash
-make demo-calico
+make docker-build demo-calico
 ```
 
 This example configures Calico to advertise the pod network to the OpenPERouter and runs a pod on each node. It then shows how the pods are connected via the overlay and reachable from the fabric.
@@ -51,7 +51,8 @@ metadata:
 spec:
   asn: 64514
   vni: 100
-  localcidr: 192.169.10.0/24
+  localcidr:
+    ipv4: 192.169.10.0/24
   hostasn: 64515
 ---
 apiVersion: openpe.openperouter.github.io/v1alpha1

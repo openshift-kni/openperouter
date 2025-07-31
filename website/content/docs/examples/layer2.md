@@ -19,7 +19,7 @@ A layer 2 VNI is created, exposing a layer 2 domain on the host. On each node, a
 The full example can be found in the [project repository](https://github.com/openperouter/openperouter/examples/layer2) and can be deployed by running:
 
 ```bash
-make demo-l2
+make docker-build demo-l2
 ```
 
 The example configures both an L2 VNI and an L3 VNI. The L2 VNI belongs to the L3 VNI's routing domain. Pods are running on two separate nodes and connected via the overlay. Additionally, the pods are able to reach the broader L3 domain.
@@ -49,7 +49,8 @@ metadata:
 spec:
   asn: 64514
   vni: 100
-  localcidr: 192.169.10.0/24
+  localcidr:
+    ipv4: 192.169.10.0/24
   hostasn: 64515
 ---
 apiVersion: openpe.openperouter.github.io/v1alpha1
@@ -63,7 +64,7 @@ spec:
   hostmaster:
     type: bridge
     autocreate: true
-  l2gatewayip: 192.170.1.0/24
+  l2gatewayip: 192.170.1.1/24
 ```
 
 **Configuration Notes:**
@@ -89,7 +90,7 @@ spec:
          "routes": [
               {
                 "dst": "0.0.0.0/0",
-                "gw": "192.170.1.0"
+                "gw": "192.170.1.1"
               }
             ]
       }
