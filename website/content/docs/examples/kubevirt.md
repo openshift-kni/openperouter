@@ -23,12 +23,27 @@ The setup creates both Layer 2 and Layer 3 VNIs, with OpenPERouter automatically
 
 ![KubeVirt L2 Integration](/images/openpel2vmtovm.svg)
 
-## Prerequisites
+## Example Setup
 
-- A Kubernetes cluster with KubeVirt installed
-- OpenPERouter deployed and configured
-- Multus CNI installed and configured
-- Access to a real cluster (this example cannot run on kind)
+> **Note:** Some operating systems have their `inotify.max_user_intances`
+> set too low to support larger kind clusters. This leads to:
+>
+> * virt-handler failing with CrashLoopBackOff, logging `panic: Failed to create an inotify watcher`
+> * nodemarker failing with CrashLoopBackOff, logging `too many open files`
+>
+> If that happens in your setup, you may want to increase the limit with:
+>
+> ```bash
+> sysctl -w fs.inotify.max_user_instances=1024
+> ```
+
+The full example can be found in the [project repository](https://github.com/openperouter/openperouter/examples/kubevirt) and can be deployed by running:
+
+```bash
+make docker-build demo-kubevirt
+```
+
+The example configures both an L2 VNI and an L3 VNI. The L2 VNI belongs to the L3 VNI's routing domain. VMs are connected into a single L2 overlay. Additionally, the VMs are able to reach the broader L3 domain, and are reachable from the broader L3 domain.
 
 ## Configuration
 
@@ -79,7 +94,6 @@ apiVersion: k8s.cni.cncf.io/v1
 kind: NetworkAttachmentDefinition
 metadata:
   name: evpn
-  namespace: default
 spec:
   config: |
     {
@@ -100,15 +114,14 @@ Create two virtual machines with network connectivity:
 apiVersion: kubevirt.io/v1
 kind: VirtualMachine
 metadata:
-  name: vm-cirros
+  name: vm-1
 spec:
-  running: false
+  runStrategy: Always
   template:
+    metadata:
+      labels:
+        kubevirt.io/vm: vm-1
     spec:
-      networks:
-      - name: evpn
-        multus:
-          networkName: evpn
       domain:
         devices:
           interfaces:
@@ -123,26 +136,35 @@ spec:
             name: cloudinitdisk
         resources:
           requests:
-            memory: 1024M
+            memory: 2048M
+        machine:
+          type: ""
+      networks:
+      - name: evpn
+        multus:
+          networkName: evpn
       terminationGracePeriodSeconds: 0
       volumes:
       - containerDisk:
-          image: quay.io/kubevirt/cirros-container-disk-demo:devel
+          image: quay.io/kubevirt/fedora-with-test-tooling-container-disk:v1.1.0
         name: containerdisk
       - cloudInitNoCloud:
-          userData: |
-            #!/bin/sh
-            sudo ip address add 192.170.1.3/24 dev eth0
-            sudo ip r add default via 192.170.1.1
-            echo 'printed from cloud-init userdata'
+          networkData: |
+            version: 2
+            ethernets:
+              eth0:
+                addresses:
+                - 192.170.1.3/24
+                gateway4: 192.170.1.1
         name: cloudinitdisk
+
 ```
 
 **VM Configuration Details:**
 
 - Uses the `evpn` network attachment for bridge connectivity
 - Cloud-init configures the VM's IP address and default gateway
-- Second VM should use IP `192.170.1.4/24` for testing
+- Second VM is using IP `192.170.1.4/24` and name `vm-2`
 
 ## Validation
 
@@ -152,7 +174,10 @@ Test connectivity between the two VMs:
 
 ```bash
 # Connect to VM console
-virtctl console vm-cirros
+virtctl console vm-1
+
+# It may take about 2 minutes to start up and get to the login.
+# Once it does, login with username "fedora" an password "fedora".
 
 # Test ping to the other VM
 ping 192.170.1.4
@@ -183,22 +208,36 @@ Expected packet flow:
 13:56:16.152075 pe-110 Out IP 192.170.1.4 > 192.170.1.3: ICMP echo reply
 ```
 
-### Layer 3 Connectivity
+### VM-to-External L3 Connectivity
 
-Test connectivity to hosts in the L3VNI domain:
+With `192.168.20.2` being the IP of the host on the red network:
 
 ```bash
-# From VM console, ping a host in the L3VNI
-ping 192.168.10.3
+# Run this from the VM console
+curl 192.168.20.2:8090/clientip
 ```
 
 Expected output:
 
-```bash
-PING 192.168.10.3 (192.168.10.3): 56 data bytes
-64 bytes from 192.168.10.3: seq=0 ttl=62 time=1.207 ms
-64 bytes from 192.168.10.3: seq=1 ttl=62 time=0.998 ms
 ```
+192.170.1.3:37144
+```
+
+The pod is able to reach a host on the layer 3 network and the IP is preserved.
+
+When monitoring traffic:
+
+```bash
+18:01:50.406263 pe-110 P   IP 192.170.1.3 > 192.168.20.2: ICMP echo request, id 21760, seq 0, length 64
+18:01:50.406267 br-pe-110 In  IP 192.170.1.3 > 192.168.20.2: ICMP echo request, id 21760, seq 0, length 64
+18:01:50.406284 br-pe-100 Out IP 192.170.1.3 > 192.168.20.2: ICMP echo request, id 21760, seq 0, length 64
+18:01:50.406287 vni100 Out IP 192.170.1.3 > 192.168.20.2: ICMP echo request, id 21760, seq 0, length 64
+18:01:50.406295 toswitch Out IP 100.65.0.0.39370 > 100.64.0.1.4789: VXLAN, flags [I] (0x08), vni 100
+IP 192.170.1.3 > 192.168.20.2: ICMP echo request, id 21760, seq 0, length 64
+```
+
+**Traffic Flow Analysis:**
+We see that the packet comes from the veth interface towards the bridge associated with VNI 110 (the default gateway), then is routed to the bridge corresponding to the layer 3 domain and finally encapsulated.
 
 ### Live Migration Testing
 
@@ -209,7 +248,7 @@ Verify that connectivity persists during live migration:
 ping 192.170.1.4
 
 # In another terminal, initiate live migration
-virtctl migrate vm-cirros1
+virtctl migrate vm-2
 ```
 
 The ping should continue working throughout the migration process.
@@ -232,7 +271,7 @@ ip link show br-hs-110
 kubectl get network-attachment-definitions
 
 # Check VM network interfaces
-virtctl console vm-cirros
+virtctl console vm-1
 ip addr show
 ```
 
