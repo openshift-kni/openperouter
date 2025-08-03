@@ -1,0 +1,14 @@
+# We use this IDMS in the Conforma tests to check for fips compliance.
+# https://github.com/konflux-ci/build-definitions/tree/main/task/fbc-fips-check-oci-ta/0.1
+apiVersion: operator.openshift.io/v1
+kind: ImageDigestMirrorSet
+metadata:
+  name: openperouter-operator-image-digest-mirror-set
+spec:
+  imageDigestMirrors:
+    - mirrors:
+        - quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-4-20
+      source: registry.redhat.io/openshift4-dev-preview-beta/openperouter-rhel9-operator
+    - mirrors:
+        - quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-bundle-4-20
+      source: registry.redhat.io/openshift4-dev-preview-beta/openperouter-operator-bundle
