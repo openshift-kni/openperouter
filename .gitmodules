@@ -4,3 +4,6 @@
 [submodule "website/themes/hugo-book"]
 	path = website/themes/hugo-book
 	url = https://github.com/alex-shpak/hugo-book
+[submodule "telco5g-konflux"]
+	path = telco5g-konflux
+	url = https://github.com/openshift-kni/telco5g-konflux

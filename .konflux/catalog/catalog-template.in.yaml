@@ -1,0 +1,21 @@
+---
+entries:
+  - defaultChannel: alpha
+    name: openperouter-operator
+    schema: olm.package
+  # Add 'replaces' after we ship 4.20.0
+  - entries:
+      - name: openperouter-operator.v4.20.0
+        skipRange: '>=4.9.0 <4.20.0'
+    name: alpha
+    package: openperouter-operator
+    schema: olm.channel
+  - entries:
+      - name: openperouter-operator.v4.20.0
+        skipRange: '>=4.9.0 <4.20.0'
+    name: "4.20"
+    package: openperouter-operator
+    schema: olm.channel
+  - image: quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-bundle-4-20@sha256:bf6a076d5b7dea000a817eb9dc3155131ab1655657855719f6ca62d1e5794911
+    schema: olm.bundle
+schema: olm.template.basic
