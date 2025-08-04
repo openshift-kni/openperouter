@@ -16,7 +16,7 @@ metadata:
       Platform Plus"]'
     operators.operatorframework.io/builder: operator-sdk-v1.39.2
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
-  name: openperouter-operator.v0.0.0
+  name: openperouter-operator.v4.20.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -378,7 +378,7 @@ spec:
   provider:
     name: Community
     url: https://github.com/openperouter/openperouter
-  version: 0.0.0
+  version: 4.20.0
   webhookdefinitions:
   - admissionReviewVersions:
     - v1
