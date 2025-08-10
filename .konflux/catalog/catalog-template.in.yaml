@@ -16,6 +16,6 @@ entries:
     name: "4.20"
     package: openperouter-operator
     schema: olm.channel
-  - image: quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-bundle-4-20@sha256:bf6a076d5b7dea000a817eb9dc3155131ab1655657855719f6ca62d1e5794911
+  - image: quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-bundle-4-20@sha256:afbeb70b2205d773974febadd7df7049c47555ee501f15223d30523616f2a550
     schema: olm.bundle
 schema: olm.template.basic
