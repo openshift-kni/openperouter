@@ -279,7 +279,7 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.namespace
-                image: registry.redhat.io/openshift4-dev-preview-beta/openperouter-rhel9-operator@sha256:5da3e1cba6c03cdf9b205d5f0c34e23703711f854aaf35e9ebfa2a53efdf7361
+                image: registry.redhat.io/openshift4-dev-preview-beta/openperouter-rhel9-operator@sha256:4da49ce32cb1d583950d1574a5efe602869849f4a3f27e483c8ce1a8ccd90061
                 imagePullPolicy: IfNotPresent
                 name: webhook
                 ports:
