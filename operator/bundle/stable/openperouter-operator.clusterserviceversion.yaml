@@ -226,14 +226,14 @@ spec:
                     fieldRef:
                       fieldPath: metadata.namespace
                 - name: CONTROLLER_IMAGE
-                  value: registry.redhat.io/openshift4-dev-preview-beta/openperouter-rhel9-operator@sha256:5da3e1cba6c03cdf9b205d5f0c34e23703711f854aaf35e9ebfa2a53efdf7361
+                  value: registry.redhat.io/openshift4-dev-preview-beta/openperouter-rhel9-operator
                 - name: FRR_IMAGE
                   value: quay.io/openshift/origin-metallb-frr:4.20
                 - name: KUBE_RBAC_PROXY_IMAGE
                   value: quay.io/openshift/origin-kube-rbac-proxy:4.20
                 - name: DEPLOY_KUBE_RBAC_PROXIES
                   value: "false"
-                image: registry.redhat.io/openshift4-dev-preview-beta/openperouter-rhel9-operator@sha256:5da3e1cba6c03cdf9b205d5f0c34e23703711f854aaf35e9ebfa2a53efdf7361
+                image: registry.redhat.io/openshift4-dev-preview-beta/openperouter-rhel9-operator
                 imagePullPolicy: IfNotPresent
                 name: operator
                 resources:
@@ -279,7 +279,7 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.namespace
-                image: registry.redhat.io/openshift4-dev-preview-beta/openperouter-rhel9-operator@sha256:cfab937fb862fa6a8ff36850e0b4040656eb5e678ba53a8c1008fceb7637ef59
+                image: registry.redhat.io/openshift4-dev-preview-beta/openperouter-rhel9-operator
                 imagePullPolicy: IfNotPresent
                 name: webhook
                 ports:
