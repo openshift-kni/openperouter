@@ -4,7 +4,7 @@ metadata:
   annotations:
     alm-examples: '[]'
     capabilities: Basic Install
-    createdAt: "2025-07-30T17:27:15Z"
+    createdAt: "2025-08-16T16:45:17Z"
     operators.operatorframework.io/builder: operator-sdk-v1.41.1
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
   name: openperouter-operator.v0.0.0
@@ -254,7 +254,7 @@ spec:
               annotations:
                 kubectl.kubernetes.io/default-container: webhook
               labels:
-                app: webhook
+                component: webhook
                 control-plane: webhook
             spec:
               containers:
