@@ -56,7 +56,7 @@ func APItoFRR(nodeIndex int, underlays []v1alpha1.Underlay, vnis []v1alpha1.L3VN
 	}
 	vniConfigs := []frr.L3VNIConfig{}
 	for _, vni := range vnis {
-		frrVNI, err := l3vniToFRR(vni, nodeIndex)
+		frrVNI, err := l3vniToFRR(vni, underlay.Spec.ASN, nodeIndex)
 		if err != nil {
 			return frr.Config{}, fmt.Errorf("failed to translate vni to frr: %w, vni %v", err, vni)
 		}
@@ -71,8 +71,18 @@ func APItoFRR(nodeIndex int, underlays []v1alpha1.Underlay, vnis []v1alpha1.L3VN
 	}, nil
 }
 
-func l3vniToFRR(vni v1alpha1.L3VNI, nodeIndex int) ([]frr.L3VNIConfig, error) {
-	veths, err := ipam.VethIPsFromPool(vni.Spec.LocalCIDR.IPv4, vni.Spec.LocalCIDR.IPv6, nodeIndex)
+func l3vniToFRR(vni v1alpha1.L3VNI, underlayASN uint32, nodeIndex int) ([]frr.L3VNIConfig, error) {
+	if vni.Spec.HostSession == nil { // no neighbor, just the vni / vrf
+		return []frr.L3VNIConfig{
+			{
+				VNI: int(vni.Spec.VNI),
+				VRF: vni.VRFName(),
+				ASN: underlayASN, // Since there is no session, the ASN is arbitrary
+			},
+		}, nil
+	}
+
+	veths, err := ipam.VethIPsFromPool(vni.Spec.HostSession.LocalCIDR.IPv4, vni.Spec.HostSession.LocalCIDR.IPv6, nodeIndex)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get veths ips for vni %s: %w", vni.Name, err)
 	}
