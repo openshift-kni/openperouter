@@ -103,9 +103,9 @@ func createVNIConfig(vni v1alpha1.L3VNI, hostIP net.IP, mask net.IPMask) frr.L3V
 	vniNeighbor := &frr.NeighborConfig{
 		Addr: hostIP.String(),
 	}
-	vniNeighbor.ASN = vni.Spec.ASN
-	if vni.Spec.HostASN != nil {
-		vniNeighbor.ASN = *vni.Spec.HostASN
+	vniNeighbor.ASN = vni.Spec.HostSession.ASN
+	if vni.Spec.HostSession.HostASN != 0 {
+		vniNeighbor.ASN = vni.Spec.HostSession.HostASN
 	}
 
 	ipnet := net.IPNet{
@@ -114,7 +114,7 @@ func createVNIConfig(vni v1alpha1.L3VNI, hostIP net.IP, mask net.IPMask) frr.L3V
 	}
 
 	config := frr.L3VNIConfig{
-		ASN:           vni.Spec.ASN,
+		ASN:           vni.Spec.HostSession.ASN,
 		VNI:           int(vni.Spec.VNI),
 		VRF:           vni.VRFName(),
 		LocalNeighbor: vniNeighbor,
