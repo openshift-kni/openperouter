@@ -49,6 +49,10 @@ router bgp {{ .Underlay.MyASN }}
 {{- template "neighborenableipfamily" . -}}
 {{end }}
 
+{{- if .Passthrough }}
+{{- template "localpassthrough" . -}}
+{{- end }}
+
 {{- if .Underlay.EVPN }}
 {{- template "underlayevpn" . -}}
 {{- end }}
