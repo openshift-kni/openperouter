@@ -47,7 +47,7 @@ spec:
                   asn:
                     description: |-
                       ASN is the local AS number to use to establish a BGP session with
-                      the default namespace. The ASN must be different from the ASN of the neighbors.
+                      the default namespace.
                     format: int32
                     maximum: 4294967295
                     minimum: 1
