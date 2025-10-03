@@ -21,7 +21,7 @@ The setup creates both Layer 2 and Layer 3 VNIs, with OpenPERouter automatically
 - **Linux Bridge**: Automatically created by OpenPERouter for VM connectivity
 - **VM Connectivity**: VMs connect to the bridge using Multus network attachments
 
-![KubeVirt L2 Integration](/images/openpel2vmtovm.svg)
+![KubeVirt L2 Integration](/images/openpel2kubevirt.svg)
 
 ## Example Setup
 
