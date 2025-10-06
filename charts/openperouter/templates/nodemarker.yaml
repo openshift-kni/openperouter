@@ -34,6 +34,15 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ template "openperouter.controller.serviceAccountName" . }}
+      tolerations:
+      {{- if .Values.openperouter.runOnMaster }}
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+        operator: Exists
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/control-plane
+        operator: Exists
+      {{- end }}
       containers:
       - args:
         {{- with .Values.openperouter.logLevel }}
