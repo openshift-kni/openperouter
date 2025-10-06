@@ -117,7 +117,7 @@ When running on OpenShift, additional Security Context Constraints (SCCs) must b
 
 ```bash
 oc adm policy add-scc-to-user privileged -n openperouter-system -z controller
-oc adm policy add-scc-to-user privileged -n openperouter-system -z router
+oc adm policy add-scc-to-user privileged -n openperouter-system -z perouter
 ```
 
 ## Verification
