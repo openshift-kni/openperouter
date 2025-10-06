@@ -30,7 +30,7 @@ This environment provides:
 
 ## Base OpenPERouter Configuration
 
-Before running any integration examples, you need to configure OpenPERouter with the appropriate underlay and VNI settings.
+Before running any integration examples, you need to configure OpenPERouter with the appropriate underlay settings.
 
 ### Underlay Configuration
 
