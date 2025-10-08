@@ -26,6 +26,10 @@ CONTAINER_ENGINE ?= docker
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
+# CLAB_TOPOLOGY_FILE allows the user to specify which containerlab topology
+# file to deploy. It defauls to the single cluster variant
+CLAB_TOPOLOGY_FILE ?= kind.clab.yml
+
 .PHONY: all
 all: build
 
@@ -271,7 +275,7 @@ e2etests: ginkgo kubectl build-validator create-export-logs
 
 .PHONY: clab-cluster
 clab-cluster:
-	KUBECONFIG_PATH=$(KUBECONFIG_PATH) KIND=$(KIND) clab/setup.sh
+	KUBECONFIG_PATH=$(KUBECONFIG_PATH) KIND=$(KIND) CLAB_TOPOLOGY=$(CLAB_TOPOLOGY_FILE) clab/setup.sh
 	@echo 'kind cluster created, to use it please'
 	@echo 'export KUBECONFIG=${KUBECONFIG_PATH}'
 

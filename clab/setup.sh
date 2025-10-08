@@ -6,6 +6,7 @@ pushd "$(dirname $(readlink -f $0))"
 source common.sh
 
 CALICO_MODE=${CALICO_MODE:-false}
+CLAB_TOPOLOGY="${CLAB_TOPOLOGY:-kind.clab.yml}"
 
 generate_leaf_configs() {
     echo "Generating leaf configurations..."
@@ -88,7 +89,7 @@ if [[ $CONTAINER_ENGINE == "docker" ]]; then
     --pid="host" \
     -v $(pwd):$(pwd) \
     -w $(pwd) \
-    ghcr.io/srl-labs/clab:0.67.0 /usr/bin/clab deploy --reconfigure --topo kind.clab.yml
+    ghcr.io/srl-labs/clab:0.67.0 /usr/bin/clab deploy --reconfigure --topo $CLAB_TOPOLOGY
 else
     # We werent able to run clab with podman in podman, installing it and running it
     # from the host.
@@ -96,7 +97,7 @@ else
 	echo "Clab is not installed, please install it first following https://containerlab.dev/install/"
 	exit 1
     fi
-    sudo clab deploy --reconfigure --topo kind.clab.yml $RUNTIME_OPTION
+    sudo clab deploy --reconfigure --topo $CLAB_TOPOLOGY $RUNTIME_OPTION
 fi
 
 load_image_to_kind quay.io/frrouting/frr:9.1.0 frr9
