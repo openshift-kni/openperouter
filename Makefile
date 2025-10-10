@@ -410,6 +410,10 @@ demo-kubevirt:
 .PHONY: demo-metallb-passthrough
 demo-metallb-passthrough:
 	examples/passthrough/metallb/prepare.sh
+
+.PHONY: demo-multi-cluster
+demo-multi-cluster:
+	examples/evpn/multi-cluster/prepare.sh
 #
 # Operator specifics, copied from a Makefile generated on a clean folder by operator-sdk, then modified.
 #
