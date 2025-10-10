@@ -6,7 +6,7 @@ pushd "$(dirname $(readlink -f $0))"
 source common.sh
 
 CALICO_MODE=${CALICO_MODE:-false}
-CLAB_TOPOLOGY="${CLAB_TOPOLOGY:-kind.clab.yml}"
+CLAB_TOPOLOGY="${CLAB_TOPOLOGY:-singlecluster/kind.clab.yml}"
 
 generate_leaf_configs() {
     echo "Generating leaf configurations..."
@@ -120,7 +120,7 @@ if [[ "$CALICO_MODE" != "true" ]]; then
     kind/frr-k8s/setup.sh
 fi
 
-sudo $(which go) run tools/assign_ips/assign_ips.go -file ip_map.txt -engine ${CONTAINER_ENGINE}
+sudo $(which go) run tools/assign_ips/assign_ips.go -file singlecluster/ip_map.txt -engine ${CONTAINER_ENGINE}
 
 ${CONTAINER_ENGINE_CLI} exec clab-kind-leafA /setup.sh
 ${CONTAINER_ENGINE_CLI} exec clab-kind-leafB /setup.sh

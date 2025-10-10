@@ -28,7 +28,7 @@ SHELL = /usr/bin/env bash -o pipefail
 
 # CLAB_TOPOLOGY_FILE allows the user to specify which containerlab topology
 # file to deploy. It defauls to the single cluster variant
-CLAB_TOPOLOGY_FILE ?= kind.clab.yml
+CLAB_TOPOLOGY_FILE ?= singlecluster/kind.clab.yml
 
 .PHONY: all
 all: build
