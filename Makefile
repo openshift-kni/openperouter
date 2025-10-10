@@ -171,6 +171,9 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 .PHONY: deploy
 deploy: kind deploy-cluster deploy-controller ## Deploy cluster and controller.
 
+.PHONY: deploy-multi
+deploy-multi: kind deploy-multi-cluster deploy-controller-multi ## Deploy cluster and controller.
+
 .PHONY: deploy-with-prometheus
 deploy-with-prometheus: KUSTOMIZE_LAYER=prometheus
 deploy-with-prometheus: deploy-cluster deploy-prometheus deploy-controller
@@ -188,18 +191,32 @@ deploy-cluster: kubectl manifests kustomize clab-cluster load-on-kind ## Deploy 
 .PHONY: deploy-clab
 deploy-clab: kubectl manifests kustomize clab-cluster load-on-kind ## Deploy a cluster for the controller.
 
+.PHONY: deploy-multi-cluster
+deploy-multi-cluster: kubectl manifests kustomize clab-multi-cluster load-on-multi-cluster ## Deploy multi-cluster setup for the controller.
+
 KUSTOMIZE_LAYER ?= default
 .PHONY: deploy-controller
 deploy-controller: kubectl kustomize ## Deploy controller to the K8s cluster specified in $KUBECONFIG.
+	$(MAKE) deploy-controller-cluster CLUSTER_NAME=default CLUSTER_KUBECONFIG=${KUBECONFIG_PATH}
+
+.PHONY: deploy-controller-multi
+deploy-controller-multi: kubectl kustomize ## Deploy controller to both clusters in multi-cluster setup.
+	$(MAKE) deploy-controller-cluster CLUSTER_NAME=pe-kind-a CLUSTER_KUBECONFIG=${KUBECONFIG_PATH}-pe-kind-a
+	$(MAKE) deploy-controller-cluster CLUSTER_NAME=pe-kind-b CLUSTER_KUBECONFIG=${KUBECONFIG_PATH}-pe-kind-b
+
+.PHONY: deploy-controller-cluster
+deploy-controller-cluster: kubectl kustomize ## Deploy controller to a specific cluster (internal target).
+	@echo "=== Deploying controller to cluster $(CLUSTER_NAME) ==="
 	cd config/pods && $(KUSTOMIZE) edit set image router=${IMG}
-	$(KUBECTL) -n ${NAMESPACE} delete ds controller || true
-	$(KUBECTL) -n ${NAMESPACE} delete ds router || true
-	$(KUBECTL) -n ${NAMESPACE} delete deployment nodemarker || true
+	KUBECONFIG=$(CLUSTER_KUBECONFIG) $(KUBECTL) -n ${NAMESPACE} delete ds controller || true
+	KUBECONFIG=$(CLUSTER_KUBECONFIG) $(KUBECTL) -n ${NAMESPACE} delete ds router || true
+	KUBECONFIG=$(CLUSTER_KUBECONFIG) $(KUBECTL) -n ${NAMESPACE} delete deployment nodemarker || true
 
 	# todo tweak loglevel
-	$(KUSTOMIZE) build config/$(KUSTOMIZE_LAYER) | $(KUBECTL) apply -f -
+	$(KUSTOMIZE) build config/$(KUSTOMIZE_LAYER) | KUBECONFIG=$(CLUSTER_KUBECONFIG) $(KUBECTL) apply -f -
 	sleep 2s # wait for daemonset to be created
-	$(KUBECTL) -n ${NAMESPACE} wait --for=condition=Ready --all pods --timeout 300s
+	KUBECONFIG=$(CLUSTER_KUBECONFIG) $(KUBECTL) -n ${NAMESPACE} wait --for=condition=Ready --all pods --timeout 300s
+	@echo "=== Controller deployed successfully to cluster $(CLUSTER_NAME) ==="
 
 .PHONY: deploy-helm
 deploy-helm: helm kind deploy-cluster
@@ -279,9 +296,21 @@ clab-cluster:
 	@echo 'kind cluster created, to use it please'
 	@echo 'export KUBECONFIG=${KUBECONFIG_PATH}'
 
+.PHONY: clab-multi-cluster
+clab-multi-cluster: ## Deploy multi-cluster setup with 2 kindleafs, 2 kind switches, and 2 kind clusters (control plane + worker each)
+	KUBECONFIG_PATH=$(KUBECONFIG_PATH) KIND=$(KIND) CLAB_TOPOLOGY=multicluster/kind.clab.yml clab/setup.sh pe-kind-a pe-kind-b
+	@echo 'Multi-cluster deployment created:'
+	@echo '  - Cluster A: export KUBECONFIG=${KUBECONFIG_PATH}-pe-kind-a'
+	@echo '  - Cluster B: export KUBECONFIG=${KUBECONFIG_PATH}-pe-kind-b'
+
 .PHONY: load-on-kind
 load-on-kind: ## Load the docker image into the kind cluster.
 	KIND=$(KIND) bash -c 'source clab/common.sh && load_local_image_to_kind ${IMG} router'
+
+.PHONY: load-on-multi-cluster
+load-on-multi-cluster: ## Load the docker image into both kind clusters.
+	KIND=$(KIND) bash -c 'export KIND_CLUSTER_NAME=pe-kind-a && source clab/common.sh && load_local_image_to_kind ${IMG} router-a'
+	KIND=$(KIND) bash -c 'export KIND_CLUSTER_NAME=pe-kind-b && source clab/common.sh && load_local_image_to_kind ${IMG} router-b'
 
 .PHONY: lint
 lint:
