@@ -132,6 +132,57 @@ func TestValidateUnderlay(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "underlay NIC is a vlan sub-interface",
+			underlay: v1alpha1.Underlay{
+				Spec: v1alpha1.UnderlaySpec{
+					EVPN: &v1alpha1.EVPNConfig{
+						VTEPCIDR: "192.168.1.0/24",
+					},
+					Nics: []string{"eno2.161"},
+					ASN:  65001,
+				},
+			},
+		},
+		{
+			name: "underlay NIC starts with dot",
+			underlay: v1alpha1.Underlay{
+				Spec: v1alpha1.UnderlaySpec{
+					EVPN: &v1alpha1.EVPNConfig{
+						VTEPCIDR: "192.168.1.0/24",
+					},
+					Nics: []string{".eth0"},
+					ASN:  65001,
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "a vlan sub interface whose name is too long",
+			underlay: v1alpha1.Underlay{
+				Spec: v1alpha1.UnderlaySpec{
+					EVPN: &v1alpha1.EVPNConfig{
+						VTEPCIDR: "192.168.1.0/24",
+					},
+					Nics: []string{"verylongname.123"},
+					ASN:  65001,
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "underlay NIC with invalid characters after dot",
+			underlay: v1alpha1.Underlay{
+				Spec: v1alpha1.UnderlaySpec{
+					EVPN: &v1alpha1.EVPNConfig{
+						VTEPCIDR: "192.168.1.0/24",
+					},
+					Nics: []string{"eth0.100!"},
+					ASN:  65001,
+				},
+			},
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
