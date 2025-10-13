@@ -4,7 +4,7 @@ metadata:
   annotations:
     alm-examples: '[]'
     capabilities: Basic Install
-    createdAt: "2025-09-16T08:45:24Z"
+    createdAt: "2025-10-13T15:54:17Z"
     operators.operatorframework.io/builder: operator-sdk-v1.41.1
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
   name: openperouter-operator.v0.0.0
@@ -83,83 +83,8 @@ spec:
           - openpe.openperouter.github.io
           resources:
           - l2vnis
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - openpe.openperouter.github.io
-          resources:
-          - l2vnis/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - openpe.openperouter.github.io
-          resources:
-          - l2vnis/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - openpe.openperouter.github.io
-          resources:
           - l3passthroughs
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - openpe.openperouter.github.io
-          resources:
-          - l3passthroughs/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - openpe.openperouter.github.io
-          resources:
-          - l3passthroughs/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - openpe.openperouter.github.io
-          resources:
           - l3vnis
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - openpe.openperouter.github.io
-          resources:
-          - l3vnis/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - openpe.openperouter.github.io
-          resources:
-          - l3vnis/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - openpe.openperouter.github.io
-          resources:
           - underlays
           verbs:
           - create
@@ -172,12 +97,18 @@ spec:
         - apiGroups:
           - openpe.openperouter.github.io
           resources:
+          - l2vnis/finalizers
+          - l3passthroughs/finalizers
+          - l3vnis/finalizers
           - underlays/finalizers
           verbs:
           - update
         - apiGroups:
           - openpe.openperouter.github.io
           resources:
+          - l2vnis/status
+          - l3passthroughs/status
+          - l3vnis/status
           - underlays/status
           verbs:
           - get
