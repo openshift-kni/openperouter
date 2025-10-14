@@ -1,7 +1,10 @@
 #!/bin/bash
+set -x
 
 MULTUS_VERSION=${MULTUS_VERSION:-"v4.2.1"}
 CNI_PLUGINS_VERSION=${CNI_PLUGINS_VERSION:-"v1.7.1"}
+KIND_CLUSTER_NAME=${KIND_CLUSTER_NAME:-"pe-kind"}
+
 kubectl apply -k $(dirname ${BASH_SOURCE[0]})
 kubectl apply -f https://raw.githubusercontent.com/k8snetworkplumbingwg/multus-cni/refs/tags/${MULTUS_VERSION}/deployments/multus-daemonset.yml
 
@@ -19,7 +22,7 @@ GOBIN=$TEMP_GOBIN go install github.com/containernetworking/plugins/plugins/ipam
 
 CNI_PATH="/opt/cni/bin"
 
-KIND_NODES=$(kind get nodes --name pe-kind)
+KIND_NODES=$(kind get nodes --name "$KIND_CLUSTER_NAME")
 
 for NODE in $KIND_NODES; do
   docker cp $TEMP_GOBIN/macvlan $NODE:$CNI_PATH/

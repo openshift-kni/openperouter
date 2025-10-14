@@ -137,14 +137,28 @@ Integrate OpenPERouter with Calico CNI to provide EVPN connectivity for Calico-m
 
 Learn how to integrate OpenPERouter with KubeVirt for virtual machine networking across the EVPN fabric.
 
+#### Single cluster
+
 **Key Features:**
 
 - Virtual machine networking
 - EVPN Type 2 route generation
-- VM-to-VM communication across fabric
+- VM-to-VM communication across fabric (VMs running in the same cluster)
 - BGP peering with KubeVirt nodes
 
-[View KubeVirt Integration Example →]({{< ref "kubevirt" >}})
+[View KubeVirt Single Cluster Integration Example →]({{< ref "kubevirt" >}})
+
+#### Multiple clusters
+
+**Key Features:**
+
+- Virtual machine networking (across different clusters)
+- EVPN Type 2 route generation
+- EVPN Type 5 route generation
+- VM-to-VM communication across fabric (VMs running in different clusters)
+- BGP peering with KubeVirt nodes
+
+[View KubeVirt Multi Cluster Integration Example →]({{< ref "kubevirt-multi-cluster" >}})
 
 ### Layer2 Integration
 
