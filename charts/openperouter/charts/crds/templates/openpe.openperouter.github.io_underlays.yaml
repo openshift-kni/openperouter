@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   name: underlays.openpe.openperouter.github.io
 spec:
   group: openpe.openperouter.github.io
@@ -52,6 +52,8 @@ spec:
                     description: VTEPCIDR is CIDR to be used to assign IPs to the
                       local VTEP on each node.
                     type: string
+                required:
+                - vtepcidr
                 type: object
               neighbors:
                 description: Neighbors is the list of external neighbors to peer with.
@@ -195,6 +197,8 @@ spec:
                   Nics is the list of physical nics to move under the PERouter namespace to connect
                   to external routers. This field is optional when using Multus networks for TOR connectivity.
                 items:
+                  maxLength: 15
+                  pattern: ^[a-zA-Z][a-zA-Z0-9_-]*$
                   type: string
                 type: array
               routeridcidr:
@@ -202,6 +206,8 @@ spec:
                 description: RouterIDCIDR is the ipv4 cidr to be used to assign a
                   different routerID on each node.
                 type: string
+            required:
+            - asn
             type: object
           status:
             description: UnderlayStatus defines the observed state of Underlay.

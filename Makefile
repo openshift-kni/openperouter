@@ -146,7 +146,7 @@ export KUBECONFIG=$(KUBECONFIG_PATH)
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.0.0
-CONTROLLER_TOOLS_VERSION ?= v0.14.0
+CONTROLLER_TOOLS_VERSION ?= v0.19.0
 KUBECTL_VERSION ?= v1.27.0
 GINKGO_VERSION ?= $(shell go list -m -f '{{.Version}}' github.com/onsi/ginkgo/v2)
 KIND_VERSION ?= v0.27.0

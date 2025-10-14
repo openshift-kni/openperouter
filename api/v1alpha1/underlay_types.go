@@ -39,8 +39,8 @@ type UnderlaySpec struct {
 
 	// Nics is the list of physical nics to move under the PERouter namespace to connect
 	// to external routers. This field is optional when using Multus networks for TOR connectivity.
-	// +kubebuilder:validation:Items=Pattern=`^[a-zA-Z][a-zA-Z0-9_-]*$`
-	// +kubebuilder:validation:Items=MaxLength=15
+	// +kubebuilder:validation:items:Pattern=`^[a-zA-Z][a-zA-Z0-9_-]*$`
+	// +kubebuilder:validation:items:MaxLength=15
 	Nics []string `json:"nics,omitempty"`
 
 	EVPN *EVPNConfig `json:"evpn,omitempty"`
