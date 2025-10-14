@@ -13,7 +13,7 @@ import (
 var interfaceNameRegexp *regexp.Regexp
 
 func init() {
-	interfaceNameRegexp = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_-]*$`)
+	interfaceNameRegexp = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9._-]*$`)
 }
 
 func ValidateL3VNIs(l3Vnis []v1alpha1.L3VNI) error {

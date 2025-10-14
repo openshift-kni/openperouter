@@ -198,7 +198,7 @@ spec:
                   to external routers. This field is optional when using Multus networks for TOR connectivity.
                 items:
                   maxLength: 15
-                  pattern: ^[a-zA-Z][a-zA-Z0-9_-]*$
+                  pattern: ^[a-zA-Z][a-zA-Z0-9._-]*$
                   type: string
                 type: array
               routeridcidr:
