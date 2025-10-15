@@ -95,6 +95,7 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 				Namespace: openperouter.Namespace,
 			},
 			Spec: v1alpha1.L3VNISpec{
+				VRF: "first",
 				VNI: 100,
 				HostSession: &v1alpha1.HostSession{
 					ASN:     64514,
@@ -111,6 +112,7 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 				Namespace: openperouter.Namespace,
 			},
 			Spec: v1alpha1.L3VNISpec{
+				VRF: "second",
 				VNI: 200,
 				HostSession: &v1alpha1.HostSession{
 					ASN:     64514,
@@ -127,6 +129,7 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 				Namespace: openperouter.Namespace,
 			},
 			Spec: v1alpha1.L3VNISpec{
+				VRF: "ipv6-only",
 				VNI: 300,
 				HostSession: &v1alpha1.HostSession{
 					ASN:     64514,
@@ -143,6 +146,7 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 				Namespace: openperouter.Namespace,
 			},
 			Spec: v1alpha1.L3VNISpec{
+				VRF: "dual-stack",
 				VNI: 400,
 				HostSession: &v1alpha1.HostSession{
 					ASN:     64514,

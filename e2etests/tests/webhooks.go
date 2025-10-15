@@ -11,7 +11,6 @@ import (
 	"github.com/openperouter/openperouter/e2etests/pkg/openperouter"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/utils/ptr"
 )
 
 var _ = Describe("Webhooks", func() {
@@ -37,6 +36,7 @@ var _ = Describe("Webhooks", func() {
 					Namespace: openperouter.Namespace,
 				},
 				Spec: v1alpha1.L3VNISpec{
+					VRF: "test-vrf-1",
 					HostSession: &v1alpha1.HostSession{
 						ASN: 65001,
 						LocalCIDR: v1alpha1.LocalCIDRConfig{
@@ -63,13 +63,30 @@ var _ = Describe("Webhooks", func() {
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring(expectedError))
 			},
+			Entry("when trying to create a VNI without VRF field", v1alpha1.L3VNI{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-vni-no-vrf",
+					Namespace: openperouter.Namespace,
+				},
+				Spec: v1alpha1.L3VNISpec{
+					VNI:       103,
+					VXLanPort: 4789,
+					HostSession: &v1alpha1.HostSession{
+						ASN:     65001,
+						HostASN: 65002,
+						LocalCIDR: v1alpha1.LocalCIDRConfig{
+							IPv4: "10.0.3.0/24",
+						},
+					},
+				},
+			}, "spec.vrf in body should match"),
 			Entry("when trying to create a VNI with the same VNI as an existing one", v1alpha1.L3VNI{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-vni-2",
 					Namespace: openperouter.Namespace,
 				},
 				Spec: v1alpha1.L3VNISpec{
-					VRF:       ptr.To("test-vrf-2"),
+					VRF:       "test-vrf-2",
 					VNI:       100,
 					VXLanPort: 4789,
 					HostSession: &v1alpha1.HostSession{
@@ -87,7 +104,7 @@ var _ = Describe("Webhooks", func() {
 					Namespace: openperouter.Namespace,
 				},
 				Spec: v1alpha1.L3VNISpec{
-					VRF:       ptr.To("test-vrf-3"),
+					VRF:       "test-vrf-3",
 					VNI:       101,
 					VXLanPort: 4789,
 					HostSession: &v1alpha1.HostSession{
@@ -105,7 +122,7 @@ var _ = Describe("Webhooks", func() {
 					Namespace: openperouter.Namespace,
 				},
 				Spec: v1alpha1.L3VNISpec{
-					VRF:       ptr.To("test-vrf-4"),
+					VRF:       "test-vrf-4",
 					VNI:       102,
 					VXLanPort: 4789,
 					HostSession: &v1alpha1.HostSession{
@@ -210,6 +227,7 @@ var _ = Describe("Webhooks", func() {
 					Namespace: openperouter.Namespace,
 				},
 				Spec: v1alpha1.L3VNISpec{
+					VRF:       "vrf-immutable",
 					VNI:       400,
 					VXLanPort: 4789,
 					HostSession: &v1alpha1.HostSession{
@@ -235,6 +253,7 @@ var _ = Describe("Webhooks", func() {
 					Namespace: openperouter.Namespace,
 				},
 				Spec: v1alpha1.L3VNISpec{
+					VRF:       "vrf-immutable",
 					VNI:       400,
 					VXLanPort: 4789,
 					HostSession: &v1alpha1.HostSession{
@@ -526,6 +545,7 @@ var _ = Describe("Webhooks", func() {
 					Namespace: openperouter.Namespace,
 				},
 				Spec: v1alpha1.L3VNISpec{
+					VRF: "vrf-overlap",
 					HostSession: &v1alpha1.HostSession{
 						ASN: 65070,
 						LocalCIDR: v1alpha1.LocalCIDRConfig{

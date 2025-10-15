@@ -34,6 +34,7 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 			Namespace: openperouter.Namespace,
 		},
 		Spec: v1alpha1.L3VNISpec{
+			VRF: "red",
 			VNI: 100,
 		},
 	}

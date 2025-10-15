@@ -62,23 +62,25 @@ metadata:
   name: blue
   namespace: openperouter-system
 spec:
+  vrf: blue
   hostsession:
     asn: 64514
     hostasn: 64515
     localcidr:
       ipv4: 192.169.11.0/24
   vni: 200
-  
+
 ```
 
 ### Configuration Fields
 
 | Field | Type | Description | Required |
 |-------|------|-------------|----------|
-| `asn` | integer | Router ASN for BGP session with host | Yes |
+| `vrf` | string | Name of the VRF (Virtual Routing and Forwarding) instance | Yes |
 | `vni` | integer | Virtual Network Identifier (1-16777215) | Yes |
-| `localcidr` | string | CIDR for veth pair IP allocation | Yes |
-| `hostasn` | integer | Host ASN for BGP session | Yes |
+| `hostsession.asn` | integer | Router ASN for BGP session with host | Yes |
+| `hostsession.hostasn` | integer | Host ASN for BGP session | Yes |
+| `hostsession.localcidr` | string | CIDR for veth pair IP allocation | Yes |
 
 ### Multiple VNIs Example
 
@@ -92,6 +94,7 @@ metadata:
   name: signal
   namespace: openperouter-system
 spec:
+  vrf: signal
   vni: 100
   hostsession:
     asn: 64514
@@ -106,6 +109,7 @@ metadata:
   name: oam
   namespace: openperouter-system
 spec:
+  vrf: oam
   vni: 200
   hostsession:
     asn: 64514

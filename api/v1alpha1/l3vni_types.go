@@ -24,11 +24,10 @@ import (
 // +kubebuilder:validation:XValidation:rule="!has(self.hostsession) || self.hostsession.hostasn != self.hostsession.asn",message="hostASN must be different from asn"
 type L3VNISpec struct {
 	// VRF is the name of the linux VRF to be used inside the PERouter namespace.
-	// The field is optional, if not set it the name of the VNI instance will be used.
 	// +kubebuilder:validation:Pattern=`^[a-zA-Z][a-zA-Z0-9_-]*$`
 	// +kubebuilder:validation:MaxLength=15
-	// +optional
-	VRF *string `json:"vrf,omitempty"`
+	// +kubebuilder:validation:Required
+	VRF string `json:"vrf"`
 
 	// VNI is the VXLan VNI to be used
 	// +kubebuilder:validation:Minimum=0
@@ -63,15 +62,6 @@ type L3VNI struct {
 
 	Spec   L3VNISpec   `json:"spec,omitempty"`
 	Status L3VNIStatus `json:"status,omitempty"`
-}
-
-// VRFName returns the name to be used for the
-// vrf corresponding to the object.
-func (v L3VNI) VRFName() string {
-	if v.Spec.VRF != nil && *v.Spec.VRF != "" {
-		return *v.Spec.VRF
-	}
-	return v.Name
 }
 
 // +kubebuilder:object:root=true

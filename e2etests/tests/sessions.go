@@ -93,6 +93,7 @@ var _ = Describe("Router Host configuration", Ordered, func() {
 				Namespace: openperouter.Namespace,
 			},
 			Spec: v1alpha1.L3VNISpec{
+				VRF: "red",
 				HostSession: &v1alpha1.HostSession{
 					ASN:     64514,
 					HostASN: 64515,

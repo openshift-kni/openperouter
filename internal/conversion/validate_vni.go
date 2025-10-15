@@ -64,7 +64,7 @@ func vnisFromL3VNIs(l3vnis []v1alpha1.L3VNI) []vni {
 		result[i] = vni{
 			name:    l3vni.Name,
 			vni:     l3vni.Spec.VNI,
-			vrfName: l3vni.VRFName(),
+			vrfName: l3vni.Spec.VRF,
 		}
 	}
 	return result
