@@ -309,9 +309,8 @@ spec:
                 minimum: 0
                 type: integer
               vrf:
-                description: |-
-                  VRF is the name of the linux VRF to be used inside the PERouter namespace.
-                  The field is optional, if not set it the name of the VNI instance will be used.
+                description: VRF is the name of the linux VRF to be used inside the
+                  PERouter namespace.
                 maxLength: 15
                 pattern: ^[a-zA-Z][a-zA-Z0-9_-]*$
                 type: string
@@ -320,6 +319,8 @@ spec:
                 description: VXLanPort is the port to be used for VXLan encapsulation.
                 format: int32
                 type: integer
+            required:
+            - vrf
             type: object
             x-kubernetes-validations:
             - message: hostASN must be different from asn

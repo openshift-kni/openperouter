@@ -47,6 +47,7 @@ metadata:
   name: red
   namespace: openperouter-system
 spec:
+  vrf: red
   vni: 100
   hostsession:
     asn: 64514

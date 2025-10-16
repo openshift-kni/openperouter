@@ -48,6 +48,7 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 			Namespace: openperouter.Namespace,
 		},
 		Spec: v1alpha1.L3VNISpec{
+			VRF: "red",
 			HostSession: &v1alpha1.HostSession{
 				ASN:     64514,
 				HostASN: 64515,
@@ -66,6 +67,7 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 			Namespace: openperouter.Namespace,
 		},
 		Spec: v1alpha1.L3VNISpec{
+			VRF: "blue",
 			HostSession: &v1alpha1.HostSession{
 				ASN:     64514,
 				HostASN: 64515,

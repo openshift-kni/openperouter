@@ -70,7 +70,7 @@ func APItoHostConfig(nodeIndex int, targetNS string, apiConfig ApiConfigData) (H
 	for _, vni := range apiConfig.L3VNIs {
 		v := hostnetwork.L3VNIParams{
 			VNIParams: hostnetwork.VNIParams{
-				VRF:       vni.VRFName(),
+				VRF:       vni.Spec.VRF,
 				TargetNS:  targetNS,
 				VTEPIP:    vtepIP.String(),
 				VNI:       int(vni.Spec.VNI),

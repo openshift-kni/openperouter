@@ -65,6 +65,7 @@ metadata:
   name: red
   namespace: openperouter-system
 spec:
+  vrf: red
   vni: 100
   hostsession:
     asn: 64514
@@ -78,6 +79,7 @@ metadata:
   name: blue
   namespace: openperouter-system
 spec:
+  vrf: blue
   vni: 200
   hostsession:
     asn: 64514
