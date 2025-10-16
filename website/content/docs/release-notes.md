@@ -1,3 +1,16 @@
+---
+weight: 100
+title: "Release Notes"
+description: "OpenPERouter release notes"
+icon: "article"
+date: "2025-06-15T15:03:22+02:00"
+lastmod: "2025-06-15T15:03:22+02:00"
+toc: true
+---
+
+## Release Notes
+
+
 ## Release v0.0.3
 
 ### New Features
@@ -14,9 +27,11 @@
 - Make gateway ip and local cidrs immutable. (#94, @fedepaol)
 - Vlan sub-interfaces can now be selected as underlay NICs. (#128, @maiqueb)
 
+
 ## Release v0.0.1
 
 Fix the website publish job!
+
 
 ## Release v0.0.0
 
