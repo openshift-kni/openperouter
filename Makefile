@@ -358,7 +358,7 @@ bumpversion:
 	hack/release/bumpversion.sh
 
 .PHONY: cutrelease
-cutrelease: release-notes bumpversion generate-all-in-one helm-docs api-docs
+cutrelease: bumpversion generate-all-in-one helm-docs api-docs bundle
 	hack/release/release.sh
 
 .PHONY: build-validator
