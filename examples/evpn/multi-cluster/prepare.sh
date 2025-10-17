@@ -38,6 +38,39 @@ install_kubevirt() {
     KUBECONFIG="$kubeconfig" kubectl wait --for=condition=Available kubevirt/kubevirt -n kubevirt --timeout=10m
 }
 
+exchange_kubevirt_certificates() {
+    local kubeconfig_a="$1"
+    local kubeconfig_b="$2"
+
+    echo "Exchanging KubeVirt certificates between clusters"
+
+    local ca_bundle_a
+    ca_bundle_a=$(KUBECONFIG="$kubeconfig_a" kubectl get configmap kubevirt-ca -n kubevirt -o jsonpath='{.data.ca-bundle}' 2>/dev/null || echo "")
+
+    if [[ -z "$ca_bundle_a" ]]; then
+        echo "Warning: Could not read kubevirt-ca configmap from cluster A, skipping certificate exchange"
+        return 1
+    fi
+
+    local ca_bundle_b
+    ca_bundle_b=$(KUBECONFIG="$kubeconfig_b" kubectl get configmap kubevirt-ca -n kubevirt -o jsonpath='{.data.ca-bundle}' 2>/dev/null || echo "")
+
+    if [[ -z "$ca_bundle_b" ]]; then
+        echo "Warning: Could not read kubevirt-ca configmap from cluster B, skipping certificate exchange"
+        return 1
+    fi
+
+    echo "Setting cluster B's CA certificate in cluster A's kubevirt-external-ca configmap"
+    KUBECONFIG="$kubeconfig_a" kubectl create configmap kubevirt-external-ca -n kubevirt --from-literal=ca-bundle="$ca_bundle_b" --dry-run=client -o yaml | \
+        KUBECONFIG="$kubeconfig_a" kubectl apply -f -
+
+    echo "Setting cluster A's CA certificate in cluster B's kubevirt-external-ca configmap"
+    KUBECONFIG="$kubeconfig_b" kubectl create configmap kubevirt-external-ca -n kubevirt --from-literal=ca-bundle="$ca_bundle_a" --dry-run=client -o yaml | \
+        KUBECONFIG="$kubeconfig_b" kubectl apply -f -
+
+    echo "KubeVirt certificate exchange completed successfully"
+}
+
 apply_demo_manifests() {
     local kubeconfig="$1"
     local manifests=("${@:2}")
@@ -48,9 +81,12 @@ apply_demo_manifests() {
     apply_manifests_with_retries "${manifests[@]}"
 }
 
+declare -A kubeconfigs
+
 for kubeconfig in $(pwd)/bin/kubeconfig-*; do
     if [[ -f "$kubeconfig" ]]; then
         cluster_name=$(basename "$kubeconfig" | sed 's/kubeconfig-//')
+        kubeconfigs["$cluster_name"]="$kubeconfig"
 
         # Install Whereabouts CNI plugin before KubeVirt since we want the
         # KubeVirt installation to know which migration network to use.
@@ -73,3 +109,9 @@ for kubeconfig in $(pwd)/bin/kubeconfig-*; do
         esac
     fi
 done
+
+# Exchange KubeVirt certificates between all clusters after everything is provisioned
+if [[ -n "${kubeconfigs["pe-kind-a"]-}" && -n "${kubeconfigs["pe-kind-b"]-}" ]]; then
+    echo "Exchanging KubeVirt certificates between clusters..."
+    exchange_kubevirt_certificates "${kubeconfigs["pe-kind-a"]}" "${kubeconfigs["pe-kind-b"]}"
+fi
