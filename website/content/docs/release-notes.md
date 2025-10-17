@@ -11,7 +11,7 @@ toc: true
 ## Release Notes
 
 
-## Release v0.0.3
+## Release v0.0.4
 
 ### New Features
 - Add a multi-cluster demo setup (#126, @maiqueb)
