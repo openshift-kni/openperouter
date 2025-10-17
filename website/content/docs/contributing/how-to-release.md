@@ -52,7 +52,7 @@ Read access to:
 
 
 ## Push the new artifacts
-Run git push --tags origin main `vX.Y`. This will push all pending changes both in main and the release branch, as well as the new tag for the release.
+Run git push origin main `vX.Y` --tags. This will push all pending changes both in main and the release branch, as well as the new tag for the release.
 
 ## Wait for the image repositories to update
 When you pushed, GitHub actions kicked off a set of image builds for the new tag. You need to wait for these images to be pushed live before creating a new release. Check on quay.io that the tagget version exists.
