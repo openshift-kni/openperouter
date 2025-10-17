@@ -7,6 +7,20 @@ source "${CURRENT_PATH}/../../common.sh"
 
 DEMO_MODE=true make deploy-multi
 
+install_whereabouts() {
+    local kubeconfig="$1"
+
+    echo "Installing Whereabouts CNI plugin using kubeconfig: ${kubeconfig}"
+
+    KUBECONFIG="$kubeconfig" kubectl apply -f https://raw.githubusercontent.com/k8snetworkplumbingwg/whereabouts/refs/heads/master/doc/crds/daemonset-install.yaml
+    KUBECONFIG="$kubeconfig" kubectl apply -f https://raw.githubusercontent.com/k8snetworkplumbingwg/whereabouts/refs/heads/master/doc/crds/whereabouts.cni.cncf.io_ippools.yaml
+    KUBECONFIG="$kubeconfig" kubectl apply -f https://raw.githubusercontent.com/k8snetworkplumbingwg/whereabouts/refs/heads/master/doc/crds/whereabouts.cni.cncf.io_overlappingrangeipreservations.yaml
+
+    KUBECONFIG="$kubeconfig" kubectl rollout status daemonset/whereabouts -n kube-system --timeout=5m
+
+    echo "Whereabouts CNI plugin installed successfully"
+}
+
 install_kubevirt() {
     local kubeconfig="$1"
 
@@ -37,6 +51,11 @@ apply_demo_manifests() {
 for kubeconfig in $(pwd)/bin/kubeconfig-*; do
     if [[ -f "$kubeconfig" ]]; then
         cluster_name=$(basename "$kubeconfig" | sed 's/kubeconfig-//')
+
+        # Install Whereabouts CNI plugin before KubeVirt since we want the
+        # KubeVirt installation to know which migration network to use.
+        # KubeVirt's dedicated migration network requires whereabouts IPAM.
+        install_whereabouts "$kubeconfig"
 
         install_kubevirt "$kubeconfig"
 
