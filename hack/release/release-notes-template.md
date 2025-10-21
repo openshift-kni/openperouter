@@ -1,9 +1,11 @@
 {{- $hasFeature := false -}}
 {{- $hasBug := false -}}
 {{- $hasCleanup := false -}}
+{{- $hasDemo := false -}}
 {{- range .Notes -}}
   {{- if eq .Kind "feature" -}}{{- $hasFeature = true -}}{{- end -}}
   {{- if eq .Kind "bug" -}}{{- $hasBug = true -}}{{- end -}}
+  {{- if eq .Kind "demo" -}}{{- $hasDemo = true -}}{{- end -}}
   {{- if eq .Kind "Other (Cleanup or Flake)" -}}{{- $hasCleanup = true -}}{{- end -}}
 {{- end }}
 {{- if $hasFeature }}
@@ -24,6 +26,18 @@
 
 {{- range .Notes }}
 {{- if eq .Kind "bug" }}
+{{- range .NoteEntries }}
+- {{.}}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if $hasDemo }}
+
+### Examples
+
+{{- range .Notes }}
+{{- if eq .Kind "example" }}
 {{- range .NoteEntries }}
 - {{.}}
 {{- end }}
