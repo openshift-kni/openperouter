@@ -57,14 +57,33 @@ install_kubevirt() {
     KUBECONFIG="$kubeconfig" kubectl apply -f https://github.com/kubevirt/kubevirt/releases/download/v1.6.2/kubevirt-operator.yaml
     KUBECONFIG="$kubeconfig" kubectl apply -f https://github.com/kubevirt/kubevirt/releases/download/v1.6.2/kubevirt-cr.yaml
 
-    # Patch KubeVirt to allow scheduling on control-planes, so we can test live migration between two nodes
-    KUBECONFIG="$kubeconfig" kubectl patch -n kubevirt kubevirt kubevirt --type merge --patch '{"spec": {"workloads": {"nodePlacement": {"tolerations": [{"key": "node-role.kubernetes.io/control-plane", "operator": "Exists", "effect": "NoSchedule"}]}}}}'
-
-    # Enable the decentralized live migration feature gate (requirement for cross cluster live migration)
-    KUBECONFIG="$kubeconfig" kubectl patch -n kubevirt kubevirt kubevirt --type merge --patch '{"spec": {"configuration": {"developerConfiguration": {"featureGates": [ "DecentralizedLiveMigration" ]}}}}'
-
-    # Configure the migration network
-    KUBECONFIG="$kubeconfig" kubectl patch -n kubevirt kubevirt kubevirt --type merge --patch '{"spec": {"configuration": {"migrations": {"network": "migration-evpn"}}}}'
+    # Patch KubeVirt with:
+    # - allow scheduling on control-planes
+    # - enable decentralized live migration feature gate
+    # - configure migration network
+    KUBECONFIG="$kubeconfig" kubectl patch -n kubevirt kubevirt kubevirt --type merge --patch '{
+        "spec": {
+            "workloads": {
+                "nodePlacement": {
+                    "tolerations": [
+                        {
+                            "key": "node-role.kubernetes.io/control-plane",
+                            "operator": "Exists",
+                            "effect": "NoSchedule"
+                        }
+                    ]
+                }
+            },
+            "configuration": {
+                "developerConfiguration": {
+                    "featureGates": ["DecentralizedLiveMigration"]
+                },
+                "migrations": {
+                    "network": "migration-evpn"
+                }
+            }
+        }
+    }'
 
     KUBECONFIG="$kubeconfig" kubectl wait --for=condition=Available kubevirt/kubevirt -n kubevirt --timeout=10m
 }
