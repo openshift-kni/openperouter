@@ -57,17 +57,18 @@ func init() {
 
 func main() {
 	args := struct {
-		metricsAddr   string
-		probeAddr     string
-		secureMetrics bool
-		enableHTTP2   bool
-		tlsOpts       []func(*tls.Config)
-		nodeName      string
-		namespace     string
-		logLevel      string
-		frrConfigPath string
-		reloadPort    int
-		criSocket     string
+		metricsAddr        string
+		probeAddr          string
+		secureMetrics      bool
+		enableHTTP2        bool
+		tlsOpts            []func(*tls.Config)
+		nodeName           string
+		namespace          string
+		logLevel           string
+		frrConfigPath      string
+		reloadPort         int
+		criSocket          string
+		underlayFromMultus bool
 	}{}
 	flag.StringVar(&args.metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
 		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
@@ -83,6 +84,7 @@ func main() {
 		"the location of the frr configuration file")
 	flag.IntVar(&args.reloadPort, "reloadport", 9080, "the port of the reloader process")
 	flag.StringVar(&args.criSocket, "crisocket", "/containerd.sock", "the location of the cri socket")
+	flag.BoolVar(&args.underlayFromMultus, "underlay-from-multus", false, "Whether underlay access is built with Multus")
 
 	flag.Parse()
 
@@ -124,15 +126,16 @@ func main() {
 	}
 
 	if err = (&routerconfiguration.PERouterReconciler{
-		Client:      mgr.GetClient(),
-		Scheme:      mgr.GetScheme(),
-		MyNode:      args.nodeName,
-		FRRConfig:   args.frrConfigPath,
-		ReloadPort:  args.reloadPort,
-		PodRuntime:  podRuntime,
-		LogLevel:    args.logLevel,
-		Logger:      logger,
-		MyNamespace: args.namespace,
+		Client:             mgr.GetClient(),
+		Scheme:             mgr.GetScheme(),
+		MyNode:             args.nodeName,
+		FRRConfig:          args.frrConfigPath,
+		ReloadPort:         args.reloadPort,
+		PodRuntime:         podRuntime,
+		LogLevel:           args.logLevel,
+		Logger:             logger,
+		MyNamespace:        args.namespace,
+		UnderlayFromMultus: args.underlayFromMultus,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Underlay")
 		os.Exit(1)
