@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"os"
@@ -31,12 +32,14 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	"github.com/go-logr/logr"
 	periov1alpha1 "github.com/openperouter/openperouter/api/v1alpha1"
 	"github.com/openperouter/openperouter/internal/controller/routerconfiguration"
 	"github.com/openperouter/openperouter/internal/logging"
 	"github.com/openperouter/openperouter/internal/pods"
+	"github.com/openperouter/openperouter/internal/tlsconfig"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -58,6 +61,7 @@ func main() {
 		probeAddr     string
 		secureMetrics bool
 		enableHTTP2   bool
+		tlsOpts       []func(*tls.Config)
 		nodeName      string
 		namespace     string
 		logLevel      string
@@ -71,7 +75,7 @@ func main() {
 	flag.BoolVar(&args.secureMetrics, "metrics-secure", true,
 		"If set, the metrics endpoint is served securely via HTTPS. Use --metrics-secure=false to use HTTP instead.")
 	flag.BoolVar(&args.enableHTTP2, "enable-http2", false,
-		"If set, HTTP/2 will be enabled for the metrics and webhook servers")
+		"If set, HTTP/2 will be enabled for the metrics server")
 	flag.StringVar(&args.nodeName, "nodename", "", "The name of the node the controller runs on")
 	flag.StringVar(&args.namespace, "namespace", "", "The namespace the controller runs in")
 	flag.StringVar(&args.logLevel, "loglevel", "info", "the verbosity of the process")
@@ -92,17 +96,21 @@ func main() {
 	setupLog.Info("version", "version", build.Main.Version)
 	setupLog.Info("arguments", "args", fmt.Sprintf("%+v", args))
 
-	/* TODO: to be used for the metrics endpoints while disabiling
-	http2
-	tlsOpts = append(tlsOpts, func(c *tls.Config) {
-		setupLog.Info("disabling http/2")
-		c.NextProtos = []string{"http/1.1"}
-	})*/
+	if !args.enableHTTP2 {
+		args.tlsOpts = append(args.tlsOpts, tlsconfig.DisableHTTP2())
+	}
+
+	metricsServerOptions := metricsserver.Options{
+		BindAddress:   args.metricsAddr,
+		SecureServing: args.secureMetrics,
+		TLSOpts:       args.tlsOpts,
+	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
 		HealthProbeBindAddress: args.probeAddr,
 		Cache:                  cache.Options{},
+		Metrics:                metricsServerOptions,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
