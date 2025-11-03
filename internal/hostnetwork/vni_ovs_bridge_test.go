@@ -32,7 +32,7 @@ var _ = Describe("L2 VNI configuration with OVS bridges", func() {
 	It("should work with a single L2VNI using auto-created OVS bridge", func() {
 		params := L2VNIParams{
 			VNIParams: VNIParams{
-				VRF: "testred", TargetNS: testNSName,
+				VRF: "testred", TargetNS: testNSPath(),
 				VTEPIP: "192.170.0.9/32", VNI: 100, VXLanPort: 4789,
 			},
 			HostMaster: &HostMaster{Type: OVSBridgeLinkType, AutoCreate: true},
@@ -50,7 +50,7 @@ var _ = Describe("L2 VNI configuration with OVS bridges", func() {
 		}, 30*time.Second, 1*time.Second).Should(Succeed())
 
 		By("removing the VNI")
-		err = RemoveNonConfiguredVNIs(testNSName, []VNIParams{})
+		err = RemoveNonConfiguredVNIs(testNSPath(), []VNIParams{})
 		Expect(err).NotTo(HaveOccurred())
 
 		By("checking the VNI and OVS bridge are removed")
@@ -71,7 +71,7 @@ var _ = Describe("L2 VNI configuration with OVS bridges", func() {
 
 		params := L2VNIParams{
 			VNIParams: VNIParams{
-				VRF: "testred", TargetNS: testNSName,
+				VRF: "testred", TargetNS: testNSPath(),
 				VTEPIP: "192.170.0.9/32", VNI: 100, VXLanPort: 4789,
 			},
 			HostMaster: &HostMaster{Type: OVSBridgeLinkType, Name: bridgeName},
@@ -87,7 +87,7 @@ var _ = Describe("L2 VNI configuration with OVS bridges", func() {
 		}, 30*time.Second, 1*time.Second).Should(Succeed())
 
 		By("removing the VNI")
-		err = RemoveNonConfiguredVNIs(testNSName, []VNIParams{})
+		err = RemoveNonConfiguredVNIs(testNSPath(), []VNIParams{})
 		Expect(err).NotTo(HaveOccurred())
 
 		By("checking the bridge persists (user-managed)")
@@ -99,7 +99,7 @@ var _ = Describe("L2 VNI configuration with OVS bridges", func() {
 	It("should work with multiple L2VNIs with different auto-created OVS bridges + cleanup", func() {
 		params1 := L2VNIParams{
 			VNIParams: VNIParams{
-				VRF: "testred", TargetNS: testNSName,
+				VRF: "testred", TargetNS: testNSPath(),
 				VTEPIP: "192.170.0.9/32", VNI: 100, VXLanPort: 4789,
 			},
 			HostMaster: &HostMaster{Type: OVSBridgeLinkType, AutoCreate: true},
@@ -107,7 +107,7 @@ var _ = Describe("L2 VNI configuration with OVS bridges", func() {
 
 		params2 := L2VNIParams{
 			VNIParams: VNIParams{
-				VRF: "testgreen", TargetNS: testNSName,
+				VRF: "testgreen", TargetNS: testNSPath(),
 				VTEPIP: "192.170.0.9/32", VNI: 101, VXLanPort: 4789,
 			},
 			HostMaster: &HostMaster{Type: OVSBridgeLinkType, AutoCreate: true},
@@ -124,7 +124,7 @@ var _ = Describe("L2 VNI configuration with OVS bridges", func() {
 		}, 30*time.Second, 1*time.Second).Should(Succeed())
 
 		By("removing VNI 100, keeping VNI 101")
-		err = RemoveNonConfiguredVNIs(testNSName, []VNIParams{params2.VNIParams})
+		err = RemoveNonConfiguredVNIs(testNSPath(), []VNIParams{params2.VNIParams})
 		Expect(err).NotTo(HaveOccurred())
 
 		By("checking VNI 100 removed, VNI 101 persists")
@@ -137,7 +137,7 @@ var _ = Describe("L2 VNI configuration with OVS bridges", func() {
 	It("should be idempotent with OVS bridges", func() {
 		params := L2VNIParams{
 			VNIParams: VNIParams{
-				VRF: "testred", TargetNS: testNSName,
+				VRF: "testred", TargetNS: testNSPath(),
 				VTEPIP: "192.170.0.9/32", VNI: 100, VXLanPort: 4789,
 			},
 			HostMaster: &HostMaster{Type: OVSBridgeLinkType, AutoCreate: true},
@@ -159,7 +159,7 @@ var _ = Describe("L2 VNI configuration with OVS bridges", func() {
 		gwIP := "10.10.100.1/24"
 		params := L2VNIParams{
 			VNIParams: VNIParams{
-				VRF: "testred", TargetNS: testNSName,
+				VRF: "testred", TargetNS: testNSPath(),
 				VTEPIP: "192.170.0.9/32", VNI: 100, VXLanPort: 4789,
 			},
 			L2GatewayIPs: []string{gwIP},
