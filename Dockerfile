@@ -37,7 +37,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
   && \
   CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -o operatorbinary ./operator
 
-FROM gcr.io/distroless/static:latest
+FROM alpine:3.20
 WORKDIR /
 COPY --from=builder /go/openperouter/reloader .
 COPY --from=builder /go/openperouter/controller .
@@ -46,6 +46,6 @@ COPY --from=builder /go/openperouter/cp-tool .
 COPY --from=builder /go/openperouter/nodemarker .
 COPY --from=builder /go/openperouter/operatorbinary ./operator
 COPY operator/bindata bindata
-COPY frrconfig /tmp/frr
+COPY systemdmode/frrconfig /usr/share/openperouter/frr
 
 ENTRYPOINT ["/controller"]
