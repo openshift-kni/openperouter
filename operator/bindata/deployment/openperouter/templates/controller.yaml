@@ -1,3 +1,4 @@
+{{- if not .Values.openperouter.hostmode }}
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -144,3 +145,4 @@ spec:
           path: {{ .Values.openperouter.ovsRunDir }}
           type: DirectoryOrCreate
         name: ovs-var-run
+{{- end }}
