@@ -18,7 +18,7 @@ require (
 	github.com/vishvananda/netns v0.0.5
 	golang.org/x/sys v0.31.0
 	google.golang.org/grpc v1.68.1
-	helm.sh/helm/v3 v3.17.3
+	helm.sh/helm/v4 v4.0.0
 	k8s.io/api v0.33.1
 	k8s.io/apimachinery v0.33.1
 	k8s.io/client-go v0.33.1
