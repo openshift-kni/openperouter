@@ -24,7 +24,7 @@ require (
 	k8s.io/client-go v0.33.1
 	k8s.io/cri-api v0.32.1
 	k8s.io/kubelet v0.32.1
-	k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738
+	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
 	sigs.k8s.io/controller-runtime v0.21.0
 )
 
