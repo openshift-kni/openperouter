@@ -1,14 +1,14 @@
 // FIXME(thaJeztah): remove once we are a module; the go:build directive prevents go from downgrading language version to go1.16:
-//go:build go1.19
+//go:build go1.24
 
 package loader
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
 	interp "github.com/docker/cli/cli/compose/interpolation"
-	"github.com/pkg/errors"
 )
 
 var interpolateTypeCastMapping = map[interp.Path]interp.Cast{
@@ -29,6 +29,7 @@ var interpolateTypeCastMapping = map[interp.Path]interp.Cast{
 	servicePath("ulimits", interp.PathMatchAll, "hard"):              toInt,
 	servicePath("ulimits", interp.PathMatchAll, "soft"):              toInt,
 	servicePath("privileged"):                                        toBoolean,
+	servicePath("oom_score_adj"):                                     toInt,
 	servicePath("read_only"):                                         toBoolean,
 	servicePath("stdin_open"):                                        toBoolean,
 	servicePath("tty"):                                               toBoolean,
@@ -66,7 +67,7 @@ func toBoolean(value string) (any, error) {
 	case "n", "no", "false", "off":
 		return false, nil
 	default:
-		return nil, errors.Errorf("invalid boolean: %s", value)
+		return nil, fmt.Errorf("invalid boolean: %s", value)
 	}
 }
 
