@@ -16,7 +16,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/vishvananda/netlink v1.3.0
 	github.com/vishvananda/netns v0.0.5
-	golang.org/x/sys v0.31.0
+	golang.org/x/sys v0.38.0
 	google.golang.org/grpc v1.68.1
 	helm.sh/helm/v3 v3.17.3
 	k8s.io/api v0.33.1
