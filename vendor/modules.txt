@@ -89,8 +89,8 @@ github.com/containerd/containerd/remotes/docker/schema1
 github.com/containerd/containerd/remotes/errors
 github.com/containerd/containerd/tracing
 github.com/containerd/containerd/version
-# github.com/containerd/continuity v0.4.3
-## explicit; go 1.19
+# github.com/containerd/continuity v0.4.5
+## explicit; go 1.21
 github.com/containerd/continuity/pathdriver
 # github.com/containerd/errdefs v0.3.0
 ## explicit; go 1.20
