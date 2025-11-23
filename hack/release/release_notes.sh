@@ -39,7 +39,7 @@ if [ $# -eq 0 ] || [ $# -eq 1 ]; then
     branch=${BRANCH:-main}
 
     # Find the SHA of the most recent "Prepare the v*" commit
-    from=$(git log --all --grep="^Release notes for" --format="%H" | head -1)
+    from=$(git log --all --grep="^Prepare the v" --format="%H" | head -1)
 
     if [ -z "$from" ]; then
         echo "Error: Could not find a previous 'Prepare the v*' commit"
@@ -101,7 +101,7 @@ cat "$release_notes" >> "$temp_notes"
 echo "" >> "$temp_notes"
 echo "" >> "$temp_notes"
 
-tail -n +2 "$repo_root/RELEASE_NOTES.md" >> "$temp_notes"
+cat "$repo_root/RELEASE_NOTES.md" >> "$temp_notes"
 
 mv "$temp_notes" "$repo_root/RELEASE_NOTES.md"
 
