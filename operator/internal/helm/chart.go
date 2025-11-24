@@ -28,6 +28,13 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
+const (
+	// ContainerRuntimeContainerd is the containerd container runtime identifier
+	ContainerRuntimeContainerd = "containerd"
+	// ContainerRuntimeCrio is the CRI-O container runtime identifier
+	ContainerRuntimeCrio = "crio"
+)
+
 // Chart contains references which helps to
 // to retrieve manifests from chart after patching given custom values.
 type Chart struct {
@@ -85,6 +92,10 @@ func (h *Chart) Objects(envConfig envconfig.EnvConfig, crdConfig *operatorapi.Op
 }
 
 func patchChartValues(envConfig envconfig.EnvConfig, crdConfig *operatorapi.OpenPERouter, valuesMap map[string]interface{}) {
+	cri := ContainerRuntimeContainerd
+	if envConfig.IsOpenshift {
+		cri = ContainerRuntimeCrio
+	}
 	valuesMap["openperouter"] = map[string]interface{}{
 		"logLevel":                logLevelValue(crdConfig),
 		"multusNetworkAnnotation": crdConfig.Spec.MultusNetworkAnnotation,
@@ -111,6 +122,7 @@ func patchChartValues(envConfig envconfig.EnvConfig, crdConfig *operatorapi.Open
 		"crds": map[string]interface{}{
 			"enabled": false,
 		},
+		"cri": cri,
 	}
 
 	valuesMap["webhook"] = map[string]interface{}{
