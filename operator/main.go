@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/go-logr/logr"
 	"github.com/openperouter/openperouter/internal/logging"
 	"github.com/openperouter/openperouter/internal/tlsconfig"
@@ -143,6 +144,8 @@ func main() {
 		setupLog.Error(err, "failed to parse env params")
 		os.Exit(1)
 	}
+
+	setupLog.Info("environment config", "config", spew.Sdump(envConfig))
 
 	if err = (&operator.OpenPERouterReconciler{
 		Client:    mgr.GetClient(),
