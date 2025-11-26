@@ -3,3 +3,5 @@ resources:
 - role.yaml
 - role_binding.yaml
 - secrets_role.yaml
+- perouter_role.yaml
+- perouter_role_binding.yaml

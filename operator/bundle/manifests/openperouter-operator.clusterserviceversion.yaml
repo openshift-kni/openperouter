@@ -307,6 +307,14 @@ spec:
           - update
           - watch
         serviceAccountName: operator
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - get
+        serviceAccountName: perouter
     strategy: deployment
   installModes:
   - supported: false
