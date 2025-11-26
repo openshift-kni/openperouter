@@ -89,7 +89,7 @@ func logFileFor(base string, kind string) (*os.File, error) {
 }
 
 func DumpPods(name string, pods []*corev1.Pod) {
-	ginkgo.GinkgoWriter.Printf("%s pods are: %s", name)
+	ginkgo.GinkgoWriter.Printf("%s pods are:", name)
 	for _, pod := range pods {
 		ginkgo.GinkgoWriter.Printf("Pod %s/%s: %s", pod.Namespace, pod.Name, pod.Status.Phase)
 		ginkgo.GinkgoWriter.Printf("  Node: %s", pod.Spec.NodeName)
