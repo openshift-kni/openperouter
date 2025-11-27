@@ -59,7 +59,8 @@ When running on the host, the target namespace can be reitrieved by telling podm
 
 ##### Sending a signal to the reloader container to reload the FRR configuration
 
-Currently the controller retrieves the target pod's IP using the kubernetes API. When running on the host, a unix socket can be shared between the containers.
+Currently the controller retrieves the target pod's IP using the kubernetes API. We'll change the mechanism to have a shared unix socket between the two. This will work both with kubernetes
+and when running on the host.
 
 ##### Restarting the router pod
 
@@ -147,12 +148,18 @@ The structure of the podman pods will mimic what we have today with kubernetes p
 - The status CRDs that are discussed in the [status enhancement](https://github.com/openperouter/openperouter/blob/main/enhancements/status-crd.md)
 must keep working
 - Prometheus metrics added to the pods must be available from the Kubernetes cluster.
-- The pod responsible of providing the kubernetes credentials to the process running on the host will mirror the statically provided configuration to
+- When running in host mode, the controller pod will mirror the statically provided configuration to
 CRs with an appropriate name. This will make it easier to understand the whole configuration of the cluster.
+- At the same time, the host proxy pod will check that there is no overlap between the node indexes statically configured
+- Since exploring the events resource is easier than logging in to
+the host and check the journaling logs, events related to critical conditions will be generated
 
 ## Testing
 
 When running in host mode, the same test suite we have today must work and the tests must pass.
+
+A new test lane with statically provided configuration must be setup. This test will cover a minimal set of tests to show
+that the integration between the two configuration methods work..
 
 ### Changing the test suite
 
