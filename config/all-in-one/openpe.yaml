@@ -971,6 +971,7 @@ spec:
         - --loglevel=debug
         - --namespace=$(NAMESPACE)
         - --frrconfig=/etc/frr/frr.conf
+        - --reloader-socket=/etc/frr/reload.sock
         command:
         - /controller
         env:
@@ -1013,6 +1014,8 @@ spec:
         - mountPath: /var/run/openvswitch
           mountPropagation: HostToContainer
           name: ovs-var-run
+        - mountPath: /var/run/frr
+          name: frr-sockets
       hostNetwork: true
       hostPID: true
       serviceAccountName: controller
@@ -1036,8 +1039,11 @@ spec:
         name: frr-config
       - hostPath:
           path: /var/run/openvswitch
-          type: DirectoryOrCreate
         name: ovs-var-run
+      - hostPath:
+          path: /var/run/openperouter/frr
+          type: DirectoryOrCreate
+        name: frr-sockets
 ---
 apiVersion: apps/v1
 kind: DaemonSet
@@ -1097,7 +1103,7 @@ spec:
       - args:
         - --frrconfig=/etc/perouter/frr.conf
         - --loglevel=debug
-        - --bindaddress=:9080
+        - --unixsocket=/etc/perouter/reload.sock
         command:
         - /etc/frr_reloader/reloader
         image: quay.io/frrouting/frr:10.2.1
