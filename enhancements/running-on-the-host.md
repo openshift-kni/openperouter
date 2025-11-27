@@ -19,6 +19,7 @@ To solve this chicken-egg problem we need an operating mode where the router is 
 ## Non Goals
 
 - Having an alternative way to provide the static configuration that involves distritbuting the configuration to the routers
+- Dinamically change the static configuration from the kubernetes API
 
 ## Proposal
 
@@ -72,6 +73,8 @@ The static configuration must be provided to the OpenPERouter as files in a know
 
 - A static configuration with the same structure of the CRDs (ie underlays, vnis) to be used for bringing up the basic connectivity
 - An extra configuration to fill the requirements of running on the host. At the time of writing, the only extra configuration required seem to be a node index, to be associated manually (or by automation) to be different per each node.
+- Additionally, it must be possible to set the relevant parameters of the controller / router via a configuration file. This will make the distribution of the systemd unit easier, as the
+binaries will expect their own configuration in a canonical place
 
 #### Consuming the Kubernetes API
 
@@ -82,6 +85,11 @@ Running the controller on the host while it's still be able to access the kubern
 The static configuration must be treated exactly as configuration coming from the CRs. In this sense it must be validated, and the static configuration must be merged with the configuration read by CRs.
 
 This would allow a scenario where the UNDERLAY and a VNI is provided via static configuration, and extra VNIs are provided as day 2 configuration.
+
+#### Modifying the static configuration
+
+The static configuration will be visible as Kubernetes resource (see the part below about observability). However, it will only be a mirror of what is configured locally. Any change of the
+mirror won't have effect and the controller will reconcile it back.
 
 ### Challenges
 
