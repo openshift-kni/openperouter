@@ -460,8 +460,6 @@ operator-sdk: ## Download operator-sdk locally if necessary.
 		chmod +x $(OPERATOR_SDK) ;\
 	fi
 
-# TODO: The bundle ignores the perouter ServiceAccount because it doesn't have RBACs attached.
-# For now the operator hardcodes the router's ServiceAccount to be default.
 .PHONY: bundle
 bundle: manifests kustomize operator-sdk ## Generate bundle manifests and metadata, then validate generated files.
 	cd operator && $(OPERATOR_SDK) generate kustomize manifests --interactive=false -q
