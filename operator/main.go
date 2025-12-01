@@ -25,7 +25,9 @@ import (
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
+	"k8s.io/client-go/discovery"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	"k8s.io/client-go/rest"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -36,8 +38,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/go-logr/logr"
 	"github.com/openperouter/openperouter/internal/logging"
+	"github.com/openperouter/openperouter/internal/tlsconfig"
 	operatorapi "github.com/openperouter/openperouter/operator/api/v1alpha1"
 	operator "github.com/openperouter/openperouter/operator/internal"
 	"github.com/openperouter/openperouter/operator/internal/envconfig"
@@ -92,19 +96,8 @@ func main() {
 	}
 	ctrl.SetLogger(logr.FromSlogHandler(logger.Handler()))
 
-	// if the enable-http2 flag is false (the default), http/2 should be disabled
-	// due to its vulnerabilities. More specifically, disabling http/2 will
-	// prevent from being vulnerable to the HTTP/2 Stream Cancellation and
-	// Rapid Reset CVEs. For more information see:
-	// - https://github.com/advisories/GHSA-qppj-fm5r-hxr3
-	// - https://github.com/advisories/GHSA-4374-p667-p6c8
-	disableHTTP2 := func(c *tls.Config) {
-		setupLog.Info("disabling http/2")
-		c.NextProtos = []string{"http/1.1"}
-	}
-
 	if !args.enableHTTP2 {
-		args.tlsOpts = append(args.tlsOpts, disableHTTP2)
+		args.tlsOpts = append(args.tlsOpts, tlsconfig.DisableHTTP2())
 	}
 
 	/* webhookServer := webhook.NewServer(webhook.Options{
@@ -140,11 +133,19 @@ func main() {
 		os.Exit(1)
 	}
 
-	envConfig, err := envconfig.FromEnvironment(false)
+	isOpenshift, err := isOpenshift(mgr.GetConfig())
+	if err != nil {
+		setupLog.Error(err, "issue occurred while checking if platform is OpenShift")
+		os.Exit(1)
+	}
+
+	envConfig, err := envconfig.FromEnvironment(isOpenshift)
 	if err != nil {
 		setupLog.Error(err, "failed to parse env params")
 		os.Exit(1)
 	}
+
+	setupLog.Info("environment config", "config", spew.Sdump(envConfig))
 
 	if err = (&operator.OpenPERouterReconciler{
 		Client:    mgr.GetClient(),
@@ -171,4 +172,26 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+func isOpenshift(config *rest.Config) (bool, error) {
+
+	client, err := discovery.NewDiscoveryClientForConfig(config)
+	if err != nil {
+		return false, fmt.Errorf("issue occurred while creating discovery client: %w", err)
+	}
+
+	apiList, err := client.ServerGroups()
+	if err != nil {
+		return false, fmt.Errorf("issue occurred while fetching ServerGroups: %w", err)
+	}
+
+	for _, v := range apiList.Groups {
+		if v.Name == "config.openshift.io" {
+			setupLog.Info("config.openshift.io found in apis, platform is OpenShift")
+			return true, nil
+		}
+	}
+
+	return false, nil
 }

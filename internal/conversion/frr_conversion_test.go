@@ -16,20 +16,22 @@ import (
 
 func TestAPItoFRR(t *testing.T) {
 	tests := []struct {
-		name      string
-		nodeIndex int
-		underlays []v1alpha1.Underlay
-		vnis      []v1alpha1.L3VNI
-		logLevel  string
-		want      frr.Config
-		wantErr   bool
+		name          string
+		nodeIndex     int
+		underlays     []v1alpha1.Underlay
+		vnis          []v1alpha1.L3VNI
+		l3Passthrough []v1alpha1.L3Passthrough
+		logLevel      string
+		want          frr.Config
+		wantErr       bool
 	}{
 		{
-			name:      "no underlays",
-			nodeIndex: 0,
-			underlays: []v1alpha1.Underlay{},
-			vnis:      []v1alpha1.L3VNI{{}},
-			wantErr:   true,
+			name:          "no underlays",
+			nodeIndex:     0,
+			underlays:     []v1alpha1.Underlay{},
+			vnis:          []v1alpha1.L3VNI{{}},
+			l3Passthrough: []v1alpha1.L3Passthrough{},
+			wantErr:       true,
 		},
 		{
 			name:      "no vnis",
@@ -37,18 +39,25 @@ func TestAPItoFRR(t *testing.T) {
 			underlays: []v1alpha1.Underlay{
 				{
 					Spec: v1alpha1.UnderlaySpec{
-						ASN:       65000,
-						VTEPCIDR:  "192.168.1.0/24",
-						Neighbors: []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: 65001}},
+						ASN: 65000,
+						EVPN: &v1alpha1.EVPNConfig{
+							VTEPCIDR: "192.168.1.0/24",
+						},
+						RouterIDCIDR: "10.0.0.0/24",
+						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: 65001}},
 					},
 				},
 			},
-			vnis:     []v1alpha1.L3VNI{},
-			logLevel: "debug",
+			vnis:          []v1alpha1.L3VNI{},
+			l3Passthrough: []v1alpha1.L3Passthrough{},
+			logLevel:      "debug",
 			want: frr.Config{
 				Underlay: frr.UnderlayConfig{
 					MyASN: 65000,
-					VTEP:  "192.168.1.0/32",
+					EVPN: &frr.UnderlayEvpn{
+						VTEP: "192.168.1.0/32",
+					},
+					RouterID: "10.0.0.1",
 					Neighbors: []frr.NeighborConfig{
 						{
 							Name:         "65001@192.168.1.1",
@@ -71,9 +80,12 @@ func TestAPItoFRR(t *testing.T) {
 			underlays: []v1alpha1.Underlay{
 				{
 					Spec: v1alpha1.UnderlaySpec{
-						ASN:       65000,
-						VTEPCIDR:  "192.168.1.0/24",
-						Neighbors: []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: 65001}},
+						ASN: 65000,
+						EVPN: &v1alpha1.EVPNConfig{
+							VTEPCIDR: "192.168.1.0/24",
+						},
+						RouterIDCIDR: "10.0.0.0/24",
+						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: 65001}},
 					},
 				},
 			},
@@ -81,21 +93,27 @@ func TestAPItoFRR(t *testing.T) {
 				{
 					ObjectMeta: metav1.ObjectMeta{Name: "vni1"},
 					Spec: v1alpha1.L3VNISpec{
-						ASN: 65000,
-						LocalCIDR: v1alpha1.LocalCIDRConfig{
-							IPv4: "192.168.2.0/24",
+						HostSession: &v1alpha1.HostSession{
+							ASN: 65000,
+							LocalCIDR: v1alpha1.LocalCIDRConfig{
+								IPv4: "192.168.2.0/24",
+							},
+							HostASN: 65001,
 						},
-						HostASN: ptr.To(uint32(65001)),
-						VRF:     ptr.To("vrf1"),
-						VNI:     200,
+						VRF: "vrf1",
+						VNI: 200,
 					},
 				},
 			},
-			logLevel: "debug",
+			l3Passthrough: []v1alpha1.L3Passthrough{},
+			logLevel:      "debug",
 			want: frr.Config{
 				Underlay: frr.UnderlayConfig{
 					MyASN: 65000,
-					VTEP:  "192.168.1.0/32",
+					EVPN: &frr.UnderlayEvpn{
+						VTEP: "192.168.1.0/32",
+					},
+					RouterID: "10.0.0.1",
 					Neighbors: []frr.NeighborConfig{
 						{
 							Name:         "65001@192.168.1.1",
@@ -108,9 +126,10 @@ func TestAPItoFRR(t *testing.T) {
 				},
 				VNIs: []frr.L3VNIConfig{
 					{
-						ASN: 65000,
-						VNI: 200,
-						VRF: "vrf1",
+						ASN:      65000,
+						VNI:      200,
+						VRF:      "vrf1",
+						RouterID: "10.0.0.1",
 						LocalNeighbor: &frr.NeighborConfig{
 							Addr: "192.168.2.2",
 							ASN:  65001,
@@ -130,9 +149,12 @@ func TestAPItoFRR(t *testing.T) {
 			underlays: []v1alpha1.Underlay{
 				{
 					Spec: v1alpha1.UnderlaySpec{
-						ASN:       65000,
-						VTEPCIDR:  "192.168.1.0/24",
-						Neighbors: []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: 65001}},
+						ASN: 65000,
+						EVPN: &v1alpha1.EVPNConfig{
+							VTEPCIDR: "192.168.1.0/24",
+						},
+						RouterIDCIDR: "10.0.0.0/24",
+						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: 65001}},
 					},
 				},
 			},
@@ -140,21 +162,27 @@ func TestAPItoFRR(t *testing.T) {
 				{
 					ObjectMeta: metav1.ObjectMeta{Name: "vni1"},
 					Spec: v1alpha1.L3VNISpec{
-						ASN: 65000,
-						LocalCIDR: v1alpha1.LocalCIDRConfig{
-							IPv6: "2001:db8::/64",
+						HostSession: &v1alpha1.HostSession{
+							ASN: 65000,
+							LocalCIDR: v1alpha1.LocalCIDRConfig{
+								IPv6: "2001:db8::/64",
+							},
+							HostASN: 65001,
 						},
-						HostASN: ptr.To(uint32(65001)),
-						VRF:     ptr.To("vrf1"),
-						VNI:     200,
+						VRF: "vrf1",
+						VNI: 200,
 					},
 				},
 			},
-			logLevel: "debug",
+			l3Passthrough: []v1alpha1.L3Passthrough{},
+			logLevel:      "debug",
 			want: frr.Config{
 				Underlay: frr.UnderlayConfig{
 					MyASN: 65000,
-					VTEP:  "192.168.1.0/32",
+					EVPN: &frr.UnderlayEvpn{
+						VTEP: "192.168.1.0/32",
+					},
+					RouterID: "10.0.0.1",
 					Neighbors: []frr.NeighborConfig{
 						{
 							Name:         "65001@192.168.1.1",
@@ -167,9 +195,10 @@ func TestAPItoFRR(t *testing.T) {
 				},
 				VNIs: []frr.L3VNIConfig{
 					{
-						ASN: 65000,
-						VNI: 200,
-						VRF: "vrf1",
+						ASN:      65000,
+						VNI:      200,
+						VRF:      "vrf1",
+						RouterID: "10.0.0.1",
 						LocalNeighbor: &frr.NeighborConfig{
 							Addr: "2001:db8::2",
 							ASN:  65001,
@@ -189,9 +218,12 @@ func TestAPItoFRR(t *testing.T) {
 			underlays: []v1alpha1.Underlay{
 				{
 					Spec: v1alpha1.UnderlaySpec{
-						ASN:       65000,
-						VTEPCIDR:  "192.168.1.0/24",
-						Neighbors: []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: 65001}},
+						ASN: 65000,
+						EVPN: &v1alpha1.EVPNConfig{
+							VTEPCIDR: "192.168.1.0/24",
+						},
+						RouterIDCIDR: "10.0.0.0/24",
+						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: 65001}},
 					},
 				},
 			},
@@ -199,22 +231,28 @@ func TestAPItoFRR(t *testing.T) {
 				{
 					ObjectMeta: metav1.ObjectMeta{Name: "vni1"},
 					Spec: v1alpha1.L3VNISpec{
-						ASN: 65000,
-						LocalCIDR: v1alpha1.LocalCIDRConfig{
-							IPv4: "192.168.2.0/24",
-							IPv6: "2001:db8::/64",
+						HostSession: &v1alpha1.HostSession{
+							ASN: 65000,
+							LocalCIDR: v1alpha1.LocalCIDRConfig{
+								IPv4: "192.168.2.0/24",
+								IPv6: "2001:db8::/64",
+							},
+							HostASN: 65001,
 						},
-						HostASN: ptr.To(uint32(65001)),
-						VRF:     ptr.To("vrf1"),
-						VNI:     200,
+						VRF: "vrf1",
+						VNI: 200,
 					},
 				},
 			},
-			logLevel: "debug",
+			l3Passthrough: []v1alpha1.L3Passthrough{},
+			logLevel:      "debug",
 			want: frr.Config{
 				Underlay: frr.UnderlayConfig{
 					MyASN: 65000,
-					VTEP:  "192.168.1.0/32",
+					EVPN: &frr.UnderlayEvpn{
+						VTEP: "192.168.1.0/32",
+					},
+					RouterID: "10.0.0.1",
 					Neighbors: []frr.NeighborConfig{
 						{
 							Name:         "65001@192.168.1.1",
@@ -227,9 +265,10 @@ func TestAPItoFRR(t *testing.T) {
 				},
 				VNIs: []frr.L3VNIConfig{
 					{
-						ASN: 65000,
-						VNI: 200,
-						VRF: "vrf1",
+						ASN:      65000,
+						VNI:      200,
+						VRF:      "vrf1",
+						RouterID: "10.0.0.1",
 						LocalNeighbor: &frr.NeighborConfig{
 							Addr: "192.168.2.2",
 							ASN:  65001,
@@ -238,9 +277,10 @@ func TestAPItoFRR(t *testing.T) {
 						ToAdvertiseIPv6: []string{},
 					},
 					{
-						ASN: 65000,
-						VNI: 200,
-						VRF: "vrf1",
+						ASN:      65000,
+						VNI:      200,
+						VRF:      "vrf1",
+						RouterID: "10.0.0.1",
 						LocalNeighbor: &frr.NeighborConfig{
 							Addr: "2001:db8::2",
 							ASN:  65001,
@@ -260,8 +300,11 @@ func TestAPItoFRR(t *testing.T) {
 			underlays: []v1alpha1.Underlay{
 				{
 					Spec: v1alpha1.UnderlaySpec{
-						ASN:      65000,
-						VTEPCIDR: "192.168.1.0/24",
+						ASN: 65000,
+						EVPN: &v1alpha1.EVPNConfig{
+							VTEPCIDR: "192.168.1.0/24",
+						},
+						RouterIDCIDR: "10.0.0.0/24",
 						Neighbors: []v1alpha1.Neighbor{
 							{
 								Address: "192.168.1.100",
@@ -278,12 +321,16 @@ func TestAPItoFRR(t *testing.T) {
 					},
 				},
 			},
-			vnis:     []v1alpha1.L3VNI{},
-			logLevel: "debug",
+			vnis:          []v1alpha1.L3VNI{},
+			l3Passthrough: []v1alpha1.L3Passthrough{},
+			logLevel:      "debug",
 			want: frr.Config{
 				Underlay: frr.UnderlayConfig{
 					MyASN: 65000,
-					VTEP:  "192.168.1.0/32",
+					EVPN: &frr.UnderlayEvpn{
+						VTEP: "192.168.1.0/32",
+					},
+					RouterID: "10.0.0.1",
 					Neighbors: []frr.NeighborConfig{
 						{
 							Name:         "65001@192.168.1.100",
@@ -315,8 +362,11 @@ func TestAPItoFRR(t *testing.T) {
 			underlays: []v1alpha1.Underlay{
 				{
 					Spec: v1alpha1.UnderlaySpec{
-						ASN:      65000,
-						VTEPCIDR: "192.168.1.0/24",
+						ASN: 65000,
+						EVPN: &v1alpha1.EVPNConfig{
+							VTEPCIDR: "192.168.1.0/24",
+						},
+						RouterIDCIDR: "10.0.0.0/24",
 						Neighbors: []v1alpha1.Neighbor{
 							{
 								Address: "192.168.1.100",
@@ -327,12 +377,16 @@ func TestAPItoFRR(t *testing.T) {
 					},
 				},
 			},
-			vnis:     []v1alpha1.L3VNI{},
-			logLevel: "debug",
+			vnis:          []v1alpha1.L3VNI{},
+			l3Passthrough: []v1alpha1.L3Passthrough{},
+			logLevel:      "debug",
 			want: frr.Config{
 				Underlay: frr.UnderlayConfig{
 					MyASN: 65000,
-					VTEP:  "192.168.1.0/32",
+					EVPN: &frr.UnderlayEvpn{
+						VTEP: "192.168.1.0/32",
+					},
+					RouterID: "10.0.0.1",
 					Neighbors: []frr.NeighborConfig{
 						{
 							Name:         "65001@192.168.1.100",
@@ -351,11 +405,244 @@ func TestAPItoFRR(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name:      "vni without host session",
+			nodeIndex: 0,
+			underlays: []v1alpha1.Underlay{
+				{
+					Spec: v1alpha1.UnderlaySpec{
+						ASN: 65000,
+						EVPN: &v1alpha1.EVPNConfig{
+							VTEPCIDR: "192.168.1.0/24",
+						},
+						RouterIDCIDR: "10.0.0.0/24",
+						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: 65001}},
+					},
+				},
+			},
+			vnis: []v1alpha1.L3VNI{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "vni1"},
+					Spec: v1alpha1.L3VNISpec{
+						VRF: "vrf1",
+						VNI: 200,
+					},
+				},
+			},
+			l3Passthrough: []v1alpha1.L3Passthrough{},
+			logLevel:      "debug",
+			want: frr.Config{
+				Underlay: frr.UnderlayConfig{
+					MyASN: 65000,
+					EVPN: &frr.UnderlayEvpn{
+						VTEP: "192.168.1.0/32",
+					},
+					RouterID: "10.0.0.1",
+					Neighbors: []frr.NeighborConfig{
+						{
+							Name:         "65001@192.168.1.1",
+							ASN:          65001,
+							Addr:         "192.168.1.1",
+							IPFamily:     ipfamily.IPv4,
+							EBGPMultiHop: false,
+						},
+					},
+				},
+				VNIs: []frr.L3VNIConfig{
+					{
+						ASN:      65000,
+						VNI:      200,
+						VRF:      "vrf1",
+						RouterID: "10.0.0.1",
+					},
+				},
+				BFDProfiles: []frr.BFDProfile{},
+				Loglevel:    "debug",
+			},
+			wantErr: false,
+		},
+		{
+			name:      "empty routeridcidr uses default",
+			nodeIndex: 0,
+			underlays: []v1alpha1.Underlay{
+				{
+					Spec: v1alpha1.UnderlaySpec{
+						ASN: 65000,
+						EVPN: &v1alpha1.EVPNConfig{
+							VTEPCIDR: "192.168.1.0/24",
+						},
+						RouterIDCIDR: "",
+						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: 65001}},
+					},
+				},
+			},
+			vnis: []v1alpha1.L3VNI{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "vni1"},
+					Spec: v1alpha1.L3VNISpec{
+						HostSession: &v1alpha1.HostSession{
+							ASN: 65000,
+							LocalCIDR: v1alpha1.LocalCIDRConfig{
+								IPv4: "192.168.2.0/24",
+							},
+							HostASN: 65001,
+						},
+						VRF: "vni1",
+						VNI: 200,
+					},
+				},
+			},
+			l3Passthrough: []v1alpha1.L3Passthrough{},
+			logLevel:      "debug",
+			want: frr.Config{
+				Underlay: frr.UnderlayConfig{
+					MyASN: 65000,
+					EVPN: &frr.UnderlayEvpn{
+						VTEP: "192.168.1.0/32",
+					},
+					RouterID: "10.0.0.1",
+					Neighbors: []frr.NeighborConfig{
+						{
+							Name:         "65001@192.168.1.1",
+							ASN:          65001,
+							Addr:         "192.168.1.1",
+							IPFamily:     ipfamily.IPv4,
+							EBGPMultiHop: false,
+						},
+					},
+				},
+				VNIs: []frr.L3VNIConfig{
+					{
+						ASN:      65000,
+						VNI:      200,
+						VRF:      "vni1",
+						RouterID: "10.0.0.1",
+						LocalNeighbor: &frr.NeighborConfig{
+							Addr: "192.168.2.2",
+							ASN:  65001,
+						},
+						ToAdvertiseIPv4: []string{"192.168.2.2/32"},
+						ToAdvertiseIPv6: []string{},
+					},
+				},
+				BFDProfiles: []frr.BFDProfile{},
+				Loglevel:    "debug",
+			},
+			wantErr: false,
+		},
+		{
+			name:      "missing EVPN parameter",
+			nodeIndex: 0,
+			underlays: []v1alpha1.Underlay{
+				{
+					Spec: v1alpha1.UnderlaySpec{
+						ASN:          65000,
+						RouterIDCIDR: "10.0.0.0/24",
+						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: 65001}},
+					},
+				},
+			},
+			vnis:          []v1alpha1.L3VNI{},
+			l3Passthrough: []v1alpha1.L3Passthrough{},
+			logLevel:      "debug",
+			want: frr.Config{
+				Underlay: frr.UnderlayConfig{
+					MyASN:    65000,
+					RouterID: "10.0.0.1",
+					Neighbors: []frr.NeighborConfig{
+						{
+							Name:         "65001@192.168.1.1",
+							ASN:          65001,
+							Addr:         "192.168.1.1",
+							IPFamily:     ipfamily.IPv4,
+							EBGPMultiHop: false,
+						},
+					},
+				},
+				VNIs:        []frr.L3VNIConfig{},
+				BFDProfiles: []frr.BFDProfile{},
+				Loglevel:    "debug",
+			},
+			wantErr: false,
+		},
+		{
+			name:      "L3 passthrough",
+			nodeIndex: 0,
+			underlays: []v1alpha1.Underlay{
+				{
+					Spec: v1alpha1.UnderlaySpec{
+						ASN: 65000,
+						EVPN: &v1alpha1.EVPNConfig{
+							VTEPCIDR: "192.168.1.0/24",
+						},
+						RouterIDCIDR: "10.0.0.0/24",
+						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: 65001}},
+					},
+				},
+			},
+			vnis: []v1alpha1.L3VNI{},
+			l3Passthrough: []v1alpha1.L3Passthrough{
+				{
+					Spec: v1alpha1.L3PassthroughSpec{
+						HostSession: v1alpha1.HostSession{
+							HostASN: 65001,
+							ASN:     65000,
+							LocalCIDR: v1alpha1.LocalCIDRConfig{
+								IPv4: "192.168.2.0/24",
+								IPv6: "2001:db8::/64",
+							},
+						},
+					},
+				},
+			},
+			logLevel: "debug",
+			want: frr.Config{
+				Underlay: frr.UnderlayConfig{
+					MyASN: 65000,
+					EVPN: &frr.UnderlayEvpn{
+						VTEP: "192.168.1.0/32",
+					},
+					RouterID: "10.0.0.1",
+					Neighbors: []frr.NeighborConfig{
+						{
+							Name:         "65001@192.168.1.1",
+							ASN:          65001,
+							Addr:         "192.168.1.1",
+							IPFamily:     ipfamily.IPv4,
+							EBGPMultiHop: false,
+						},
+					},
+				},
+				Passthrough: &frr.PassthroughConfig{
+					LocalNeighborV4: &frr.NeighborConfig{
+						ASN:  65001,
+						Addr: "192.168.2.2",
+					},
+					LocalNeighborV6: &frr.NeighborConfig{
+						ASN:  65001,
+						Addr: "2001:db8::2",
+					},
+					ToAdvertiseIPv4: []string{"192.168.2.2/32"},
+					ToAdvertiseIPv6: []string{"2001:db8::2/128"},
+				},
+				VNIs:        []frr.L3VNIConfig{},
+				BFDProfiles: []frr.BFDProfile{},
+				Loglevel:    "debug",
+			},
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := APItoFRR(tt.nodeIndex, tt.underlays, tt.vnis, tt.logLevel)
+			apiConfig := ApiConfigData{
+				NodeIndex:     tt.nodeIndex,
+				Underlays:     tt.underlays,
+				L3VNIs:        tt.vnis,
+				L3Passthrough: tt.l3Passthrough,
+				LogLevel:      tt.logLevel,
+			}
+			got, err := APItoFRR(apiConfig)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("APItoFRR() error = %v, wantErr %v", err, tt.wantErr)
 				return

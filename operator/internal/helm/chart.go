@@ -28,6 +28,13 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
+const (
+	// ContainerRuntimeContainerd is the containerd container runtime identifier
+	ContainerRuntimeContainerd = "containerd"
+	// ContainerRuntimeCrio is the CRI-O container runtime identifier
+	ContainerRuntimeCrio = "crio"
+)
+
 // Chart contains references which helps to
 // to retrieve manifests from chart after patching given custom values.
 type Chart struct {
@@ -85,9 +92,14 @@ func (h *Chart) Objects(envConfig envconfig.EnvConfig, crdConfig *operatorapi.Op
 }
 
 func patchChartValues(envConfig envconfig.EnvConfig, crdConfig *operatorapi.OpenPERouter, valuesMap map[string]interface{}) {
+	cri := ContainerRuntimeContainerd
+	if envConfig.IsOpenshift {
+		cri = ContainerRuntimeCrio
+	}
 	valuesMap["openperouter"] = map[string]interface{}{
 		"logLevel":                logLevelValue(crdConfig),
 		"multusNetworkAnnotation": crdConfig.Spec.MultusNetworkAnnotation,
+		"runOnMaster":             crdConfig.Spec.RunOnMaster,
 		"image": map[string]interface{}{
 			"repository": envConfig.ControllerImage.Repo,
 			"tag":        envConfig.ControllerImage.Tag,
@@ -98,7 +110,7 @@ func patchChartValues(envConfig envconfig.EnvConfig, crdConfig *operatorapi.Open
 				"name": "controller",
 			},
 			"perouter": map[string]interface{}{
-				"name": "default", // TODO: change this to perouter if/when that ServiceAccount gets actual RBACs attached.
+				"name": "perouter",
 			},
 		},
 		"frr": map[string]interface{}{
@@ -110,6 +122,7 @@ func patchChartValues(envConfig envconfig.EnvConfig, crdConfig *operatorapi.Open
 		"crds": map[string]interface{}{
 			"enabled": false,
 		},
+		"cri": cri,
 	}
 
 	valuesMap["webhook"] = map[string]interface{}{

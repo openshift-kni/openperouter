@@ -51,6 +51,9 @@ spec:
         {{- if eq .Values.openperouter.cri "crio" }}
         - --crisocket=/crio.sock
         {{- end }}
+        {{- if .Values.openperouter.multusNetworkAnnotation }}
+        - --underlay-from-multus=true
+        {{- end }}
         command:
         - /controller
         env:
@@ -99,12 +102,14 @@ spec:
       hostNetwork: true
       hostPID: true
       tolerations:
+      {{- if .Values.openperouter.runOnMaster }}
       - effect: NoSchedule
         key: node-role.kubernetes.io/master
         operator: Exists
       - effect: NoSchedule
         key: node-role.kubernetes.io/control-plane
         operator: Exists
+      {{- end }}
       {{- with .Values.openperouter.tolerations }}
         {{- toYaml . | nindent 6 }}
       {{- end }}

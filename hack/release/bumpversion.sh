@@ -23,8 +23,8 @@ sed -i "s|openperouter/openperouter/.*/config/all-in-one/crio.yaml|openperouter/
 sed -i "s|github.com/openperouter/openperouter/config/default?ref=.*|github.com/openperouter/openperouter/config/default?ref=v$OPENPE_VERSION|g" website/content/docs/installation.md
 sed -i "s|github.com/openperouter/openperouter/config/crio?ref=.*|github.com/openperouter/openperouter/config/crio?ref=v$OPENPE_VERSION|g" website/content/docs/installation.md
 
-sed -i "s/value: \"quay.io/openperouter/router:main\"/value: \"quay.io/openperouter/router:v$OPENPE_VERSION\"/" operator/config/pods/env.yaml
-sed -i "s/image: controller:main/image: controller:v$OPENPE_VERSION/" operator/config/pods/operator.yaml
+sed -i "s|value: \"quay.io/openperouter/router:main\"|value: \"quay.io/openperouter/router:v$OPENPE_VERSION\"|" operator/config/pods/env.yaml
+sed -i "s|image: controller:main|image: controller:v$OPENPE_VERSION|" operator/config/pods/operator.yaml
 sed -i "s/openperouter-operator.v0.0.0/openperouter-operator.v$OPENPE_VERSION/" operator/config/manifests/bases/openperouter-operator.clusterserviceversion.yaml
 sed -i "s/version: 0.0.0/version: $OPENPE_VERSION/" operator/config/manifests/bases/openperouter-operator.clusterserviceversion.yaml
 
