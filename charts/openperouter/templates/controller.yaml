@@ -104,6 +104,7 @@ spec:
           name: frr-config
         - mountPath: {{ .Values.openperouter.ovsRunDir }}
           name: ovs-var-run
+          mountPropagation: HostToContainer
       hostNetwork: true
       hostPID: true
       tolerations:
@@ -141,4 +142,5 @@ spec:
         name: frr-config
       - hostPath:
           path: {{ .Values.openperouter.ovsRunDir }}
+          type: DirectoryOrCreate
         name: ovs-var-run

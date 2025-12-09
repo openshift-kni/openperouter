@@ -59,6 +59,7 @@ spec:
           mountPropagation: HostToContainer
         - mountPath: /var/run/openvswitch
           name: ovs-var-run
+          mountPropagation: HostToContainer
         resources:
           limits:
             cpu: 500m
@@ -80,6 +81,7 @@ spec:
       - name: ovs-var-run
         hostPath:
           path: /var/run/openvswitch
+          type: DirectoryOrCreate
       tolerations:
       - effect: NoSchedule
         key: node-role.kubernetes.io/master

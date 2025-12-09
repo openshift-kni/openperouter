@@ -1015,6 +1015,7 @@ spec:
           mountPropagation: HostToContainer
           name: frr-config
         - mountPath: /var/run/openvswitch
+          mountPropagation: HostToContainer
           name: ovs-var-run
       hostNetwork: true
       hostPID: true
@@ -1039,6 +1040,7 @@ spec:
         name: frr-config
       - hostPath:
           path: /var/run/openvswitch
+          type: DirectoryOrCreate
         name: ovs-var-run
 ---
 apiVersion: apps/v1

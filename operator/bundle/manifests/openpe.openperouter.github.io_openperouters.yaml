@@ -55,6 +55,14 @@ spec:
                 description: MultusNetworkAnnotation specifies the Multus network
                   annotation to be added to the router pod.
                 type: string
+              ovsRunDir:
+                description: 'OVSRunDir specifies the OVS run directory to mount.
+                  This is the directory containing the OVS socket. (default: /var/run/openvswitch)'
+                type: string
+              ovsSocketPath:
+                description: OVSSocketPath specifies the OVS database socket path.
+                  Defaults to standard OVS location if not specified.
+                type: string
               runOnMaster:
                 default: true
                 description: 'RunOnMaster determines if all pods (router, controller,
