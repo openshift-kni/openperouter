@@ -273,6 +273,7 @@ var _ = Describe("L2 VNI configuration", func() {
 			L2GatewayIPs: []string{"192.168.1.0/24"},
 			HostMaster: &HostMaster{
 				Name: bridgeName,
+				Type: BridgeLinkType,
 			},
 		}
 
@@ -319,6 +320,7 @@ var _ = Describe("L2 VNI configuration", func() {
 				L2GatewayIPs: []string{"192.168.1.0/24"},
 				HostMaster: &HostMaster{
 					Name: bridgeName,
+					Type: BridgeLinkType,
 				},
 			},
 			{
@@ -332,6 +334,7 @@ var _ = Describe("L2 VNI configuration", func() {
 				L2GatewayIPs: []string{"192.168.1.0/24"},
 				HostMaster: &HostMaster{
 					AutoCreate: true,
+					Type:       BridgeLinkType,
 				},
 			},
 		}
@@ -406,6 +409,7 @@ var _ = Describe("L2 VNI configuration", func() {
 			L2GatewayIPs: []string{"192.168.1.0/24"},
 			HostMaster: &HostMaster{
 				Name: bridgeName,
+				Type: BridgeLinkType,
 			},
 		}),
 		Entry("dual-stack (IPv4 and IPv6)", L2VNIParams{
@@ -419,6 +423,7 @@ var _ = Describe("L2 VNI configuration", func() {
 			L2GatewayIPs: []string{"192.168.2.0/24", "2001:db8::1/64"},
 			HostMaster: &HostMaster{
 				Name: bridgeName,
+				Type: BridgeLinkType,
 			},
 		}),
 		Entry("IPv6 single-stack", L2VNIParams{
@@ -432,6 +437,7 @@ var _ = Describe("L2 VNI configuration", func() {
 			L2GatewayIPs: []string{"2001:db8::1/64"},
 			HostMaster: &HostMaster{
 				Name: bridgeName,
+				Type: BridgeLinkType,
 			},
 		}),
 	)
@@ -469,14 +475,26 @@ func validateL2HostLeg(g Gomega, params L2VNIParams) {
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(hasNoIP).To(BeTrue(), "host leg does have ip")
 	if params.HostMaster != nil {
-		hostMasterName := params.HostMaster.Name
-		if params.HostMaster.AutoCreate {
-			hostMasterName = hostBridgeName(params.VNI)
+		switch params.HostMaster.Type {
+		case OVSBridgeLinkType:
+			hostMasterName := params.HostMaster.Name
+			if params.HostMaster.AutoCreate {
+				hostMasterName = hostBridgeName(params.VNI)
+			}
+			checkOVSBridgeExists(g, hostMasterName)
+			checkVethAttachedToOVSBridge(g, hostMasterName, vethNames.HostSide)
+		case BridgeLinkType:
+			hostMasterName := params.HostMaster.Name
+			if params.HostMaster.AutoCreate {
+				hostMasterName = hostBridgeName(params.VNI)
+			}
+			hostmaster, err := netlink.LinkByName(hostMasterName)
+			g.Expect(err).NotTo(HaveOccurred(), "host master not found", *params.HostMaster)
+			g.Expect(hostLegLink.Attrs().MasterIndex).To(Equal(hostmaster.Attrs().Index),
+				"host leg is not attached to the bridge", params.HostMaster)
+		default:
+			g.Expect(params.HostMaster.Type).To(BeEmpty(), "unknown bridge type: %s", params.HostMaster.Type)
 		}
-		hostmaster, err := netlink.LinkByName(hostMasterName)
-		g.Expect(err).NotTo(HaveOccurred(), "host master not found", *params.HostMaster)
-		g.Expect(hostLegLink.Attrs().MasterIndex).To(Equal(hostmaster.Attrs().Index),
-			"host leg is not attached to the bridge", params.HostMaster)
 	} else {
 		g.Expect(hostLegLink.Attrs().MasterIndex).To(BeZero(), "host leg is attached to a bridge but should not be")
 	}
