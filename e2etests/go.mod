@@ -8,7 +8,7 @@ require (
 	github.com/metallb/frr-k8s v0.0.20
 	github.com/onsi/ginkgo/v2 v2.23.3
 	github.com/onsi/gomega v1.37.0
-	github.com/openperouter/openperouter v0.0.0-00010101000000-000000000000
+	github.com/openperouter/openperouter v0.0.5
 	github.com/openshift-kni/k8sreporter v1.0.7
 	k8s.io/api v0.33.3
 	k8s.io/apimachinery v0.33.3
