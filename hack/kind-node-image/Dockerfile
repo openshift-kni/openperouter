@@ -11,9 +11,7 @@ ARG KIND_NODE_VERSION
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
         openvswitch-switch \
-        openvswitch-common && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+        openvswitch-common 
 
 # Create necessary OVS directories
 RUN mkdir -p /var/run/openvswitch /var/log/openvswitch /etc/openvswitch
@@ -42,9 +40,20 @@ RUN mkdir -p /etc/systemd/system/kubelet.service.d && \
     printf "[Unit]\nAfter=ovsdb-server.service ovs-vswitchd.service\nRequires=ovsdb-server.service ovs-vswitchd.service\n" \
     > /etc/systemd/system/kubelet.service.d/10-ovs-dependency.conf
 
+RUN apt-get install -y curl gnupg2 software-properties-common && \
+    mkdir -p /etc/apt/keyrings && \
+    curl -fsSL https://download.opensuse.org/repositories/devel:kubic:libcontainers:unstable/xUbuntu_22.04/Release.key | gpg --dearmor -o /etc/apt/keyrings/devel_kubic_libcontainers_unstable.gpg && \
+    echo "deb [signed-by=/etc/apt/keyrings/devel_kubic_libcontainers_unstable.gpg] https://download.opensuse.org/repositories/devel:kubic:libcontainers:unstable/xUbuntu_22.04/ /" > /etc/apt/sources.list.d/devel:kubic:libcontainers:unstable.list && \
+    apt-get update && \
+    apt-get install -y podman && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /var/lib/containers
+
 # Add labels for image identification and metadata
 LABEL org.opencontainers.image.source="https://github.com/openperouter/openperouter" \
-      org.opencontainers.image.description="Kind node image with OpenVSwitch pre-installed for OpenPERouter" \
+      org.opencontainers.image.description="Kind node image with OpenVSwitch and Podman pre-installed for OpenPERouter" \
       org.opencontainers.image.vendor="OpenPERouter" \
       ovs.version="ubuntu-default" \
       kind.base.version="${KIND_NODE_VERSION}"

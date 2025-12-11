@@ -158,7 +158,7 @@ HUGO_VERSION ?= v0.147.8
 # Kind node image configuration
 KIND_NODE_VERSION ?= v1.32.2
 KIND_NODE_IMG_REPO ?= quay.io/openperouter
-KIND_NODE_IMG_NAME ?= kind-node-ovs
+KIND_NODE_IMG_NAME ?= kind-node-openperouter
 KIND_NODE_IMG_TAG ?= $(KIND_NODE_VERSION)
 KIND_NODE_IMG ?= $(KIND_NODE_IMG_REPO)/$(KIND_NODE_IMG_NAME):$(KIND_NODE_IMG_TAG)
 export NODE_IMAGE ?= $(KIND_NODE_IMG)
