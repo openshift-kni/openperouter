@@ -59,7 +59,7 @@ jobs:
           build-args: |
             KIND_NODE_VERSION=${{ steps.kind-version.outputs.version }}
           tags: |
-            quay.io/openperouter/kind-node-ovs:${{ steps.kind-version.outputs.version }}-${{ strategy.job-index }}
+            quay.io/openperouter/kind-node-openperouter:${{ steps.kind-version.outputs.version }}-${{ strategy.job-index }}
           cache-from: type=gha,scope=${{ matrix.platform }}
           cache-to: type=gha,mode=max,scope=${{ matrix.platform }}
           outputs: type=docker,dest=/tmp/kind-node-${{ strategy.job-index }}.tar
@@ -79,7 +79,7 @@ jobs:
           docker run -d --privileged --name test-ovs-node \
             --tmpfs /run --tmpfs /run/lock \
             -v /sys/fs/cgroup:/sys/fs/cgroup:rw --cgroupns=host \
-            quay.io/openperouter/kind-node-ovs:${{ steps.kind-version.outputs.version }}-${{ strategy.job-index }}
+            quay.io/openperouter/kind-node-openperouter:${{ steps.kind-version.outputs.version }}-${{ strategy.job-index }}
 
           echo "Waiting for systemd and OVS initialization..."
           sleep 30

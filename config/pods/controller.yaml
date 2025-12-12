@@ -31,6 +31,7 @@ spec:
         - "--loglevel=debug"
         - "--namespace=$(NAMESPACE)"
         - "--frrconfig=/etc/frr/frr.conf"
+        - "--reloader-socket=/etc/frr/reload.sock"
         image: router:latest
         imagePullPolicy: IfNotPresent
         name: controller
@@ -60,6 +61,8 @@ spec:
         - mountPath: /var/run/openvswitch
           name: ovs-var-run
           mountPropagation: HostToContainer
+        - mountPath: /var/run/frr
+          name: frr-sockets
         resources:
           limits:
             cpu: 500m
@@ -81,6 +84,9 @@ spec:
       - name: ovs-var-run
         hostPath:
           path: /var/run/openvswitch
+      - name: frr-sockets
+        hostPath:
+          path: /var/run/openperouter/frr
           type: DirectoryOrCreate
       tolerations:
       - effect: NoSchedule

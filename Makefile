@@ -85,6 +85,9 @@ test: fmt vet envtest ## Run tests.
 build: manifests generate fmt vet ## Build manager binary.
 	go build -o bin/reloader cmd/reloader/main.go
 	go build -o bin/controller cmd/hostcontroller/main.go
+	go build -o bin/hostbridge cmd/hostbridge/main.go
+	go build -o bin/nodemarker cmd/nodemarker/main.go
+	go build -o bin/cp-tool cmd/cp-tool/main.go
 
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
@@ -155,7 +158,7 @@ HUGO_VERSION ?= v0.147.8
 # Kind node image configuration
 KIND_NODE_VERSION ?= v1.32.2
 KIND_NODE_IMG_REPO ?= quay.io/openperouter
-KIND_NODE_IMG_NAME ?= kind-node-ovs
+KIND_NODE_IMG_NAME ?= kind-node-openperouter
 KIND_NODE_IMG_TAG ?= $(KIND_NODE_VERSION)
 KIND_NODE_IMG ?= $(KIND_NODE_IMG_REPO)/$(KIND_NODE_IMG_NAME):$(KIND_NODE_IMG_TAG)
 export NODE_IMAGE ?= $(KIND_NODE_IMG)
@@ -170,6 +173,15 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 
 .PHONY: deploy
 deploy: kind deploy-cluster deploy-controller ## Deploy cluster and controller.
+
+.PHONY: setup-hostmode
+setup-hostmode: ## Setup node configuration for hostmode.
+	./systemdmode/setup_node_config.sh $(KIND_CLUSTER_NAME)
+
+.PHONY: deploy-hostmode
+deploy-hostmode: export KUSTOMIZE_LAYER=hostmode
+deploy-hostmode: kind deploy-cluster setup-hostmode deploy-controller ## Deploy cluster and controller in hostmode, then setup systemd services.
+	./systemdmode/deploy.sh $(KIND_CLUSTER_NAME)
 
 .PHONY: deploy-multi
 deploy-multi: kind deploy-multi-cluster deploy-controller-multi ## Deploy cluster and controller.
