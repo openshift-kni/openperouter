@@ -2,7 +2,7 @@
 
 set -o errexit
 
-GOFILES=$(find . -name '*.go')
+GOFILES=$(find . -path './vendor' -prune -o -name '*.go' -print)
 
 for file in $GOFILES; do
 	if ! grep -q License "$file"; then
