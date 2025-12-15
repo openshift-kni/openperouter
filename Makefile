@@ -83,11 +83,11 @@ test: fmt vet envtest ## Run tests.
 
 .PHONY: build
 build: manifests generate fmt vet ## Build manager binary.
-	go build -o bin/reloader cmd/reloader/main.go
-	go build -o bin/controller cmd/hostcontroller/main.go
-	go build -o bin/hostbridge cmd/hostbridge/main.go
-	go build -o bin/nodemarker cmd/nodemarker/main.go
-	go build -o bin/cp-tool cmd/cp-tool/main.go
+	go build -o bin/reloader ./cmd/reloader
+	go build -o bin/controller ./cmd/hostcontroller
+	go build -o bin/hostbridge ./cmd/hostbridge
+	go build -o bin/nodemarker ./cmd/nodemarker
+	go build -o bin/cp-tool ./cmd/cp-tool
 
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
