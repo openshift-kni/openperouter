@@ -139,7 +139,9 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 				Eventually(func() error {
 					for exec := range routers.GetExecutors() {
 						evpn, err := frr.EVPNInfo(exec)
-						Expect(err).NotTo(HaveOccurred())
+						if err != nil {
+							return fmt.Errorf("failed to get EVPN info from %s: %w", exec.Name(), err)
+						}
 						for _, prefix := range prefixes {
 							if mustContain && !evpn.ContainsType5RouteForVNI(prefix, leaf.VTEPIP, int(vni.Spec.VNI)) {
 								return fmt.Errorf("type5 route for %s - %s not found in %v in router %s", prefix, leaf.VTEPIP, evpn, exec.Name())
