@@ -55,7 +55,7 @@ type HostMaster struct {
 
 const (
 	VRFLinkType       = "vrf"
-	BridgeLinkType    = "bridge"
+	BridgeLinkType    = "linux-bridge"
 	VXLanLinkType     = "vxlan"
 	OVSBridgeLinkType = "ovs-bridge"
 )
@@ -368,7 +368,7 @@ func RemoveNonConfiguredVNIs(targetNS string, params []VNIParams) error {
 func deleteLinksForType(linkType string, vnis map[int]bool, links []netlink.Link, vniFromName func(string) (int, error)) error {
 	deleteErrors := []error{}
 	for _, l := range links {
-		if l.Type() != linkType {
+		if l.Type() != netlinkTypeFor(linkType) {
 			continue
 		}
 		vni, err := vniFromName(l.Attrs().Name)
@@ -390,6 +390,14 @@ func deleteLinksForType(linkType string, vnis map[int]bool, links []netlink.Link
 	}
 
 	return errors.Join(deleteErrors...)
+}
+
+// netlinkTypeFor maps API link type names to netlink link type names.
+func netlinkTypeFor(linkType string) string {
+	if linkType == BridgeLinkType {
+		return "bridge"
+	}
+	return linkType
 }
 
 // removeOVSBridgesForVNIs removes auto-created OVS bridges that are not in the configured VNIs list.
