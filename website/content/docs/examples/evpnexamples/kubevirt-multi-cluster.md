@@ -42,7 +42,7 @@ machines are connected to this bridge via Multus secondary interfaces of type
 > ```
 
 The full example can be found in the
-[project repository](https://github.com/openperouter/openperouter/examples/evpn/multi-cluster)
+[project repository](https://github.com/openperouter/openperouter/tree/main/examples/evpn/multi-cluster)
 and can be deployed by running:
 
 ```bash
