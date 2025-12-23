@@ -63,7 +63,7 @@ func validateResourceYAML(k8sClient client.Client, content string) error {
 			return fmt.Errorf("empty namespace")
 		}
 
-		err = k8sClient.Create(context.Background(), obj)
+		err = k8sClient.Create(context.Background(), obj, &client.CreateOptions{FieldValidation: "Strict"})
 		if err != nil {
 			return fmt.Errorf("failed to create %s %s/%s: %w",
 				obj.GetKind(), obj.GetNamespace(), obj.GetName(), err)

@@ -64,7 +64,8 @@ metadata:
   namespace: openperouter-system
 spec:
   asn: 64514
-  vtepcidr: 100.65.0.0/24
+  evpn:
+    vtepcidr: 100.65.0.0/24
   nics:
     - toswitch
   neighbors:
