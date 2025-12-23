@@ -54,6 +54,19 @@ jobs:
       contents: read
       id-token: write # needed for signing the images with GitHub OIDC Token
     steps:
+      - name: Free Disk Space
+        working-directory: ${{ github.workspace }}
+        run: |
+          echo "Disk space before cleanup:"
+          df -h
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo apt-get clean
+          echo "Disk space after cleanup:"
+          df -h
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
@@ -119,6 +132,19 @@ jobs:
       contents: read
       id-token: write # needed for signing the images with GitHub OIDC Token
     steps:
+      - name: Free Disk Space
+        working-directory: ${{ github.workspace }}
+        run: |
+          echo "Disk space before cleanup:"
+          df -h
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo apt-get clean
+          echo "Disk space after cleanup:"
+          df -h
+
       - name: Code checkout
         uses: actions/checkout@v4
 
