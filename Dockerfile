@@ -29,8 +29,6 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
   && \
   CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -o controller ./cmd/hostcontroller \
   && \
-  CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -o cp-tool ./cmd/cp-tool \
-  && \
   CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -o nodemarker ./cmd/nodemarker \
   && \
   CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -o hostbridge ./cmd/hostbridge \
@@ -42,7 +40,6 @@ WORKDIR /
 COPY --from=builder /go/openperouter/reloader .
 COPY --from=builder /go/openperouter/controller .
 COPY --from=builder /go/openperouter/hostbridge .
-COPY --from=builder /go/openperouter/cp-tool .
 COPY --from=builder /go/openperouter/nodemarker .
 COPY --from=builder /go/openperouter/operatorbinary ./operator
 COPY operator/bindata bindata
