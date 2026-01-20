@@ -96,7 +96,7 @@ func patchChartValues(envConfig envconfig.EnvConfig, crdConfig *operatorapi.Open
 	if envConfig.IsOpenshift {
 		cri = ContainerRuntimeCrio
 	}
-	valuesMap["openperouter"] = map[string]interface{}{
+	openperouterValues := map[string]interface{}{
 		"logLevel":                logLevelValue(crdConfig),
 		"multusNetworkAnnotation": crdConfig.Spec.MultusNetworkAnnotation,
 		"runOnMaster":             crdConfig.Spec.RunOnMaster,
@@ -124,6 +124,20 @@ func patchChartValues(envConfig envconfig.EnvConfig, crdConfig *operatorapi.Open
 		},
 		"cri": cri,
 	}
+
+	if crdConfig.Spec.OVSSocketPath != "" {
+		openperouterValues["ovsSocketPath"] = crdConfig.Spec.OVSSocketPath
+	}
+	if crdConfig.Spec.OVSRunDir != "" {
+		openperouterValues["ovsRunDir"] = crdConfig.Spec.OVSRunDir
+	}
+	if crdConfig.Spec.HealthProbePort != 0 {
+		openperouterValues["controller"] = map[string]interface{}{
+			"healthProbePort": crdConfig.Spec.HealthProbePort,
+		}
+	}
+
+	valuesMap["openperouter"] = openperouterValues
 
 	valuesMap["webhook"] = map[string]interface{}{
 		"enabled": false,

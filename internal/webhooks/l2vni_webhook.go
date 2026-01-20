@@ -7,16 +7,17 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 
 	"github.com/openperouter/openperouter/api/v1alpha1"
+	"github.com/openperouter/openperouter/internal/conversion"
 	v1 "k8s.io/api/admission/v1"
+	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
-
-var ValidateL2VNIs func(l2vnis []v1alpha1.L2VNI) error
 
 const (
 	l2vniValidationWebhookPath = "/validate-openperouter-io-v1alpha1-l2vni"
@@ -67,7 +68,7 @@ func (v *L2VNIValidator) Handle(ctx context.Context, req admission.Request) (res
 			return admission.Denied(err.Error())
 		}
 	case v1.Update:
-		if err := validateL2VNIUpdate(&l2vni, &oldL2VNI); err != nil {
+		if err := validateL2VNIUpdate(&oldL2VNI, &l2vni); err != nil {
 			return admission.Denied(err.Error())
 		}
 	case v1.Delete:
@@ -89,8 +90,8 @@ func validateL2VNIUpdate(l2vni *v1alpha1.L2VNI, oldL2VNI *v1alpha1.L2VNI) error 
 	Logger.Debug("webhook l2vni", "action", "update", "name", l2vni.Name, "namespace", l2vni.Namespace)
 	defer Logger.Debug("webhook l2vni", "action", "end update", "name", l2vni.Name, "namespace", l2vni.Namespace)
 
-	if oldL2VNI.Spec.L2GatewayIP != l2vni.Spec.L2GatewayIP {
-		return errors.New("L2GatewayIP cannot be changed")
+	if !slices.Equal(oldL2VNI.Spec.L2GatewayIPs, l2vni.Spec.L2GatewayIPs) {
+		return errors.New("L2GatewayIPs cannot be changed")
 	}
 
 	return validateL2VNI(l2vni)
@@ -120,7 +121,12 @@ func validateL2VNI(l2vni *v1alpha1.L2VNI) error {
 		toValidate = append(toValidate, *l2vni.DeepCopy())
 	}
 
-	if err := ValidateL2VNIs(toValidate); err != nil {
+	nodeList := &corev1.NodeList{}
+	if err := WebhookClient.List(context.Background(), nodeList, &client.ListOptions{}); err != nil {
+		return fmt.Errorf("failed to get existing Node objects when validating L2VNI: %w", err)
+	}
+
+	if err := conversion.ValidateL2VNIsForNodes(nodeList.Items, toValidate); err != nil {
 		return fmt.Errorf("validation failed: %w", err)
 	}
 	return nil

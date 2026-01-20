@@ -15,6 +15,9 @@ openperouter:
   tolerateMaster: true
   # -- If true, all pods (router, controller, and nodemarker) are allowed to run on master/control-plane nodes
   runOnMaster: true
+  # -- If true, enables host mode deployment: deploys hostbridge DaemonSet instead of router and controller,
+  # and configures nodemarker to run in webhook-only mode
+  hostmode: false
   # -- Multus network annotation to be added to router pods
   multusNetworkAnnotation: ""
   image:
@@ -47,18 +50,24 @@ openperouter:
   labels: {}
   controller:
     resources: {}
+    # -- Health probe port for liveness and readiness checks
+    healthProbePort: 9081
   nodemarker:
     resources: {}
   # frr contains configuration specific to the perouter FRR container,
   frr:
     image:
-      repository: quay.io/frrouting/frr
-      tag: 10.2.1
+      repository: quay.io/openperouter/openperouter
+      tag: ""
       pullPolicy: ""
     resources: {}
     reloader:
       resources: {}
   cri: "containerd" # cri to bind its socket, can be containerd or crio.
+  # -- OVS database socket path. Defaults to standard OVS location if not specified.
+  ovsSocketPath: ""
+  # -- OVS run directory to mount. This is the directory containing the OVS socket.
+  ovsRunDir: "/var/run/openvswitch"
 
 webhook:
   enabled: true

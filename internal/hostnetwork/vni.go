@@ -9,6 +9,9 @@ import (
 	"log/slog"
 	"strings"
 
+	libovsclient "github.com/ovn-kubernetes/libovsdb/client"
+	"github.com/ovn-kubernetes/libovsdb/model"
+	"github.com/ovn-kubernetes/libovsdb/ovsdb"
 	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netns"
 )
@@ -39,9 +42,9 @@ type Veth struct {
 }
 
 type L2VNIParams struct {
-	VNIParams   `json:",inline"`
-	L2GatewayIP *string     `json:"l2gatewayip"`
-	HostMaster  *HostMaster `json:"hostmaster"`
+	VNIParams    `json:",inline"`
+	L2GatewayIPs []string    `json:"l2gatewayips"`
+	HostMaster   *HostMaster `json:"hostmaster"`
 }
 
 type HostMaster struct {
@@ -51,9 +54,10 @@ type HostMaster struct {
 }
 
 const (
-	VRFLinkType    = "vrf"
-	BridgeLinkType = "bridge"
-	VXLanLinkType  = "vxlan"
+	VRFLinkType       = "vrf"
+	BridgeLinkType    = "linux-bridge"
+	VXLanLinkType     = "vxlan"
+	OVSBridgeLinkType = "ovs-bridge"
 )
 
 type NotRouterInterfaceError struct {
@@ -84,7 +88,7 @@ func SetupL3VNI(ctx context.Context, params L3VNIParams) error {
 		return fmt.Errorf("SetupL3VNI: failed to setup VNI veth: %w", err)
 	}
 
-	ns, err := netns.GetFromName(params.TargetNS)
+	ns, err := netns.GetFromPath(params.TargetNS)
 	if err != nil {
 		return fmt.Errorf("SetupVNI: Failed to get network namespace %s: %w", params.TargetNS, err)
 	}
@@ -148,7 +152,7 @@ func SetupL2VNI(ctx context.Context, params L2VNIParams) error {
 	slog.DebugContext(ctx, "setting up l2 VNI", "params", params)
 	defer slog.DebugContext(ctx, "end setting up l2 VNI", "params", params)
 
-	ns, err := netns.GetFromName(params.TargetNS)
+	ns, err := netns.GetFromPath(params.TargetNS)
 	if err != nil {
 		return fmt.Errorf("SetupVNI: Failed to get network namespace %s: %w", params.TargetNS, err)
 	}
@@ -160,16 +164,34 @@ func SetupL2VNI(ctx context.Context, params L2VNIParams) error {
 
 	hostVeth, err := netlink.LinkByName(vethNames.HostSide)
 	if errors.As(err, &netlink.LinkNotFoundError{}) {
-		return fmt.Errorf("SetupL2VNI: host veth %s does not exist, cannot setup L3 VNI", vethNames.HostSide)
+		return fmt.Errorf("SetupL2VNI: host veth %s does not exist, cannot setup L2 VNI", vethNames.HostSide)
 	}
+	if err != nil {
+		return fmt.Errorf("SetupL2VNI: failed to get host veth %s: %w", vethNames.HostSide, err)
+	}
+	slog.Info("SetupL2VNI: found host veth", "name", vethNames.HostSide, "index", hostVeth.Attrs().Index)
 
 	if params.HostMaster != nil {
-		master, err := hostMaster(params.VNI, *params.HostMaster)
-		if err != nil {
-			return fmt.Errorf("SetupL2VNI: failed to get host master for VRF %s: %w", params.VRF, err)
-		}
-		if err := netlink.LinkSetMaster(hostVeth, master); err != nil {
-			return fmt.Errorf("failed to set host master %s as master of host veth %s: %w", master.Attrs().Name, hostVeth.Attrs().Name, err)
+		bridgeConfig := *params.HostMaster
+		switch bridgeConfig.Type {
+		case OVSBridgeLinkType:
+			lowerDeviceName := bridgeConfig.Name
+			if bridgeConfig.AutoCreate {
+				lowerDeviceName = hostBridgeName(params.VNI)
+			}
+			if err := ensureOVSBridgeAndAttach(ctx, lowerDeviceName, hostVeth.Attrs().Name); err != nil {
+				return fmt.Errorf("failed to ensure OVS bridge %s and attach %s: %w", lowerDeviceName, hostVeth.Attrs().Name, err)
+			}
+		case BridgeLinkType:
+			master, err := hostMaster(params.VNI, bridgeConfig)
+			if err != nil {
+				return fmt.Errorf("SetupL2VNI: failed to get host master for VRF %s: %w", params.VRF, err)
+			}
+			if err := netlink.LinkSetMaster(hostVeth, master); err != nil {
+				return fmt.Errorf("failed to set host master %s as master of host veth %s: %w", master.Attrs().Name, hostVeth.Attrs().Name, err)
+			}
+		default:
+			return fmt.Errorf("provided hostmaster.Type %q is not supported", bridgeConfig.Type)
 		}
 	}
 
@@ -186,9 +208,11 @@ func SetupL2VNI(ctx context.Context, params L2VNIParams) error {
 		if err := netlink.LinkSetMaster(peVeth, bridge); err != nil {
 			return fmt.Errorf("failed to set bridge %s as master of pe veth %s: %w", name, peVeth.Attrs().Name, err)
 		}
-		if params.L2GatewayIP != nil {
-			if err := assignIPToInterface(bridge, *params.L2GatewayIP); err != nil {
-				return fmt.Errorf("failed to assign L2 gateway IP %s to bridge %s: %w", *params.L2GatewayIP, name, err)
+		if len(params.L2GatewayIPs) > 0 {
+			for _, ip := range params.L2GatewayIPs {
+				if err := assignIPToInterface(bridge, ip); err != nil {
+					return fmt.Errorf("failed to assign L2 gateway IP %s to bridge %s: %w", ip, name, err)
+				}
 			}
 
 			// setting up the same mac address for all the nodes for distributed gateway
@@ -215,7 +239,7 @@ func SetupL2VNI(ctx context.Context, params L2VNIParams) error {
 func setupVNI(ctx context.Context, params VNIParams) error {
 	slog.DebugContext(ctx, "setting up VNI", "params", params)
 	defer slog.DebugContext(ctx, "end setting up VNI", "params", params)
-	ns, err := netns.GetFromName(params.TargetNS)
+	ns, err := netns.GetFromPath(params.TargetNS)
 	if err != nil {
 		return fmt.Errorf("SetupVNI: Failed to get network namespace %s: %w", params.TargetNS, err)
 	}
@@ -269,7 +293,10 @@ func RemoveNonConfiguredVNIs(targetNS string, params []VNIParams) error {
 	failedDeletes := []error{}
 	if err := deleteLinksForType(BridgeLinkType, vnis, hostLinks, vniFromHostBridgeName); err != nil {
 		failedDeletes = append(failedDeletes, fmt.Errorf("remove bridge links: %w", err))
-		return err
+	}
+
+	if err := removeOVSBridgesForVNIs(context.Background(), vnis); err != nil {
+		failedDeletes = append(failedDeletes, fmt.Errorf("remove OVS bridges: %w", err))
 	}
 
 	for _, hl := range hostLinks {
@@ -292,7 +319,7 @@ func RemoveNonConfiguredVNIs(targetNS string, params []VNIParams) error {
 		}
 	}
 
-	ns, err := netns.GetFromName(targetNS)
+	ns, err := netns.GetFromPath(targetNS)
 	if err != nil {
 		return fmt.Errorf("RemoveNonConfiguredVNIs: Failed to get network namespace %s: %w", targetNS, err)
 	}
@@ -341,7 +368,7 @@ func RemoveNonConfiguredVNIs(targetNS string, params []VNIParams) error {
 func deleteLinksForType(linkType string, vnis map[int]bool, links []netlink.Link, vniFromName func(string) (int, error)) error {
 	deleteErrors := []error{}
 	for _, l := range links {
-		if l.Type() != linkType {
+		if l.Type() != netlinkTypeFor(linkType) {
 			continue
 		}
 		vni, err := vniFromName(l.Attrs().Name)
@@ -359,6 +386,131 @@ func deleteLinksForType(linkType string, vnis map[int]bool, links []netlink.Link
 		if err := netlink.LinkDel(l); err != nil {
 			deleteErrors = append(deleteErrors, fmt.Errorf("remove non configured vnis: failed to delete %s %s %w", linkType, l.Attrs().Name, err))
 			continue
+		}
+	}
+
+	return errors.Join(deleteErrors...)
+}
+
+// netlinkTypeFor maps API link type names to netlink link type names.
+func netlinkTypeFor(linkType string) string {
+	if linkType == BridgeLinkType {
+		return "bridge"
+	}
+	return linkType
+}
+
+// removeOVSBridgesForVNIs removes auto-created OVS bridges that are not in the configured VNIs list.
+// Only deletes bridges with external_id "created-by: openperouter" (auto-created bridges).
+func removeOVSBridgesForVNIs(ctx context.Context, vnis map[int]bool) error {
+	ovs, err := NewOVSClient(ctx)
+	if err != nil {
+		// OVS not available, skip cleanup gracefully
+		slog.Debug("OVS client not available, skipping OVS bridge cleanup", "error", err)
+		return nil
+	}
+	defer ovs.Close()
+
+	if _, err := ovs.Monitor(ctx, ovs.NewMonitor(
+		libovsclient.WithTable(&OpenVSwitch{}),
+		libovsclient.WithTable(&Bridge{}),
+		libovsclient.WithTable(&Port{}),
+		libovsclient.WithTable(&Interface{}),
+	)); err != nil {
+		return fmt.Errorf("failed to setup OVS monitor: %w", err)
+	}
+
+	var bridges []Bridge
+	if err := ovs.List(ctx, &bridges); err != nil {
+		return fmt.Errorf("failed to list OVS bridges: %w", err)
+	}
+
+	deleteErrors := []error{}
+	for _, bridge := range bridges {
+		slog.Debug("checking OVS bridge for cleanup", "name", bridge.Name, "uuid", bridge.UUID, "external_ids", bridge.ExternalIds)
+
+		// Only delete bridges we auto-created (have our external_id marker)
+		createdBy, hasMarker := bridge.ExternalIds["created-by"]
+		if !hasMarker || createdBy != "openperouter" {
+			slog.Debug("skipping bridge - not created by us", "name", bridge.Name, "has_marker", hasMarker, "created_by", createdBy)
+			continue // Not auto-created by us, skip
+		}
+
+		vni, err := vniFromHostBridgeName(bridge.Name)
+		if errors.As(err, &NotRouterInterfaceError{}) {
+			slog.Debug("skipping bridge - not our naming pattern", "name", bridge.Name)
+			continue // Not our bridge naming pattern
+		}
+		if err != nil {
+			deleteErrors = append(deleteErrors, fmt.Errorf("failed to parse VNI from bridge %s: %w", bridge.Name, err))
+			continue
+		}
+
+		if vnis[vni] {
+			slog.Debug("keeping bridge - VNI is configured", "name", bridge.Name, "vni", vni)
+			continue // Bridge should be kept
+		}
+
+		slog.Info("deleting auto-created OVS bridge", "name", bridge.Name, "vni", vni, "uuid", bridge.UUID)
+
+		var ops []ovsdb.Operation
+
+		// First, remove all ports from the bridge
+		if len(bridge.Ports) > 0 {
+			slog.Debug("removing ports from bridge before deletion", "name", bridge.Name, "port_count", len(bridge.Ports))
+			bridgeToMutate := &Bridge{UUID: bridge.UUID}
+			mutateOp, err := ovs.Where(bridgeToMutate).Mutate(bridgeToMutate, model.Mutation{
+				Field:   &bridgeToMutate.Ports,
+				Mutator: ovsdb.MutateOperationDelete,
+				Value:   bridge.Ports,
+			})
+			if err != nil {
+				deleteErrors = append(deleteErrors, fmt.Errorf("failed to create port removal op for bridge %s: %w", bridge.Name, err))
+				continue
+			}
+			ops = append(ops, mutateOp...)
+
+			// Delete each port and its interfaces
+			for _, portUUID := range bridge.Ports {
+				port := &Port{UUID: portUUID}
+				deleteOp, err := ovs.Where(port).Delete()
+				if err != nil {
+					deleteErrors = append(deleteErrors, fmt.Errorf("failed to create delete op for port %s: %w", portUUID, err))
+					continue
+				}
+				ops = append(ops, deleteOp...)
+			}
+		}
+
+		// Remove the bridge from the OpenVSwitch table's bridges array
+		ovsRow := &OpenVSwitch{}
+		removeFromOVSOp, err := ovs.WhereCache(func(*OpenVSwitch) bool { return true }).
+			Mutate(ovsRow, model.Mutation{
+				Field:   &ovsRow.Bridges,
+				Mutator: ovsdb.MutateOperationDelete,
+				Value:   []string{bridge.UUID},
+			})
+		if err != nil {
+			deleteErrors = append(deleteErrors, fmt.Errorf("failed to create OVS table mutation for bridge %s: %w", bridge.Name, err))
+			continue
+		}
+		ops = append(ops, removeFromOVSOp...)
+
+		// Finally, delete the bridge
+		bridgeToDelete := &Bridge{UUID: bridge.UUID}
+		deleteOps, err := ovs.Where(bridgeToDelete).Delete()
+		if err != nil {
+			deleteErrors = append(deleteErrors, fmt.Errorf("failed to create delete op for bridge %s: %w", bridge.Name, err))
+			continue
+		}
+		ops = append(ops, deleteOps...)
+
+		_, err = ovs.Transact(ctx, ops...)
+		if err != nil {
+			deleteErrors = append(deleteErrors, fmt.Errorf("failed to delete OVS bridge %s: %w", bridge.Name, err))
+			slog.Error("failed to delete OVS bridge", "name", bridge.Name, "error", err)
+		} else {
+			slog.Info("successfully deleted auto-created OVS bridge", "name", bridge.Name, "vni", vni)
 		}
 	}
 

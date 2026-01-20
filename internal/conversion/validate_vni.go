@@ -7,7 +7,11 @@ import (
 	"net"
 	"regexp"
 
+	corev1 "k8s.io/api/core/v1"
+
 	"github.com/openperouter/openperouter/api/v1alpha1"
+	"github.com/openperouter/openperouter/internal/filter"
+	"github.com/openperouter/openperouter/internal/ipfamily"
 )
 
 var interfaceNameRegexp *regexp.Regexp
@@ -16,10 +20,36 @@ func init() {
 	interfaceNameRegexp = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9._-]*$`)
 }
 
+func ValidateL3VNIsForNodes(nodes []corev1.Node, underlays []v1alpha1.L3VNI) error {
+	for _, node := range nodes {
+		filteredL3VNIs, err := filter.L3VNIsForNode(&node, underlays)
+		if err != nil {
+			return fmt.Errorf("failed to filter underlays for node %q: %w", node.Name, err)
+		}
+		if err := ValidateL3VNIs(filteredL3VNIs); err != nil {
+			return fmt.Errorf("failed to validate underlays for node %q: %w", node.Name, err)
+		}
+	}
+	return nil
+}
+
 func ValidateL3VNIs(l3Vnis []v1alpha1.L3VNI) error {
 	vnis := vnisFromL3VNIs(l3Vnis)
 	if err := validateVNIs(vnis); err != nil {
 		return err
+	}
+	return nil
+}
+
+func ValidateL2VNIsForNodes(nodes []corev1.Node, underlays []v1alpha1.L2VNI) error {
+	for _, node := range nodes {
+		filteredL2VNIs, err := filter.L2VNIsForNode(&node, underlays)
+		if err != nil {
+			return fmt.Errorf("failed to filter underlays for node %q: %w", node.Name, err)
+		}
+		if err := ValidateL2VNIs(filteredL2VNIs); err != nil {
+			return fmt.Errorf("failed to validate underlays for node %q: %w", node.Name, err)
+		}
 	}
 	return nil
 }
@@ -33,16 +63,17 @@ func ValidateL2VNIs(l2Vnis []v1alpha1.L2VNI) error {
 		return err
 	}
 
-	// Perform L2-specific validation (HostMaster and L2GatewayIP validation)
+	// Perform L2-specific validation (HostMaster and L2GatewayIPs validation)
 	for _, vni := range l2Vnis {
-		if vni.Spec.HostMaster != nil && vni.Spec.HostMaster.Name != "" {
-			if err := isValidInterfaceName(vni.Spec.HostMaster.Name); err != nil {
-				return fmt.Errorf("invalid hostmaster name for vni %s: %s - %w", vni.Name, vni.Spec.HostMaster.Name, err)
+		if vni.Spec.HostMaster != nil {
+			if err := validateHostMaster(vni.Name, vni.Spec.HostMaster); err != nil {
+				return err
 			}
 		}
-		if vni.Spec.L2GatewayIP != "" {
-			if err := isValidCIDR(vni.Spec.L2GatewayIP); err != nil {
-				return fmt.Errorf("invalid l2gatewayip for vni %s: %s - %w", vni.Name, vni.Spec.L2GatewayIP, err)
+		if len(vni.Spec.L2GatewayIPs) > 0 {
+			_, err := ipfamily.ForCIDRStrings(vni.Spec.L2GatewayIPs...)
+			if err != nil {
+				return fmt.Errorf("invalid l2gatewayips for vni %q = %v: %w", vni.Name, vni.Spec.L2GatewayIPs, err)
 			}
 		}
 	}
@@ -147,5 +178,31 @@ func isValidCIDR(cidr string) error {
 	if _, _, err := net.ParseCIDR(cidr); err != nil {
 		return fmt.Errorf("invalid CIDR: %s - %w", cidr, err)
 	}
+	return nil
+}
+
+func validateHostMaster(vniName string, hostConfig *v1alpha1.HostMaster) error {
+	var name string
+	switch hostConfig.Type {
+	case v1alpha1.LinuxBridge:
+		if hostConfig.LinuxBridge != nil {
+			name = hostConfig.LinuxBridge.Name
+		}
+	case v1alpha1.OVSBridge:
+		if hostConfig.OVSBridge != nil {
+			name = hostConfig.OVSBridge.Name
+		}
+	default:
+		return fmt.Errorf("invalid hostmaster type %q", hostConfig.Type)
+	}
+
+	if name == "" {
+		return nil
+	}
+
+	if err := isValidInterfaceName(name); err != nil {
+		return fmt.Errorf("invalid hostmaster name for vni %s: %s - %w", vniName, name, err)
+	}
+
 	return nil
 }
