@@ -3,7 +3,12 @@
     "gomod": {
         "enabled": false
     },
-    "docker": {
-      "enabled": false
-    }
+    "packageRules": [
+        {
+            "matchCategories": [
+                "docker"
+            ],
+            "enabled": false
+        }
+    ]
 }
