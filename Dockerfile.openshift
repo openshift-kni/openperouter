@@ -14,9 +14,9 @@ RUN GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=
   && \
   GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -mod=vendor -tags strictfipsruntime  -o controller ./cmd/hostcontroller \
   && \
-  GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -mod=vendor -tags strictfipsruntime  -o cp-tool ./cmd/nodemarker \
+  GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -mod=vendor -tags strictfipsruntime  -o nodemarker ./cmd/nodemarker \
   && \
-  GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -mod=vendor -tags strictfipsruntime  -o nodemarker ./cmd/hostbridgenodemarker \
+  GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -mod=vendor -tags strictfipsruntime  -o hostbridge ./cmd/hostbridge \
   && \
   GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -mod=vendor -tags strictfipsruntime  -o operatorbinary ./operator
 
