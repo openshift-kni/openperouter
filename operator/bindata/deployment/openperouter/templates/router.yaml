@@ -1,3 +1,4 @@
+{{- if not .Values.openperouter.hostmode }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -143,7 +144,7 @@ spec:
         securityContext:
           capabilities:
             add: ["NET_ADMIN", "NET_RAW", "SYS_ADMIN", "NET_BIND_SERVICE"]
-        image: {{ .Values.openperouter.frr.image.repository }}:{{ .Values.openperouter.frr.image.tag }}
+        image: {{ .Values.openperouter.image.repository }}:{{ .Values.openperouter.image.tag | default .Chart.AppVersion }}
         {{- if .Values.openperouter.image.pullPolicy }}
         imagePullPolicy: {{ .Values.openperouter.image.pullPolicy }}
         {{- end }}
@@ -174,13 +175,14 @@ spec:
           {{- toYaml . | nindent 12 }}
         {{- end }}
       - name: reloader
-        image: {{ .Values.openperouter.frr.image.repository }}:{{ .Values.openperouter.frr.image.tag }}
+        image: {{ .Values.openperouter.image.repository }}:{{ .Values.openperouter.image.tag | default .Chart.AppVersion }}
         {{- if .Values.openperouter.image.pullPolicy }}
         imagePullPolicy: {{ .Values.openperouter.image.pullPolicy }}
         {{- end }}
-        command: ["/etc/frr_reloader/reloader"]
+        command: ["/reloader"]
         args:
         - "--frrconfig=/etc/perouter/frr.conf"
+        - "--unixsocket=/etc/perouter/reload.sock"
         {{- with .Values.openperouter.logLevel }}
         - --loglevel={{ . }}
         {{- end }}
@@ -191,8 +193,26 @@ spec:
             mountPath: /var/run/frr
           - name: frrsharedconfig
             mountPath: /etc/perouter
-          - name: reloader
-            mountPath: /etc/frr_reloader
+        ports:
+        - containerPort: 9080
+          name: health
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 9080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 1
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 9080
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          timeoutSeconds: 1
+          failureThreshold: 3
         {{- with .Values.openperouter.frr.reloader.resources }}
         resources:
           {{- toYaml . | nindent 12 }}
@@ -218,8 +238,6 @@ spec:
         - name: frr-startup
           configMap:
             name: frr-startup
-        - name: reloader
-          emptyDir: {}
         - name: frrsharedconfig
           hostPath:
             path: /etc/perouter/frr
@@ -229,7 +247,7 @@ spec:
       initContainers:
         # Copies the initial config files with the right permissions to the shared volume.
         - name: cp-frr-files
-          image: {{ .Values.openperouter.frr.image.repository }}:{{ .Values.openperouter.frr.image.tag }}
+          image: {{ .Values.openperouter.image.repository }}:{{ .Values.openperouter.image.tag | default .Chart.AppVersion }}
           {{- if .Values.openperouter.image.pullPolicy }}
           imagePullPolicy: {{ .Values.openperouter.image.pullPolicy }}
           {{- end }}
@@ -239,15 +257,6 @@ spec:
               mountPath: /tmp/frr
             - name: frrconfig
               mountPath: /etc/frr
-        # Copies the reloader to the shared volume between the k8s-frr controller and reloader.
-        - name: cp-reloader
-          image: {{ .Values.openperouter.image.repository }}:{{ .Values.openperouter.image.tag | default .Chart.AppVersion }}
-          {{- if .Values.openperouter.image.pullPolicy }}
-          imagePullPolicy: {{ .Values.openperouter.image.pullPolicy }}
-          {{- end }}
-          command: ["/cp-tool", "/reloader", "/etc/frr_reloader/reloader"]
-          volumeMounts:
-            - name: reloader
-              mountPath: /etc/frr_reloader
       terminationGracePeriodSeconds: 10
       shareProcessNamespace: true
+{{- end }}

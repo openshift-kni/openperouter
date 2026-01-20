@@ -57,34 +57,115 @@ spec:
                   enslaved manually (or by some other means). This is useful if another controller
                   is leveraging the host interface for the VNI.
                 properties:
-                  autocreate:
-                    default: false
-                    description: |-
-                      If true, the interface will be created automatically if not present.
-                      The name of the bridge is of the form br-hs-<VNI>.
-                    type: boolean
-                  name:
-                    description: Name of the host interface. Must match VRF name validation
-                      if set.
-                    maxLength: 15
-                    pattern: ^[a-zA-Z][a-zA-Z0-9_-]*$
-                    type: string
+                  linuxBridge:
+                    description: LinuxBridge configuration. Must be set when Type
+                      is "linux-bridge".
+                    properties:
+                      autoCreate:
+                        default: false
+                        description: |-
+                          AutoCreate determines if the bridge should be created automatically.
+                          When true, the bridge is created with name br-hs-<VNI>.
+                        type: boolean
+                      name:
+                        description: Name of the Linux bridge interface.
+                        maxLength: 15
+                        pattern: ^[a-zA-Z][a-zA-Z0-9_-]*$
+                        type: string
+                    type: object
+                  ovsBridge:
+                    description: OVSBridge configuration. Must be set when Type is
+                      "ovs-bridge".
+                    properties:
+                      autoCreate:
+                        default: false
+                        description: |-
+                          AutoCreate determines if the OVS bridge should be created automatically.
+                          When true, the bridge is created with name br-hs-<VNI>.
+                        type: boolean
+                      name:
+                        description: Name of the OVS bridge interface.
+                        maxLength: 15
+                        pattern: ^[a-zA-Z][a-zA-Z0-9_-]*$
+                        type: string
+                    type: object
                   type:
-                    description: Type of the host interface. Currently only "bridge"
-                      is supported.
+                    description: 'Type of the host interface. Supported values: "linux-bridge",
+                      "ovs-bridge".'
                     enum:
-                    - bridge
+                    - linux-bridge
+                    - ovs-bridge
                     type: string
+                required:
+                - type
                 type: object
-              l2gatewayip:
-                description: |-
-                  L2GatewayIP is the IP address to be used for the L2 gateway. When this is set, the
-                  bridge the veths are enslaved to will be configured with this IP address, effectively
-                  acting as a distributed gateway for the VNI.
-                type: string
                 x-kubernetes-validations:
-                - message: L2GatewayIP can't be changed
+                - message: 'type/config mismatch: ''linux-bridge'' requires linuxBridge
+                    field, ''ovs-bridge'' requires ovsBridge field'
+                  rule: (self.type == 'linux-bridge' && has(self.linuxBridge) && !has(self.ovsBridge))
+                    || (self.type == 'ovs-bridge' && has(self.ovsBridge) && !has(self.linuxBridge))
+              l2gatewayips:
+                description: |-
+                  L2GatewayIPs is a list of IP addresses in CIDR notation to be used for the L2 gateway. When this is set, the
+                  bridge the veths are enslaved to will be configured with these IP addresses, effectively
+                  acting as a distributed gateway for the VNI. This allows for dual-stack (IPv4 and IPv6) support.
+                  Maximum of 2 addresses are allowed. If 2 addresses are provided, one must be IPv4 and one must be IPv6.
+                items:
+                  type: string
+                maxItems: 2
+                type: array
+                x-kubernetes-validations:
+                - message: L2GatewayIPs cannot be changed
                   rule: self == oldSelf
+              nodeSelector:
+                description: |-
+                  NodeSelector specifies which nodes this L2VNI applies to.
+                  If empty or not specified, applies to all nodes.
+                  Multiple L2VNIs can match the same node.
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
+                    items:
+                      description: |-
+                        A label selector requirement is a selector that contains values, a key, and an operator that
+                        relates the key and values.
+                      properties:
+                        key:
+                          description: key is the label key that the selector applies
+                            to.
+                          type: string
+                        operator:
+                          description: |-
+                            operator represents a key's relationship to a set of values.
+                            Valid operators are In, NotIn, Exists and DoesNotExist.
+                          type: string
+                        values:
+                          description: |-
+                            values is an array of string values. If the operator is In or NotIn,
+                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                            the values array must be empty. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                          x-kubernetes-list-type: atomic
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                    x-kubernetes-list-type: atomic
+                  matchLabels:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                      operator is "In", and the values array contains only "value". The requirements are ANDed.
+                    type: object
+                type: object
+                x-kubernetes-map-type: atomic
               vni:
                 description: VNI is the VXLan VNI to be used
                 format: int32
@@ -203,6 +284,55 @@ spec:
                 - hostasn
                 - localcidr
                 type: object
+              nodeSelector:
+                description: |-
+                  NodeSelector specifies which nodes this L3Passthrough applies to.
+                  If empty or not specified, applies to all nodes.
+                  Multiple L3Passthrough with overlapping node selectors will be rejected.
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
+                    items:
+                      description: |-
+                        A label selector requirement is a selector that contains values, a key, and an operator that
+                        relates the key and values.
+                      properties:
+                        key:
+                          description: key is the label key that the selector applies
+                            to.
+                          type: string
+                        operator:
+                          description: |-
+                            operator represents a key's relationship to a set of values.
+                            Valid operators are In, NotIn, Exists and DoesNotExist.
+                          type: string
+                        values:
+                          description: |-
+                            values is an array of string values. If the operator is In or NotIn,
+                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                            the values array must be empty. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                          x-kubernetes-list-type: atomic
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                    x-kubernetes-list-type: atomic
+                  matchLabels:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                      operator is "In", and the values array contains only "value". The requirements are ANDed.
+                    type: object
+                type: object
+                x-kubernetes-map-type: atomic
             type: object
           status:
             description: L3PassthroughStatus defines the observed state of L3Passthrough.
@@ -302,6 +432,55 @@ spec:
                 - hostasn
                 - localcidr
                 type: object
+              nodeSelector:
+                description: |-
+                  NodeSelector specifies which nodes this L3VNI applies to.
+                  If empty or not specified, applies to all nodes.
+                  Multiple L3VNIs can match the same node.
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
+                    items:
+                      description: |-
+                        A label selector requirement is a selector that contains values, a key, and an operator that
+                        relates the key and values.
+                      properties:
+                        key:
+                          description: key is the label key that the selector applies
+                            to.
+                          type: string
+                        operator:
+                          description: |-
+                            operator represents a key's relationship to a set of values.
+                            Valid operators are In, NotIn, Exists and DoesNotExist.
+                          type: string
+                        values:
+                          description: |-
+                            values is an array of string values. If the operator is In or NotIn,
+                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                            the values array must be empty. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                          x-kubernetes-list-type: atomic
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                    x-kubernetes-list-type: atomic
+                  matchLabels:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                      operator is "In", and the values array contains only "value". The requirements are ANDed.
+                    type: object
+                type: object
+                x-kubernetes-map-type: atomic
               vni:
                 description: VNI is the VXLan VNI to be used
                 format: int32
@@ -536,6 +715,55 @@ spec:
                   pattern: ^[a-zA-Z][a-zA-Z0-9._-]*$
                   type: string
                 type: array
+              nodeSelector:
+                description: |-
+                  NodeSelector specifies which nodes this Underlay applies to.
+                  If empty or not specified, applies to all nodes (backward compatible).
+                  Multiple Underlays with overlapping node selectors will be rejected.
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
+                    items:
+                      description: |-
+                        A label selector requirement is a selector that contains values, a key, and an operator that
+                        relates the key and values.
+                      properties:
+                        key:
+                          description: key is the label key that the selector applies
+                            to.
+                          type: string
+                        operator:
+                          description: |-
+                            operator represents a key's relationship to a set of values.
+                            Valid operators are In, NotIn, Exists and DoesNotExist.
+                          type: string
+                        values:
+                          description: |-
+                            values is an array of string values. If the operator is In or NotIn,
+                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                            the values array must be empty. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                          x-kubernetes-list-type: atomic
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                    x-kubernetes-list-type: atomic
+                  matchLabels:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                      operator is "In", and the values array contains only "value". The requirements are ANDed.
+                    type: object
+                type: object
+                x-kubernetes-map-type: atomic
               routeridcidr:
                 default: 10.0.0.0/24
                 description: RouterIDCIDR is the ipv4 cidr to be used to assign a
@@ -626,6 +854,7 @@ rules:
   verbs:
   - get
   - list
+  - patch
   - update
   - watch
 - apiGroups:
@@ -966,6 +1195,7 @@ spec:
         - --loglevel=debug
         - --namespace=$(NAMESPACE)
         - --frrconfig=/etc/frr/frr.conf
+        - --reloader-socket=/etc/frr/reload.sock
         command:
         - /controller
         env:
@@ -979,7 +1209,27 @@ spec:
               fieldPath: metadata.namespace
         image: quay.io/openperouter/router:main
         imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz
+            port: 9081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          timeoutSeconds: 1
         name: controller
+        ports:
+        - containerPort: 9081
+          name: health
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /readyz
+            port: 9081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 1
         resources:
           limits:
             cpu: 500m
@@ -1005,6 +1255,11 @@ spec:
         - mountPath: /etc/frr/
           mountPropagation: HostToContainer
           name: frr-config
+        - mountPath: /var/run/openvswitch
+          mountPropagation: HostToContainer
+          name: ovs-var-run
+        - mountPath: /var/run/frr
+          name: frr-sockets
       hostNetwork: true
       hostPID: true
       serviceAccountName: controller
@@ -1026,6 +1281,13 @@ spec:
           path: /etc/perouter/frr
           type: DirectoryOrCreate
         name: frr-config
+      - hostPath:
+          path: /var/run/openvswitch
+        name: ovs-var-run
+      - hostPath:
+          path: /var/run/openperouter/frr
+          type: DirectoryOrCreate
+        name: frr-sockets
 ---
 apiVersion: apps/v1
 kind: DaemonSet
@@ -1067,7 +1329,7 @@ spec:
         env:
         - name: TINI_SUBREAPER
           value: "true"
-        image: quay.io/frrouting/frr:10.2.1
+        image: quay.io/openperouter/router:main
         imagePullPolicy: IfNotPresent
         name: frr
         securityContext:
@@ -1085,11 +1347,32 @@ spec:
       - args:
         - --frrconfig=/etc/perouter/frr.conf
         - --loglevel=debug
+        - --unixsocket=/etc/perouter/reload.sock
         command:
-        - /etc/frr_reloader/reloader
-        image: quay.io/frrouting/frr:10.2.1
+        - /reloader
+        image: quay.io/openperouter/router:main
         imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz
+            port: 9080
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          timeoutSeconds: 1
         name: reloader
+        ports:
+        - containerPort: 9080
+          name: health
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /readyz
+            port: 9080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 1
         volumeMounts:
         - mountPath: /etc/frr
           name: frrconfig
@@ -1097,14 +1380,12 @@ spec:
           name: frr-sockets
         - mountPath: /etc/perouter
           name: frrsharedconfig
-        - mountPath: /etc/frr_reloader
-          name: reloader
       initContainers:
       - command:
         - /bin/sh
         - -c
         - cp -rLf /tmp/frr/* /etc/frr/
-        image: quay.io/frrouting/frr:10.2.1
+        image: quay.io/openperouter/router:main
         imagePullPolicy: IfNotPresent
         name: cp-frr-files
         volumeMounts:
@@ -1112,16 +1393,6 @@ spec:
           name: frr-startup
         - mountPath: /etc/frr
           name: frrconfig
-      - command:
-        - /cp-tool
-        - /reloader
-        - /etc/frr_reloader/reloader
-        image: quay.io/openperouter/router:main
-        imagePullPolicy: IfNotPresent
-        name: cp-reloader
-        volumeMounts:
-        - mountPath: /etc/frr_reloader
-          name: reloader
       serviceAccountName: perouter
       shareProcessNamespace: true
       terminationGracePeriodSeconds: 10
@@ -1138,8 +1409,6 @@ spec:
       - configMap:
           name: frr-startup
         name: frr-startup
-      - emptyDir: {}
-        name: reloader
       - hostPath:
           path: /etc/perouter/frr
           type: DirectoryOrCreate

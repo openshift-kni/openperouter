@@ -27,13 +27,15 @@ Kubernetes: `>= 1.19.0-0`
 | fullnameOverride | string | `""` |  |
 | nameOverride | string | `""` |  |
 | openperouter.affinity | object | `{}` |  |
+| openperouter.controller.healthProbePort | int | `9081` | Health probe port for liveness and readiness checks |
 | openperouter.controller.resources | object | `{}` |  |
 | openperouter.cri | string | `"containerd"` |  |
 | openperouter.frr.image.pullPolicy | string | `""` |  |
-| openperouter.frr.image.repository | string | `"quay.io/frrouting/frr"` |  |
-| openperouter.frr.image.tag | string | `"10.2.1"` |  |
+| openperouter.frr.image.repository | string | `"quay.io/openperouter/openperouter"` |  |
+| openperouter.frr.image.tag | string | `""` |  |
 | openperouter.frr.reloader.resources | object | `{}` |  |
 | openperouter.frr.resources | object | `{}` |  |
+| openperouter.hostmode | bool | `false` | If true, enables host mode deployment: deploys hostbridge DaemonSet instead of router and controller, and configures nodemarker to run in webhook-only mode |
 | openperouter.image.pullPolicy | string | `""` |  |
 | openperouter.image.repository | string | `"quay.io/openperouter/router"` |  |
 | openperouter.image.tag | string | `""` |  |
@@ -41,6 +43,8 @@ Kubernetes: `>= 1.19.0-0`
 | openperouter.logLevel | string | `"info"` | Controller log level. Must be one of: `debug`, `info`, `warn` or `error`. |
 | openperouter.multusNetworkAnnotation | string | `""` | Multus network annotation to be added to router pods |
 | openperouter.nodemarker.resources | object | `{}` |  |
+| openperouter.ovsRunDir | string | `"/var/run/openvswitch"` | OVS run directory to mount. This is the directory containing the OVS socket. |
+| openperouter.ovsSocketPath | string | `""` | OVS database socket path. Defaults to standard OVS location if not specified. |
 | openperouter.podAnnotations | object | `{}` |  |
 | openperouter.priorityClassName | string | `""` |  |
 | openperouter.runOnMaster | bool | `true` | If true, all pods (router, controller, and nodemarker) are allowed to run on master/control-plane nodes |

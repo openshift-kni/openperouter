@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/smithy-go/ptr"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/vishvananda/netlink"
@@ -19,6 +18,10 @@ import (
 )
 
 const testNSName = "vnitestns"
+
+func testNSPath() string {
+	return fmt.Sprintf("/var/run/netns/%s", testNSName)
+}
 
 var _ = Describe("L3 VNI configuration", func() {
 	var testNS netns.NsHandle
@@ -36,7 +39,7 @@ var _ = Describe("L3 VNI configuration", func() {
 		params := L3VNIParams{
 			VNIParams: VNIParams{
 				VRF:       "testred",
-				TargetNS:  testNSName,
+				TargetNS:  testNSPath(),
 				VTEPIP:    "192.170.0.9/32",
 				VNI:       100,
 				VXLanPort: 4789,
@@ -64,7 +67,7 @@ var _ = Describe("L3 VNI configuration", func() {
 		params := L3VNIParams{
 			VNIParams: VNIParams{
 				VRF:       "testred",
-				TargetNS:  testNSName,
+				TargetNS:  testNSPath(),
 				VTEPIP:    "192.170.0.9/32",
 				VNI:       100,
 				VXLanPort: 4789,
@@ -92,7 +95,7 @@ var _ = Describe("L3 VNI configuration", func() {
 		params := L3VNIParams{
 			VNIParams: VNIParams{
 				VRF:       "testred",
-				TargetNS:  testNSName,
+				TargetNS:  testNSPath(),
 				VTEPIP:    "192.170.0.9/32",
 				VNI:       100,
 				VXLanPort: 4789,
@@ -123,7 +126,7 @@ var _ = Describe("L3 VNI configuration", func() {
 			{
 				VNIParams: VNIParams{
 					VRF:       "testred",
-					TargetNS:  testNSName,
+					TargetNS:  testNSPath(),
 					VTEPIP:    "192.170.0.9/32",
 					VNI:       100,
 					VXLanPort: 4789,
@@ -136,7 +139,7 @@ var _ = Describe("L3 VNI configuration", func() {
 			{
 				VNIParams: VNIParams{
 					VRF:       "testblue",
-					TargetNS:  testNSName,
+					TargetNS:  testNSPath(),
 					VTEPIP:    "192.170.0.10/32",
 					VNI:       101,
 					VXLanPort: 4789,
@@ -164,7 +167,7 @@ var _ = Describe("L3 VNI configuration", func() {
 		toDelete := params[1]
 
 		By("removing non configured L3VNIs")
-		err := RemoveNonConfiguredVNIs(testNSName, []VNIParams{remaining.VNIParams})
+		err := RemoveNonConfiguredVNIs(testNSPath(), []VNIParams{remaining.VNIParams})
 		Expect(err).NotTo(HaveOccurred())
 
 		By("checking remaining L3VNIs")
@@ -191,7 +194,7 @@ var _ = Describe("L3 VNI configuration", func() {
 		params := L3VNIParams{
 			VNIParams: VNIParams{
 				VRF:       "testred",
-				TargetNS:  testNSName,
+				TargetNS:  testNSPath(),
 				VTEPIP:    "192.170.0.9/32",
 				VNI:       100,
 				VXLanPort: 4789,
@@ -216,14 +219,13 @@ var _ = Describe("L3 VNI configuration", func() {
 				return nil
 			})
 		}, 30*time.Second, 1*time.Second).Should(Succeed())
-
 	})
 
 	It("should configure VXLAN and VRF when HostVeth is nil", func() {
 		params := L3VNIParams{
 			VNIParams: VNIParams{
 				VRF:       "testred",
-				TargetNS:  testNSName,
+				TargetNS:  testNSPath(),
 				VTEPIP:    "192.170.0.9/32",
 				VNI:       100,
 				VXLanPort: 4789,
@@ -266,14 +268,15 @@ var _ = Describe("L2 VNI configuration", func() {
 		params := L2VNIParams{
 			VNIParams: VNIParams{
 				VRF:       "testred",
-				TargetNS:  testNSName,
+				TargetNS:  testNSPath(),
 				VTEPIP:    "192.170.0.9/32",
 				VNI:       100,
 				VXLanPort: 4789,
 			},
-			L2GatewayIP: ptr.String("192.168.1.0/24"),
+			L2GatewayIPs: []string{"192.168.1.0/24"},
 			HostMaster: &HostMaster{
 				Name: bridgeName,
+				Type: BridgeLinkType,
 			},
 		}
 
@@ -290,7 +293,7 @@ var _ = Describe("L2 VNI configuration", func() {
 		}, 30*time.Second, 1*time.Second).Should(Succeed())
 
 		By("removing the VNI")
-		err = RemoveNonConfiguredVNIs(testNSName, []VNIParams{})
+		err = RemoveNonConfiguredVNIs(testNSPath(), []VNIParams{})
 		Expect(err).NotTo(HaveOccurred())
 
 		By("checking the VNI is removed")
@@ -304,7 +307,6 @@ var _ = Describe("L2 VNI configuration", func() {
 				return nil
 			})
 		}, 30*time.Second, 1*time.Second).Should(Succeed())
-
 	})
 
 	It("should work with multiple L2VNIs + cleanup", func() {
@@ -312,27 +314,29 @@ var _ = Describe("L2 VNI configuration", func() {
 			{
 				VNIParams: VNIParams{
 					VRF:       "testred",
-					TargetNS:  testNSName,
+					TargetNS:  testNSPath(),
 					VTEPIP:    "192.170.0.9/32",
 					VNI:       100,
 					VXLanPort: 4789,
 				},
-				L2GatewayIP: ptr.String("192.168.1.0/24"),
+				L2GatewayIPs: []string{"192.168.1.0/24"},
 				HostMaster: &HostMaster{
 					Name: bridgeName,
+					Type: BridgeLinkType,
 				},
 			},
 			{
 				VNIParams: VNIParams{
 					VRF:       "testblue",
-					TargetNS:  testNSName,
+					TargetNS:  testNSPath(),
 					VTEPIP:    "192.170.0.10/32",
 					VNI:       101,
 					VXLanPort: 4789,
 				},
-				L2GatewayIP: ptr.String("192.168.1.0/24"),
+				L2GatewayIPs: []string{"192.168.1.0/24"},
 				HostMaster: &HostMaster{
 					AutoCreate: true,
+					Type:       BridgeLinkType,
 				},
 			},
 		}
@@ -353,7 +357,7 @@ var _ = Describe("L2 VNI configuration", func() {
 		toDelete := params[1]
 
 		By("removing non configured L2VNIs")
-		err := RemoveNonConfiguredVNIs(testNSName, []VNIParams{remaining.VNIParams})
+		err := RemoveNonConfiguredVNIs(testNSPath(), []VNIParams{remaining.VNIParams})
 		Expect(err).NotTo(HaveOccurred())
 
 		By("checking remaining L2VNIs")
@@ -378,36 +382,67 @@ var _ = Describe("L2 VNI configuration", func() {
 		}, 30*time.Second, 1*time.Second).Should(Succeed())
 	})
 
-	It("should be idempotent", func() {
-		params := L2VNIParams{
+	DescribeTable("should be idempotent",
+		func(params L2VNIParams) {
+			err := SetupL2VNI(context.Background(), params)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Test idempotency - calling setup twice should work
+			err = SetupL2VNI(context.Background(), params)
+			Expect(err).NotTo(HaveOccurred())
+
+			Eventually(func(g Gomega) {
+				validateL2HostLeg(g, params)
+
+				_ = inNamespace(testNS, func() error {
+					validateL2VNI(g, params)
+					return nil
+				})
+			}, 30*time.Second, 1*time.Second).Should(Succeed())
+		},
+		Entry("IPv4 single-stack", L2VNIParams{
 			VNIParams: VNIParams{
 				VRF:       "testred",
-				TargetNS:  testNSName,
+				TargetNS:  testNSPath(),
 				VTEPIP:    "192.170.0.9/32",
 				VNI:       100,
 				VXLanPort: 4789,
 			},
-			L2GatewayIP: ptr.String("192.168.1.0/24"),
+			L2GatewayIPs: []string{"192.168.1.0/24"},
 			HostMaster: &HostMaster{
 				Name: bridgeName,
+				Type: BridgeLinkType,
 			},
-		}
-
-		err := SetupL2VNI(context.Background(), params)
-		Expect(err).NotTo(HaveOccurred())
-
-		err = SetupL2VNI(context.Background(), params)
-		Expect(err).NotTo(HaveOccurred())
-
-		Eventually(func(g Gomega) {
-			validateL2HostLeg(g, params)
-
-			_ = inNamespace(testNS, func() error {
-				validateL2VNI(g, params)
-				return nil
-			})
-		}, 30*time.Second, 1*time.Second).Should(Succeed())
-	})
+		}),
+		Entry("dual-stack (IPv4 and IPv6)", L2VNIParams{
+			VNIParams: VNIParams{
+				VRF:       "testgreen",
+				TargetNS:  testNSPath(),
+				VTEPIP:    "192.170.0.11/32",
+				VNI:       300,
+				VXLanPort: 4789,
+			},
+			L2GatewayIPs: []string{"192.168.2.0/24", "2001:db8::1/64"},
+			HostMaster: &HostMaster{
+				Name: bridgeName,
+				Type: BridgeLinkType,
+			},
+		}),
+		Entry("IPv6 single-stack", L2VNIParams{
+			VNIParams: VNIParams{
+				VRF:       "testblue",
+				TargetNS:  testNSPath(),
+				VTEPIP:    "192.170.0.12/32",
+				VNI:       400,
+				VXLanPort: 4789,
+			},
+			L2GatewayIPs: []string{"2001:db8::1/64"},
+			HostMaster: &HostMaster{
+				Name: bridgeName,
+				Type: BridgeLinkType,
+			},
+		}),
+	)
 })
 
 func validateL3HostLeg(g Gomega, params L3VNIParams) {
@@ -442,14 +477,26 @@ func validateL2HostLeg(g Gomega, params L2VNIParams) {
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(hasNoIP).To(BeTrue(), "host leg does have ip")
 	if params.HostMaster != nil {
-		hostMasterName := params.HostMaster.Name
-		if params.HostMaster.AutoCreate {
-			hostMasterName = hostBridgeName(params.VNI)
+		switch params.HostMaster.Type {
+		case OVSBridgeLinkType:
+			hostMasterName := params.HostMaster.Name
+			if params.HostMaster.AutoCreate {
+				hostMasterName = hostBridgeName(params.VNI)
+			}
+			checkOVSBridgeExists(g, hostMasterName)
+			checkVethAttachedToOVSBridge(g, hostMasterName, vethNames.HostSide)
+		case BridgeLinkType:
+			hostMasterName := params.HostMaster.Name
+			if params.HostMaster.AutoCreate {
+				hostMasterName = hostBridgeName(params.VNI)
+			}
+			hostmaster, err := netlink.LinkByName(hostMasterName)
+			g.Expect(err).NotTo(HaveOccurred(), "host master not found", *params.HostMaster)
+			g.Expect(hostLegLink.Attrs().MasterIndex).To(Equal(hostmaster.Attrs().Index),
+				"host leg is not attached to the bridge", params.HostMaster)
+		default:
+			g.Expect(params.HostMaster.Type).To(BeEmpty(), "unknown bridge type: %s", params.HostMaster.Type)
 		}
-		hostmaster, err := netlink.LinkByName(hostMasterName)
-		g.Expect(err).NotTo(HaveOccurred(), "host master not found", *params.HostMaster)
-		g.Expect(hostLegLink.Attrs().MasterIndex).To(Equal(hostmaster.Attrs().Index),
-			"host leg is not attached to the bridge", params.HostMaster)
 	} else {
 		g.Expect(hostLegLink.Attrs().MasterIndex).To(BeZero(), "host leg is attached to a bridge but should not be")
 	}
@@ -503,10 +550,12 @@ func validateL2VNI(g Gomega, params L2VNIParams) {
 	bridgeLink, err := netlink.LinkByName(bridgeName(params.VNI))
 	g.Expect(err).NotTo(HaveOccurred(), "bridge not found", bridgeName(params.VNI))
 	g.Expect(peLegLink.Attrs().MasterIndex).To(Equal(bridgeLink.Attrs().Index))
-	if params.L2GatewayIP != nil {
-		hasIP, err := interfaceHasIP(bridgeLink, *params.L2GatewayIP)
-		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(hasIP).To(BeTrue(), "bridge does not have ip", params.L2GatewayIP)
+	if len(params.L2GatewayIPs) > 0 {
+		for _, ip := range params.L2GatewayIPs {
+			hasIP, err := interfaceHasIP(bridgeLink, ip)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(hasIP).To(BeTrue(), "bridge does not have ip", ip)
+		}
 
 		validateBridgeMacAddress(g, bridgeLink, params.VNI)
 		return
@@ -522,7 +571,7 @@ func validateVNI(g Gomega, params VNIParams) {
 	g.Expect(err).NotTo(HaveOccurred(), "loopback not found", UnderlayLoopback)
 
 	vxlanLink, err := netlink.LinkByName(vxLanNameFromVNI(params.VNI))
-	g.Expect(err).NotTo(HaveOccurred(), "vxlan link not found", vxLanNameFromVNI(params.VNI))
+	g.Expect(err).NotTo(HaveOccurred(), "vxlan link not found %q", vxLanNameFromVNI(params.VNI))
 
 	vxlan := vxlanLink.(*netlink.Vxlan)
 	g.Expect(vxlan.OperState).To(BeEquivalentTo(netlink.OperUnknown))
@@ -574,7 +623,7 @@ func checkLinkdeleted(g Gomega, name string) {
 
 func checkLinkExists(g Gomega, name string) {
 	_, err := netlink.LinkByName(name)
-	g.Expect(err).NotTo(HaveOccurred(), "link not found", name)
+	g.Expect(err).NotTo(HaveOccurred(), "link not found %q", name)
 }
 
 func validateVNIIsNotConfigured(g Gomega, params VNIParams) {

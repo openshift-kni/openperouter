@@ -57,7 +57,7 @@ func interfaceHasIP(link netlink.Link, address string) (bool, error) {
 	return false, nil
 }
 
-// interfaceHasIP tells if the given link does not have
+// interfaceHasNoIP tells if the given link does not have
 // ips of the given family.
 func interfaceHasNoIP(link netlink.Link, family int) (bool, error) {
 	addresses, err := netlink.AddrList(link, family)
