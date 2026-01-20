@@ -14,9 +14,9 @@ RUN GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=
   && \
   GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -mod=vendor -tags strictfipsruntime  -o controller ./cmd/hostcontroller \
   && \
-  GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -mod=vendor -tags strictfipsruntime  -o cp-tool ./cmd/cp-tool \
+  GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -mod=vendor -tags strictfipsruntime  -o cp-tool ./cmd/nodemarker \
   && \
-  GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -mod=vendor -tags strictfipsruntime  -o nodemarker ./cmd/nodemarker \
+  GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -mod=vendor -tags strictfipsruntime  -o nodemarker ./cmd/hostbridgenodemarker \
   && \
   GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -mod=vendor -tags strictfipsruntime  -o operatorbinary ./operator
 
@@ -24,10 +24,15 @@ FROM registry.access.redhat.com/ubi9-minimal:9.4
 WORKDIR /
 COPY --from=builder /go/openperouter/reloader .
 COPY --from=builder /go/openperouter/controller .
-COPY --from=builder /go/openperouter/cp-tool .
+COPY --from=builder /go/openperouter/hostbridge .
 COPY --from=builder /go/openperouter/nodemarker .
 COPY --from=builder /go/openperouter/operatorbinary ./operator
 COPY operator/bindata bindata
+
+# Copy FRR startup configuration to the default location
+COPY systemdmode/frrconfig/daemons /etc/frr/daemons
+COPY systemdmode/frrconfig/vtysh.conf /etc/frr/vtysh.conf
+COPY systemdmode/frrconfig/frr.conf /etc/frr/frr.conf
 
 LABEL com.redhat.component="openperouter" \
     name="openperouter" \
