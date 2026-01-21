@@ -189,11 +189,17 @@ spec:
       - name: ociArtifactExpiresAfter
         value: $(params.image-expires-after)
       - name: OPM_ARGS
-        value: []
+        value:
+        - alpha
+        - render-template
+        - basic
+        - ".konflux/catalog/catalog-template.in.yaml"
       - name: OPM_OUTPUT_PATH
-        value: ""
+        value: ".konflux/catalog/openperouter-operator/catalog.json"
       - name: IDMS_PATH
-        value: ""
+        value: ".konflux/catalog/fbc-images-resolvable-integration-test-idms.yaml"
+      - name: FILE_TO_UPDATE_PULLSPEC
+        value: ".konflux/catalog/openperouter-operator/catalog.json"
       runAfter:
       - clone-repository
       taskRef:
