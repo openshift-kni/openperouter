@@ -5,5 +5,8 @@
     },
     "docker": {
       "enabled": false
+    },
+    "helm-values": {
+      "enabled": false
     }
 }
