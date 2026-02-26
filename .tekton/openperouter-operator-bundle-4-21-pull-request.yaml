@@ -285,7 +285,7 @@ spec:
       - name: NO_PROXY
         value: $(tasks.init.results.no-proxy)
       runAfter:
-      - prefetch-dependencies
+      - replace-csv-images
       taskRef:
         params:
         - name: name
