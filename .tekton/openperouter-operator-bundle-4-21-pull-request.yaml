@@ -254,7 +254,8 @@ spec:
       - name: COMMIT_SHA
         value: $(tasks.clone-repository.results.commit)
       - name: BUILD_ARGS
-        value: OPERATOR_IMAGE=$(params.operator-output-image)
+        value: 
+        - OPERATOR_IMAGE=$(params.operator-output-image)
       - name: BUILD_ARGS_FILE
         value: $(params.build-args-file)
       - name: PRIVILEGED_NESTED
