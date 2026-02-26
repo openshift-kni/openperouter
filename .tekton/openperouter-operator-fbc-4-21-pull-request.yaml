@@ -25,6 +25,8 @@ spec:
     value: '{{revision}}'
   - name: output-image
     value: quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-fbc-4-21:on-pr-{{revision}}
+  - name: bundle-output-image
+    value: quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-bundle-4-21:on-pr-{{revision}}
   - name: image-expires-after
     value: 5d
   - name: build-platforms
@@ -261,7 +263,7 @@ spec:
         value: $(tasks.clone-repository.results.commit)
       - name: BUILD_ARGS
         value:
-        - $(params.build-args[*])
+        - BUNDLE_IMAGE=$(params.bundle-output-image)
       - name: BUILD_ARGS_FILE
         value: $(params.build-args-file)
       - name: SOURCE_ARTIFACT
