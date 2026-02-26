@@ -272,6 +272,8 @@ spec:
         value: $(tasks.init.results.http-proxy)
       - name: NO_PROXY
         value: $(tasks.init.results.no-proxy)
+      - name: OPERATOR_IMAGE
+        value: $(params.operator-output-image)
       runAfter:
       - prefetch-dependencies
       taskRef:
@@ -303,8 +305,6 @@ spec:
         - $(tasks.build-images.results.IMAGE_REF[*])
       - name: BUILDAH_FORMAT
         value: $(params.buildah-format)
-      - name: OPERATOR_IMAGE
-        value: $(params.operator-output-image)
       runAfter:
       - build-images
       taskRef:
