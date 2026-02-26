@@ -25,6 +25,8 @@ spec:
     value: '{{revision}}'
   - name: output-image
     value: quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-bundle-4-21:on-pr-{{revision}}
+  - name: operator-output-image
+    value: quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-4-21:on-pr-{{revision}}
   - name: image-expires-after
     value: 5d
   - name: build-platforms
@@ -230,6 +232,10 @@ spec:
         workspace: git-auth
       - name: netrc
         workspace: netrc
+    - name: replace-csv-images
+      image: registry.access.redhat.com/ubi9/ubi-minimal
+      script: |
+        sed -i "s|quay.io/openperouter/router:main|$(params.operator-output-image)|g" operator/bundle/manifests/*.clusterserviceversion.yaml
     - matrix:
         params:
         - name: PLATFORM
