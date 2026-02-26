@@ -233,9 +233,17 @@ spec:
       - name: netrc
         workspace: netrc
     - name: replace-csv-images
-      image: registry.access.redhat.com/ubi9/ubi-minimal
-      script: |
-        sed -i "s|quay.io/openperouter/router:main|$(params.operator-output-image)|g" operator/bundle/manifests/*.clusterserviceversion.yaml
+      params:
+      - name: operator-output-image
+        value: $(params.operator-output-image)
+      runAfter:
+      - clone-repository
+      taskSpec:
+        steps:
+          - name: sed
+            image: registry.access.redhat.com/ubi9/ubi-minimal
+            script: |
+              sed -i "s|quay.io/openperouter/router:main|$(params.operator-output-image)|g" operator/bundle/manifests/*.clusterserviceversion.yaml
     - matrix:
         params:
         - name: PLATFORM
