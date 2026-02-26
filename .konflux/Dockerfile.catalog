@@ -1,10 +1,16 @@
 ARG OPM_IMAGE=registry.redhat.io/openshift4/ose-operator-registry-rhel9:v4.21
+ARG BUNDLE_IMAGE
 
 FROM ${OPM_IMAGE}
 
 # ensure this correponds to olm.package name
 ENV PACKAGE_NAME=openperouter-operator
 COPY .konflux/catalog/$PACKAGE_NAME/ /configs/$PACKAGE_NAME
+
+
+RUN sed -i "s|quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-bundle|${BUNLDE_IMAGE}|g" \
+      /manifests/openperouter-operator.clusterserviceversion.yaml
+
 
 RUN ["/bin/opm", "serve", "/configs", "--cache-dir=/tmp/cache", "--cache-only"]
 
