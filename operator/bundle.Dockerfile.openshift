@@ -2,7 +2,7 @@ FROM registry.access.redhat.com/ubi9/ubi-minimal AS builder
 
 ARG OPERATOR_IMAGE
 
-COPY bundle/stable /manifests/
+COPY bundle/manifests /manifests/
 COPY bundle/metadata /metadata/
 
 RUN sed -i "s|quay.io/openperouter/router:main|${OPERATOR_IMAGE}|g" \
