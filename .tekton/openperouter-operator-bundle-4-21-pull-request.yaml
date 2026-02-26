@@ -206,18 +206,32 @@ spec:
       workspaces:
       - name: basic-auth
         workspace: git-auth
+    - name: update-csv-images
+      params:
+      - name: operator-output-image
+        value: $(params.operator-output-image)
+      - name: SOURCE_ARTIFACT
+        value: $(tasks.clone-repository.results.SOURCE_ARTIFACT)
+      runAfter:
+      - clone-repository
+      taskSpec:
+        steps:
+          - name: sed
+            image: registry.access.redhat.com/ubi9/ubi-minimal
+            script: |
+              sed -i "s|quay.io/openperouter/router:main|$(params.operator-output-image)|g" operator/bundle/manifests/*.clusterserviceversion.yaml
     - name: prefetch-dependencies
       params:
       - name: input
         value: $(params.prefetch-input)
       - name: SOURCE_ARTIFACT
-        value: $(tasks.clone-repository.results.SOURCE_ARTIFACT)
+        value: $(tasks.update-csv-images.results.SOURCE_ARTIFACT)
       - name: ociStorage
         value: $(params.output-image).prefetch
       - name: ociArtifactExpiresAfter
         value: $(params.image-expires-after)
       runAfter:
-      - clone-repository
+      - update-csv-images
       taskRef:
         params:
         - name: name
@@ -232,18 +246,6 @@ spec:
         workspace: git-auth
       - name: netrc
         workspace: netrc
-    - name: replace-csv-images
-      params:
-      - name: operator-output-image
-        value: $(params.operator-output-image)
-      runAfter:
-      - clone-repository
-      taskSpec:
-        steps:
-          - name: sed
-            image: registry.access.redhat.com/ubi9/ubi-minimal
-            script: |
-              sed -i "s|quay.io/openperouter/router:main|$(params.operator-output-image)|g" operator/bundle/manifests/*.clusterserviceversion.yaml
     - matrix:
         params:
         - name: PLATFORM
@@ -285,7 +287,7 @@ spec:
       - name: NO_PROXY
         value: $(tasks.init.results.no-proxy)
       runAfter:
-      - replace-csv-images
+      - prefetch-dependencies
       taskRef:
         params:
         - name: name
