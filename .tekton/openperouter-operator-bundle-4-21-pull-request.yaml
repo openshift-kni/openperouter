@@ -33,7 +33,7 @@ spec:
     value:
     - linux/x86_64
   - name: dockerfile
-    value: bundle.Dockerfile
+    value: bundle.Dockerfile.openshift
   - name: hermetic
     value: "true"
   - name: prefetch-input
@@ -232,10 +232,6 @@ spec:
         workspace: git-auth
       - name: netrc
         workspace: netrc
-    - name: replace-csv-images
-      image: registry.access.redhat.com/ubi9/ubi-minimal
-      script: |
-        sed -i "s|quay.io/openperouter/router:main|$(params.operator-output-image)|g" operator/bundle/manifests/*.clusterserviceversion.yaml
     - matrix:
         params:
         - name: PLATFORM
@@ -258,8 +254,8 @@ spec:
       - name: COMMIT_SHA
         value: $(tasks.clone-repository.results.commit)
       - name: BUILD_ARGS
-        value:
-        - $(params.build-args[*])
+        value: 
+        - OPERATOR_IMAGE=$(params.operator-output-image)
       - name: BUILD_ARGS_FILE
         value: $(params.build-args-file)
       - name: PRIVILEGED_NESTED
