@@ -24,8 +24,6 @@ spec:
     value: '{{revision}}'
   - name: output-image
     value: quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-bundle-4-21:{{revision}}
-  - name: operator-output-image
-    value: quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-4-21:{{revision}}
   - name: build-platforms
     value:
     - linux/x86_64
@@ -252,7 +250,7 @@ spec:
         value: $(tasks.clone-repository.results.commit)
       - name: BUILD_ARGS
         value:
-        - OPERATOR_IMAGE=$(params.operator-output-image)
+        - $(params.build-args[*])
       - name: BUILD_ARGS_FILE
         value: $(params.build-args-file)
       - name: PRIVILEGED_NESTED
