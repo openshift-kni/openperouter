@@ -19,7 +19,7 @@ LABEL com.redhat.component="openperouter-operator" \
     io.k8s.description="openperouter-operator" \
     description="openperouter-operator" \
     distribution-scope="public" \
-    release="4.20" \
+    release="4.21" \
     url="https://github.com/openperouter/openperouter" \
     vendor="Red Hat, Inc."
 # Copy files to locations specified by labels.
