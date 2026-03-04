@@ -1,15 +1,16 @@
-FROM registry.access.redhat.com/ubi9/ubi-minimal AS builder
+FROM quay.io/konflux-ci/yq:latest@sha256:466005c667e6e9ea19fd4738275f71a13f89382f6233c581d5e952a41ccb3b42 AS builder
 
-COPY bundle/manifests /manifests/
-COPY bundle/metadata /metadata/
+COPY --chown=yq:yq operator/bundle/manifests /manifests/
+COPY --chown=yq:yq operator/bundle/metadata /metadata/
+COPY --chown=yq:yq operator/bundle/overlay/ /overlay/
+COPY telco5g-konflux/scripts/bundle/konflux-bundle-overlay.sh /konflux-bundle-overlay.sh 
 
-ENV OPERATOR_IMAGE=quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-4-20@sha256:8ed2c5ddecd748f7a19452f23b623d1678c5b1e205fa4494d86d5755c62c8b96
-
-RUN sed -i "s|quay.io/openperouter/router:main|${OPERATOR_IMAGE}|g" \
-      /manifests/openperouter-operator.clusterserviceversion.yaml
-
-RUN sed -i "s|quay.io.*@sha256|registry.redhat.io/openshift4-dev-preview-beta/openperouter-rhel9-operator@sha256|g" \
-      /manifests/openperouter-operator.clusterserviceversion.yaml
+RUN /konflux-bundle-overlay.sh  \
+    --set-csv-file /manifests/openperouter-operator.clusterserviceversion.yaml \
+    --set-mapping-file /overlay/map_images.in.yaml \
+    --set-mapping-production \
+    --set-pinning-file /overlay/pin_images.in.yaml \
+    --set-release-file /overlay/release.in.yaml
 
 FROM scratch
 
@@ -24,7 +25,6 @@ LABEL operators.operatorframework.io.metrics.mediatype.v1=metrics+v1
 LABEL operators.operatorframework.io.metrics.project_layout=go.kubebuilder.io/v4
 LABEL com.redhat.component="openperouter-operator" \
     name="openshift4-dev-preview-beta/openperouter-operator-bundle" \
-    version="${CI_CONTAINER_VERSION}" \
     summary="openperouter-operator" \
     io.openshift.expose-services="" \
     io.openshift.tags="openperouter-operator" \
