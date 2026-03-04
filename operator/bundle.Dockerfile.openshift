@@ -3,7 +3,7 @@ FROM registry.access.redhat.com/ubi9/ubi-minimal AS builder
 COPY bundle/manifests /manifests/
 COPY bundle/metadata /metadata/
 
-ENV OPERATOR_IMAGE=quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-4-21@sha256:fe596a85cb2177317f820d20551b2e835c9b4cfc64af9fe8ad4d551630e82518
+ENV OPERATOR_IMAGE=quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-4-21@sha256:53e7ec80b06c51556b71481555751eaff836545780b2ed1aa6f88f99d60aa46f
 
 RUN sed -i "s|quay.io/openperouter/router:main|${OPERATOR_IMAGE}|g" \
       /manifests/openperouter-operator.clusterserviceversion.yaml
