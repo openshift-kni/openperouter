@@ -197,7 +197,7 @@ spec:
       - name: OPM_OUTPUT_PATH
         value: ".konflux/catalog/openperouter-operator/catalog.json"
       - name: IDMS_PATH
-        value: ".konflux/catalog/fbc-images-resolvable-integration-test-idms.yaml"
+        value: ".konflux/catalog/catalog-idms.yaml"
       - name: FILE_TO_UPDATE_PULLSPEC
         value: ".konflux/catalog/openperouter-operator/catalog.json"
       runAfter:
