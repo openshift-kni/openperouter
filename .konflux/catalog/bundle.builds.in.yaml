@@ -1,3 +1,4 @@
 ---
-quay: quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-bundle-4-20@sha256:b7574f93af0f2a48371622a7a9baea7e1419d249fc55406654729b3870aff613
+# TODO: this file is not used
+  quay: quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-bundle-4-21@sha256:914f2a17a9e791edb34c11187a2402e63759b9ac67c44a25067dd51b76fa2bfe
 

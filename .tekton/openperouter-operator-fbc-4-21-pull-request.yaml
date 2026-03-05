@@ -10,6 +10,7 @@ metadata:
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-event: "[pull_request]"
     pipelinesascode.tekton.dev/on-target-branch: "[refs/heads/main,refs/heads/release-*]"
+    pipelinesascode.tekton.dev/on-path-change: "[.konflux/**]"
   creationTimestamp:
   labels:
     appstudio.openshift.io/application: openperouter-operator-fbc-4-21
@@ -34,7 +35,7 @@ spec:
     value: .konflux/Dockerfile.catalog
   # We have configured an fbc exception for hermetic builds on the release repo.
   - name: hermetic
-    value: "false"
+    value: "true"
   pipelineSpec:
     description: |
       This pipeline is ideal for building and verifying [file-based catalogs](https://konflux-ci.dev/docs/end-to-end/building-olm/#building-the-file-based-catalog).
@@ -194,6 +195,7 @@ spec:
         - alpha
         - render-template
         - basic
+        - "--migrate-level=bundle-object-to-csv-metadata"
         - ".konflux/catalog/catalog-template.in.yaml"
       - name: OPM_OUTPUT_PATH
         value: ".konflux/catalog/openperouter-operator/catalog.json"
