@@ -35,8 +35,7 @@ COPY systemdmode/frrconfig/vtysh.conf /etc/frr/vtysh.conf
 COPY systemdmode/frrconfig/frr.conf /etc/frr/frr.conf
 
 LABEL com.redhat.component="openperouter" \
-    name="openperouter" \
-    version="${CI_CONTAINER_VERSION}" \
+    name="openshift4-dev-preview-beta/openperouter-rhel9-operator" \
     summary="openperouter" \
     io.openshift.expose-services="" \
     io.openshift.tags="openperouter" \
@@ -44,7 +43,7 @@ LABEL com.redhat.component="openperouter" \
     io.k8s.description="openperouter" \
     description="openperouter" \
     distribution-scope="public" \
-    release="4.20" \
+    release="4.22" \
     url="https://github.com/openperouter/openperouter" \
     vendor="Red Hat, Inc."
 

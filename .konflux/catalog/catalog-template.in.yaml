@@ -4,7 +4,6 @@ entries:
   - defaultChannel: alpha
     name: openperouter-operator
     schema: olm.package
-  # Add 'replaces' after we ship 4.20.0
   - entries:
       - name: openperouter-operator.v4.22.0
         skipRange: '>=4.9.0 <4.22.0'
@@ -17,7 +16,6 @@ entries:
     name: "4.22"
     package: openperouter-operator
     schema: olm.channel  
-    # TODO: update to 4.22 once the bundle image is available
-  - image: quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-bundle-4-21@sha256:914f2a17a9e791edb34c11187a2402e63759b9ac67c44a25067dd51b76fa2bfe
+  - image: quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-bundle-4-22@sha256:64cd5e3c920eb8421845a77a604ceca461f51578226a00d36dd64e765be34981
     schema: olm.bundle
 schema: olm.template.basic
