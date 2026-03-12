@@ -282,6 +282,8 @@ spec:
       - name: LABELS
         value:
         - $(tasks.generate-labels.results.labels[*])
+        # This is needed because the base operator image is based on frr-4.21
+        - cpe=cpe:/a:redhat:openshift:4.22::el9
       - name: BUILDAH_FORMAT
         value: $(params.buildah-format)
       - name: HTTP_PROXY
