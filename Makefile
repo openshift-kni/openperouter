@@ -65,6 +65,8 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+	./hack/update-modelgen.sh
+	./hack/bumplicense.sh
 
 .PHONY: fmt
 fmt: ## Run go fmt against code.
@@ -75,9 +77,15 @@ vet: ## Run go vet against code.
 	go vet ./...
 
 .PHONY: test
-test: fmt vet envtest ## Run tests.
+test: fmt vet envtest $(LOCALBIN) ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $$(go list ./... | grep -v e2etest) -coverprofile cover.out
-	sudo -E sh -c "umask 0; PATH=${GOPATH}/bin:$(pwd)/bin:${PATH} go test -tags=runasroot -v -race ./internal/hostnetwork"
+	@RUNASROOT_TESTS=""; \
+	for pkg in $$(grep -rl "//go:build runasroot" --include="*_test.go" . | xargs -I{} dirname {} | sort -u); do \
+		name=$$(basename $$pkg); \
+		go test -tags=runasroot -c -race -o $(LOCALBIN)/$$name.test $$pkg; \
+		RUNASROOT_TESTS="$$RUNASROOT_TESTS /src/bin/$$name.test"; \
+	done; \
+	$(CONTAINER_ENGINE) run --rm --privileged -v $$(pwd):/src -w /src --entrypoint /src/hack/integration_tests.sh $(KIND_NODE_IMG) $$RUNASROOT_TESTS
 
 ##@ Build
 
@@ -180,6 +188,15 @@ setup-hostmode: ## Setup node configuration for hostmode.
 .PHONY: deploy-hostmode
 deploy-hostmode: export KUSTOMIZE_LAYER=hostmode
 deploy-hostmode: kind deploy-cluster setup-hostmode deploy-controller ## Deploy cluster and controller in hostmode, then setup systemd services.
+	./systemdmode/deploy.sh $(KIND_CLUSTER_NAME)
+
+.PHONY: setup-hostmode-boot
+setup-hostmode-boot: ## Setup node configuration for hostmode with static config files.
+	NODE_CONFIG_DIR=e2etests/systemd_static_suite/testdata ./systemdmode/setup_node_config.sh $(KIND_CLUSTER_NAME)
+
+.PHONY: deploy-hostmode-boot
+deploy-hostmode-boot: export KUSTOMIZE_LAYER=hostmode
+deploy-hostmode-boot: kind deploy-cluster setup-hostmode-boot ## Deploy cluster in hostmode with static config, without deploying controller (boot mode).
 	./systemdmode/deploy.sh $(KIND_CLUSTER_NAME)
 
 .PHONY: deploy-multi
@@ -296,9 +313,18 @@ $(APIDOCSGEN): $(LOCALBIN)
 	test -s $(LOCALBIN)/crd-ref-docs || \
 	GOBIN=$(LOCALBIN) go install github.com/elastic/crd-ref-docs@$(APIDOCSGEN_VERSION)
 
-.PHONY: e2etests 
+.PHONY: e2etests
 e2etests: ginkgo kubectl build-validator create-export-logs
-	$(GINKGO) -v $(GINKGO_ARGS) --timeout=3h ./e2etests -- --kubectl=$(KUBECTL) $(TEST_ARGS) --hostvalidator $(VALIDATOR_PATH) --reporterpath=${KIND_EXPORT_LOGS} 
+	$(GINKGO) -v $(GINKGO_ARGS) --timeout=3h ./e2etests/suite -- --kubectl=$(KUBECTL) $(TEST_ARGS) --hostvalidator $(VALIDATOR_PATH) --reporterpath=${KIND_EXPORT_LOGS}
+
+.PHONY: e2etests-hostmode-boot
+e2etests-hostmode-boot: ginkgo kubectl build-validator create-export-logs ## Run e2e tests for hostmode boot scenario (static config first, then K8s API).
+	@echo "=== Running systemd_static_suite tests (static config only) ==="
+	$(GINKGO) -v $(GINKGO_ARGS) --timeout=3h ./e2etests/systemd_static_suite -- --kubectl=$(KUBECTL) $(TEST_ARGS)
+	@echo "=== Deploying controller to enable K8s API ==="
+	$(MAKE) deploy-controller KUSTOMIZE_LAYER=hostmode
+	@echo "=== Running passthrough tests (with K8s API available) ==="
+	$(GINKGO) -v $(GINKGO_ARGS) --timeout=3h --label-filter='passthrough' ./e2etests/suite -- --kubectl=$(KUBECTL) $(TEST_ARGS) --skip-underlay-passthrough --systemdmode --hostvalidator $(VALIDATOR_PATH) --reporterpath=${KIND_EXPORT_LOGS} 
 
 
 .PHONY: clab-cluster
@@ -313,6 +339,11 @@ clab-multi-cluster: kind-node-image-build ## Deploy multi-cluster setup with 2 k
 	@echo 'Multi-cluster deployment created:'
 	@echo '  - Cluster A: export KUBECONFIG=${KUBECONFIG_PATH}-pe-kind-a'
 	@echo '  - Cluster B: export KUBECONFIG=${KUBECONFIG_PATH}-pe-kind-b'
+
+.PHONY: clean
+clean: kind ## Shutdown and clean up kind cluster(s) and containerlab topology.
+	KUBECONFIG_PATH=$(KUBECONFIG_PATH) KIND=$(KIND) CLAB_TOPOLOGY=singlecluster/kind.clab.yml clab/clean.sh pe-kind
+	KUBECONFIG_PATH=$(KUBECONFIG_PATH) KIND=$(KIND) CLAB_TOPOLOGY=multicluster/kind.clab.yml clab/clean.sh pe-kind-a pe-kind-b
 
 .PHONY: load-on-kind
 load-on-kind: ## Load the docker image into the kind cluster.
@@ -348,6 +379,14 @@ checkuncommitted:
 .PHONY: bumpall
 bumpall: bumplicense manifests
 	go mod tidy
+
+.PHONY: bump-k8s-deps
+bump-k8s-deps: ## Bump all k8s.io and sigs.k8s.io dependencies (K8S_VERSION=v0.34.0 or omit for latest)
+	hack/bump_k8s_deps.sh $(K8S_VERSION)
+
+.PHONY: bump-go-version
+bump-go-version: ## Bump Go version across the project (GO_VERSION=1.25.7 or omit for latest)
+	hack/bump_go_version.sh $(GO_VERSION)
 
 KIND_EXPORT_LOGS ?=/tmp/kind_logs
 
