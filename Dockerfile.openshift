@@ -20,18 +20,6 @@ RUN GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=
   && \
   GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -mod=vendor -tags strictfipsruntime  -o operatorbinary ./operator
 
-# Build grout
-FROM quay.io/fedora/fedora:41 AS grout-builder
-
-RUN dnf install -y git gcc make meson ninja-build pkgconf python3-pyelftools scdoc \
-    libcmocka-devel libedit-devel libevent-devel numactl-devel libmnl-devel \
-    libarchive-devel rdma-core-devel libsmartcols-devel \
-    && dnf clean all
-
-WORKDIR /tmp/grout
-RUN curl -sL https://github.com/DPDK/grout/archive/refs/tags/v0.14.3.tar.gz | tar xz --strip-components=1
-RUN make
-
 FROM registry.redhat.io/openshift4/frr-rhel9:v4.21
 WORKDIR /
 COPY --from=builder /go/openperouter/reloader .
@@ -39,8 +27,6 @@ COPY --from=builder /go/openperouter/controller .
 COPY --from=builder /go/openperouter/hostbridge .
 COPY --from=builder /go/openperouter/nodemarker .
 COPY --from=builder /go/openperouter/operatorbinary ./operator
-COPY --from=grout-builder /tmp/grout/build/grout .
-COPY --from=grout-builder /tmp/grout/build/grcli .
 COPY operator/bindata bindata
 
 # Copy FRR startup configuration to the default location
