@@ -21,11 +21,10 @@ RUN GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=
   GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -mod=vendor -tags strictfipsruntime  -o operatorbinary ./operator
 
 # Build grout
-FROM quay.io/fedora/fedora:41 AS grout-builder
+FROM registry.redhat.io/ubi10:10.1 AS grout-builder
 
-RUN dnf install -y git gcc make meson ninja-build pkgconf python3-pyelftools scdoc \
-    libcmocka-devel libedit-devel libevent-devel numactl-devel libmnl-devel \
-    libarchive-devel rdma-core-devel libsmartcols-devel \
+RUN dnf install -y git gcc make meson ninja-build pkgconf python3-pyelftools \
+    libedit-devel libevent-devel libmnl-devel rdma-core-devel \
     && dnf clean all
 
 WORKDIR /tmp/grout
