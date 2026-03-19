@@ -7,3 +7,18 @@
 [submodule "telco5g-konflux"]
 	path = telco5g-konflux
 	url = https://github.com/openshift-kni/telco5g-konflux
+[submodule "openshift/grout"]
+	path = openshift/grout
+	url = https://github.com/DPDK/grout.git
+[submodule "openshift/numactl"]
+	path = openshift/numactl
+	url = https://github.com/numactl/numactl.git
+[submodule "openshift/grout-subprojects/dpdk"]
+	path = openshift/grout-subprojects/dpdk
+	url = https://github.com/DPDK/dpdk-stable.git
+[submodule "openshift/grout-subprojects/ecoli"]
+	path = openshift/grout-subprojects/ecoli
+	url = https://github.com/rjarry/libecoli.git
+[submodule "openshift/grout-subprojects/frr"]
+	path = openshift/grout-subprojects/frr
+	url = https://github.com/FRRouting/frr.git

@@ -23,19 +23,28 @@ RUN GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=
 # Build grout
 FROM registry.redhat.io/ubi10:10.1 AS grout-builder
 
-RUN dnf install -y git gcc make meson ninja-build pkgconf python3-pyelftools \
+RUN dnf install -y gcc make meson ninja-build pkgconf python3-pyelftools \
     libedit-devel libevent-devel libmnl-devel rdma-core-devel \
+    patch autoconf automake libtool \
     && dnf clean all
 
-WORKDIR /tmp/numactl
-RUN curl -sL https://github.com/numactl/numactl/releases/download/v2.0.19/numactl-2.0.19.tar.gz | tar xz --strip-components=1 && \
+COPY openshift/numactl /tmp/numactl
+
+RUN cd /tmp/numactl && \
+    autoreconf -i && \
     ./configure && \
     make && \
     make install
 
-WORKDIR /tmp/grout
-RUN git clone https://github.com/DPDK/grout.git /tmp/grout
-RUN PKG_CONFIG_PATH=/usr/local/lib/pkgconfig make
+COPY openshift/grout /tmp/grout
+COPY openshift/grout-subprojects/dpdk /tmp/grout/subprojects/dpdk
+COPY openshift/grout-subprojects/ecoli /tmp/grout/subprojects/ecoli
+COPY openshift/grout-subprojects/frr /tmp/grout/subprojects/frr
+
+RUN cd /tmp/grout && \
+    PKG_CONFIG_PATH=/usr/local/lib/pkgconfig \
+    MESON_EXTRA_OPTS=--wrap-mode=nodownload \
+    make
 
 FROM registry.redhat.io/openshift4/frr-rhel9:v4.21
 WORKDIR /
@@ -45,6 +54,22 @@ COPY --from=builder /go/openperouter/hostbridge .
 COPY --from=builder /go/openperouter/nodemarker .
 COPY --from=builder /go/openperouter/operatorbinary ./operator
 COPY operator/bindata bindata
+
+# Grout binaries
+COPY --from=grout-builder /tmp/grout/build/grout /grout/
+COPY --from=grout-builder /tmp/grout/build/grcli /grout/
+
+# Grout's FRR (10.5) built from source - separate from the system FRR
+COPY --from=grout-builder /tmp/grout/build/frr_install/ /grout/frr/
+
+# Grout runtime shared libraries not present in the base image
+COPY --from=grout-builder /usr/lib64/libnuma.so.1* /usr/lib64/
+COPY --from=grout-builder /usr/lib64/libedit.so.0* /usr/lib64/
+
+# Grout's FRR dplane plugin
+COPY --from=grout-builder /tmp/grout/build/frr_install/lib64/frr/modules/dplane_grout.so /grout/frr/lib64/frr/modules/
+
+RUN ldconfig
 
 # Copy FRR startup configuration to the default location
 COPY systemdmode/frrconfig/daemons /etc/frr/daemons
