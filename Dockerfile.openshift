@@ -20,6 +20,23 @@ RUN GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=
   && \
   GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -mod=vendor -tags strictfipsruntime  -o operatorbinary ./operator
 
+# Build grout
+FROM registry.redhat.io/ubi10:10.1 AS grout-builder
+
+RUN dnf install -y git gcc make meson ninja-build pkgconf python3-pyelftools \
+    libedit-devel libevent-devel libmnl-devel rdma-core-devel \
+    && dnf clean all
+
+WORKDIR /tmp/numactl
+RUN curl -sL https://github.com/numactl/numactl/releases/download/v2.0.19/numactl-2.0.19.tar.gz | tar xz --strip-components=1 && \
+    ./configure && \
+    make && \
+    make install
+
+WORKDIR /tmp/grout
+RUN git clone https://github.com/DPDK/grout.git /tmp/grout
+RUN PKG_CONFIG_PATH=/usr/local/lib/pkgconfig make
+
 FROM registry.redhat.io/openshift4/frr-rhel9:v4.21
 WORKDIR /
 COPY --from=builder /go/openperouter/reloader .
