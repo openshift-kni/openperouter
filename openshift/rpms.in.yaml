@@ -1,0 +1,39 @@
+contentOrigin:
+  repos:
+    - repoid: ubi-10-for-x86_64-baseos-rpms
+      name: Red Hat Universal Base Image 10 (RPMs) - BaseOS
+      baseurl: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os
+      enabled: 1
+      gpgcheck: 1
+      gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+    - repoid: ubi-10-for-x86_64-appstream-rpms
+      name: Red Hat Universal Base Image 10 (RPMs) - AppStream
+      baseurl: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os
+      enabled: 1
+      gpgcheck: 1
+      gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+    - repoid: ubi-10-for-x86_64-codeready-builder-rpms
+      name: Red Hat Universal Base Image 10 (RPMs) - CodeReady Builder
+      baseurl: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/codeready-builder/os
+      enabled: 1
+      gpgcheck: 1
+      gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+
+arches:
+  - x86_64
+
+packages:
+  - name: gcc
+  - name: make
+  - name: meson
+  - name: ninja-build
+  - name: pkgconf
+  - name: python3-pyelftools
+  - name: libedit-devel
+  - name: libevent-devel
+  - name: libmnl-devel
+  - name: rdma-core-devel
+  - name: patch
+  - name: autoconf
+  - name: automake
+  - name: libtool

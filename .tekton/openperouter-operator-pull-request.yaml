@@ -36,7 +36,7 @@ spec:
   - name: hermetic
     value: "true"
   - name: prefetch-input
-    value: '[{"type": "gomod", "path": "."}]'
+    value: '[{"type": "gomod", "path": "."}, {"type": "rpm", "path": "openshift"}]'
   - name: build-source-image
     value: 'true'
   - name: skip-sast-coverity
