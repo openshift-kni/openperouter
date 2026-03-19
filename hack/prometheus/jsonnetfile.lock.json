@@ -98,8 +98,8 @@
           "subdir": "jsonnet/kube-prometheus"
         }
       },
-      "version": "4af90319f557da9b38db4e37d710d6d997ff4744",
-      "sum": "kJIVoJzzriX81zjuVnED4lR0CmZZLuPSg0F0eKeWOcM="
+      "version": "d6d094d115093d81d3355bc970a93e4357d6ef05",
+      "sum": "PnosUsQ8doABOmK+cj6DDwdTZy4LmDLWpEy/YM8L4kA="
     },
     {
       "source": {
@@ -158,11 +158,12 @@
       "source": {
         "git": {
           "remote": "https://github.com/pyrra-dev/pyrra.git",
-          "subdir": "config/crd/bases"
+          "subdir": "jsonnet/controller-gen"
         }
       },
-      "version": "3738a607a42a0c9566587a49cec7587cc92d61bd",
-      "sum": "GQ0GFKGdIWKx1b78VRs6jtC4SMqkBjT5jl65QUjPKK4="
+      "version": "7c7cf366f4cc74f705e9677e6de99cd070d2a5c2",
+      "sum": "xUGxDjMr7V/SpY21Xsr0X3ve/a04du3pRlbrA3I/Uk8=",
+      "name": "pyrra"
     },
     {
       "source": {
