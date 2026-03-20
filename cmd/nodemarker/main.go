@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"runtime/debug"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
@@ -43,6 +42,7 @@ import (
 	"github.com/openperouter/openperouter/internal/controller/nodeindex"
 	"github.com/openperouter/openperouter/internal/logging"
 	"github.com/openperouter/openperouter/internal/tlsconfig"
+	"github.com/openperouter/openperouter/internal/version"
 	"github.com/openperouter/openperouter/internal/webhooks"
 	// +kubebuilder:scaffold:imports
 )
@@ -120,8 +120,7 @@ func main() {
 	}
 	ctrl.SetLogger(logr.FromSlogHandler(logger.Handler()))
 
-	build, _ := debug.ReadBuildInfo()
-	setupLog.Info("version", "version", build.Main.Version)
+	setupLog.Info("version", "version", version.Version())
 	setupLog.Info("arguments", "args", fmt.Sprintf("%+v", args))
 
 	if !args.enableHTTP2 {
@@ -271,6 +270,10 @@ func setupWebhook(mgr manager.Manager, logger *slog.Logger) error {
 	}
 	if err := webhooks.SetupL3Passthrough(mgr); err != nil {
 		logger.Error("unable to create the webook", "error", err, "webhook", "L3Passthroughs")
+		return err
+	}
+	if err := webhooks.SetupRawFRRConfig(mgr); err != nil {
+		logger.Error("unable to create the webook", "error", err, "webhook", "RawFRRConfigs")
 		return err
 	}
 	return nil

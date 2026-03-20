@@ -18,6 +18,7 @@ package routerconfiguration
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -29,11 +30,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/openperouter/openperouter/api/v1alpha1"
 	"github.com/openperouter/openperouter/internal/conversion"
 	"github.com/openperouter/openperouter/internal/filter"
 	"github.com/openperouter/openperouter/internal/frrconfig"
+	"github.com/openperouter/openperouter/internal/staticconfiguration"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -47,7 +50,12 @@ type PERouterReconciler struct {
 	UnderlayFromMultus bool
 	FRRConfigPath      string
 	FRRReloadSocket    string
+	StaticConfigDir    string
+	NodeConfigPath     string
 	RouterProvider     RouterProvider
+
+	// TriggerChan receives events from FileWatcher (in host mode)
+	TriggerChan chan event.GenericEvent
 }
 
 type requestKey string
@@ -66,6 +74,8 @@ type requestKey string
 // +kubebuilder:rbac:groups=openpe.openperouter.github.io,resources=l3passthroughs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=openpe.openperouter.github.io,resources=l3passthroughs/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=openpe.openperouter.github.io,resources=l3passthroughs/finalizers,verbs=update
+// +kubebuilder:rbac:groups=openpe.openperouter.github.io,resources=rawfrrconfigs,verbs=get;list;watch
+// +kubebuilder:rbac:groups=openpe.openperouter.github.io,resources=rawfrrconfigs/status,verbs=get
 
 func (r *PERouterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := r.Logger.With("controller", "RouterConfiguration", "request", req.String())
@@ -74,74 +84,16 @@ func (r *PERouterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	ctx = context.WithValue(ctx, requestKey("request"), req.String())
 
-	var underlays v1alpha1.UnderlayList
-	if err := r.List(ctx, &underlays); err != nil {
-		slog.Error("failed to list underlays", "error", err)
-		return ctrl.Result{}, err
-	}
-
-	var l3vnis v1alpha1.L3VNIList
-	if err := r.List(ctx, &l3vnis); err != nil {
-		slog.Error("failed to list l3vnis", "error", err)
-		return ctrl.Result{}, err
-	}
-
-	var l2vnis v1alpha1.L2VNIList
-	if err := r.List(ctx, &l2vnis); err != nil {
-		slog.Error("failed to list l2vnis", "error", err)
-		return ctrl.Result{}, err
-	}
-
-	var l3passthrough v1alpha1.L3PassthroughList
-	if err := r.List(ctx, &l3passthrough); err != nil {
-		slog.Error("failed to list l3passthrough", "error", err)
-		return ctrl.Result{}, err
-	}
-
-	node := &v1.Node{}
-	if err := r.Get(ctx, client.ObjectKey{Name: r.MyNode}, node); err != nil {
-		slog.Error("failed to get node", "node", r.MyNode, "error", err)
-		return ctrl.Result{}, err
-	}
-
-	// Filter resources by node selector
-	filteredUnderlays, err := filter.UnderlaysForNode(node, underlays.Items)
+	config, err := r.getConfigFromAPI(ctx, logger)
 	if err != nil {
-		slog.Error("failed to filter underlays for node", "node", r.MyNode, "error", err)
 		return ctrl.Result{}, err
 	}
 
-	filteredL3VNIs, err := filter.L3VNIsForNode(node, l3vnis.Items)
-	if err != nil {
-		slog.Error("failed to filter l3vnis for node", "node", r.MyNode, "error", err)
-		return ctrl.Result{}, err
-	}
-
-	filteredL2VNIs, err := filter.L2VNIsForNode(node, l2vnis.Items)
-	if err != nil {
-		slog.Error("failed to filter l2vnis for node", "node", r.MyNode, "error", err)
-		return ctrl.Result{}, err
-	}
-
-	filteredL3Passthrough, err := filter.L3PassthroughsForNode(node, l3passthrough.Items)
-	if err != nil {
-		slog.Error("failed to filter l3passthrough for node", "node", r.MyNode, "error", err)
-		return ctrl.Result{}, err
-	}
-	nodeIndex, err := r.RouterProvider.NodeIndex(ctx)
-	if err != nil {
-		slog.Error("failed to get node index", "error", err)
-		return ctrl.Result{}, err
-	}
-	logger.Debug("using config", "l3vnis", l3vnis.Items, "l2vnis", l2vnis.Items, "underlays", underlays.Items, "l3passthrough", l3passthrough.Items)
-	apiConfig := conversion.ApiConfigData{
-		NodeIndex:          nodeIndex,
-		UnderlayFromMultus: r.UnderlayFromMultus,
-		Underlays:          filteredUnderlays,
-		LogLevel:           r.LogLevel,
-		L3VNIs:             filteredL3VNIs,
-		L2VNIs:             filteredL2VNIs,
-		L3Passthrough:      filteredL3Passthrough,
+	if r.StaticConfigDir != "" {
+		config, err = mergeStaticConfig(r.StaticConfigDir, config, logger)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to merge static config: %w", err)
+		}
 	}
 
 	router, err := r.RouterProvider.New(ctx)
@@ -164,7 +116,13 @@ func (r *PERouterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	updater := frrconfig.UpdaterForSocket(r.FRRReloadSocket, r.FRRConfigPath)
 
-	err = Reconcile(ctx, apiConfig, r.FRRConfigPath, targetNS, updater)
+	nodeIndex, err := r.RouterProvider.NodeIndex(ctx)
+	if err != nil {
+		slog.Error("failed to get node index", "error", err)
+		return ctrl.Result{}, err
+	}
+
+	err = Reconcile(ctx, config, r.UnderlayFromMultus, nodeIndex, r.LogLevel, r.FRRConfigPath, targetNS, updater)
 	if nonRecoverableHostError(err) {
 		if err := router.HandleNonRecoverableError(ctx); err != nil {
 			slog.Error("failed to handle non recoverable error", "error", err)
@@ -177,6 +135,114 @@ func (r *PERouterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func mergeStaticConfig(staticConfigDir string, config conversion.ApiConfigData, logger *slog.Logger) (conversion.ApiConfigData, error) {
+	var noConfigErr *staticconfiguration.NoConfigAvailable
+	staticConfig, err := readStaticConfigs(staticConfigDir)
+	// if we don't have a static configuration is fair to continue and use only the dynamic one
+	if errors.As(err, &noConfigErr) {
+		logger.Info("no static configuration available", "dir", staticConfigDir, "reason", noConfigErr.Error())
+		return config, nil
+	}
+	if err != nil {
+		logger.Error("failed to read static configuration", "error", err, "dir", staticConfigDir)
+		return conversion.ApiConfigData{}, fmt.Errorf("failed to read static configuration: %w", err)
+	}
+
+	merged, err := conversion.MergeAPIConfigs(config, staticConfig)
+	if err != nil {
+		logger.Error("failed to merge static configuration and configuration from crs", "error", err)
+		return config, fmt.Errorf("failed to merge api config and static config: %w", err)
+	}
+
+	logger.Info("merge static config using", "from api", config, "static config", staticConfig, "merged", merged)
+	return merged, nil
+}
+
+func (r *PERouterReconciler) getConfigFromAPI(ctx context.Context, logger *slog.Logger) (conversion.ApiConfigData, error) {
+	var underlays v1alpha1.UnderlayList
+	if err := r.List(ctx, &underlays); err != nil {
+		slog.Error("failed to list underlays", "error", err)
+		return conversion.ApiConfigData{}, err
+	}
+
+	var l3vnis v1alpha1.L3VNIList
+	if err := r.List(ctx, &l3vnis); err != nil {
+		slog.Error("failed to list l3vnis", "error", err)
+		return conversion.ApiConfigData{}, err
+	}
+
+	var l2vnis v1alpha1.L2VNIList
+	if err := r.List(ctx, &l2vnis); err != nil {
+		slog.Error("failed to list l2vnis", "error", err)
+		return conversion.ApiConfigData{}, err
+	}
+
+	var l3passthrough v1alpha1.L3PassthroughList
+	if err := r.List(ctx, &l3passthrough); err != nil {
+		slog.Error("failed to list l3passthrough", "error", err)
+		return conversion.ApiConfigData{}, err
+	}
+
+	var rawFRRConfigs v1alpha1.RawFRRConfigList
+	if err := r.List(ctx, &rawFRRConfigs); err != nil {
+		slog.Error("failed to list rawfrrconfigs", "error", err)
+		return conversion.ApiConfigData{}, err
+	}
+
+	node := &v1.Node{}
+	if err := r.Get(ctx, client.ObjectKey{Name: r.MyNode}, node); err != nil {
+		slog.Error("failed to get node", "node", r.MyNode, "error", err)
+		return conversion.ApiConfigData{}, err
+	}
+
+	// Filter resources by node selector
+	filteredUnderlays, err := filter.UnderlaysForNode(node, underlays.Items)
+	if err != nil {
+		slog.Error("failed to filter underlays for node", "node", r.MyNode, "error", err)
+		return conversion.ApiConfigData{}, err
+	}
+
+	filteredL3VNIs, err := filter.L3VNIsForNode(node, l3vnis.Items)
+	if err != nil {
+		slog.Error("failed to filter l3vnis for node", "node", r.MyNode, "error", err)
+		return conversion.ApiConfigData{}, err
+	}
+
+	filteredL2VNIs, err := filter.L2VNIsForNode(node, l2vnis.Items)
+	if err != nil {
+		slog.Error("failed to filter l2vnis for node", "node", r.MyNode, "error", err)
+		return conversion.ApiConfigData{}, err
+	}
+
+	filteredL3Passthrough, err := filter.L3PassthroughsForNode(node, l3passthrough.Items)
+	if err != nil {
+		slog.Error("failed to filter l3passthrough for node", "node", r.MyNode, "error", err)
+		return conversion.ApiConfigData{}, err
+	}
+
+	filteredRawFRRConfigs, err := filter.RawFRRConfigsForNode(node, rawFRRConfigs.Items)
+	if err != nil {
+		slog.Error("failed to filter rawfrrconfigs for node", "node", r.MyNode, "error", err)
+		return conversion.ApiConfigData{}, err
+	}
+
+	if len(filteredRawFRRConfigs) > 0 {
+		logger.Info("RawFRRConfig is applied, but please note that this feature is for experimentation only and not supported")
+	}
+
+	logger.Debug("using config", "l3vnis", l3vnis.Items, "l2vnis", l2vnis.Items, "underlays", underlays.Items, "l3passthrough", l3passthrough.Items, "rawfrrconfigs", rawFRRConfigs.Items)
+
+	apiConfig := conversion.ApiConfigData{
+		Underlays:     filteredUnderlays,
+		L3VNIs:        filteredL3VNIs,
+		L2VNIs:        filteredL2VNIs,
+		L3Passthrough: filteredL3Passthrough,
+		RawFRRConfigs: filteredRawFRRConfigs,
+	}
+
+	return apiConfig, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -226,17 +292,25 @@ func (r *PERouterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	if err := setPodNodeNameIndex(mgr); err != nil {
 		return err
 	}
-	return ctrl.NewControllerManagedBy(mgr).
+
+	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.Underlay{}).
 		Watches(&v1.Node{}, &handler.EnqueueRequestForObject{}).
 		Watches(&v1.Pod{}, &handler.EnqueueRequestForObject{}).
 		Watches(&v1alpha1.L3VNI{}, &handler.EnqueueRequestForObject{}).
 		Watches(&v1alpha1.L2VNI{}, &handler.EnqueueRequestForObject{}).
 		Watches(&v1alpha1.L3Passthrough{}, &handler.EnqueueRequestForObject{}).
+		Watches(&v1alpha1.RawFRRConfig{}, &handler.EnqueueRequestForObject{}).
 		WithEventFilter(filterNonRouterPods).
 		WithEventFilter(filterUpdates).
-		Named("routercontroller").
-		Complete(r)
+		Named("routercontroller")
+
+	// In host mode, watch for file system events via TriggerChan
+	if r.TriggerChan != nil {
+		builder = builder.WatchesRawSource(source.Channel(r.TriggerChan, &handler.EnqueueRequestForObject{}))
+	}
+
+	return builder.Complete(r)
 }
 
 func setPodNodeNameIndex(mgr ctrl.Manager) error {

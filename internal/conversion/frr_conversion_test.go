@@ -631,24 +631,145 @@ func TestAPItoFRR(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name:      "vtepInterface sets EVPN with empty VTEP",
+			nodeIndex: 0,
+			underlays: []v1alpha1.Underlay{
+				{
+					Spec: v1alpha1.UnderlaySpec{
+						ASN: 65000,
+						EVPN: &v1alpha1.EVPNConfig{
+							VTEPInterface: "eth1",
+						},
+						RouterIDCIDR: "10.0.0.0/24",
+						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: 65001}},
+					},
+				},
+			},
+			vnis:          []v1alpha1.L3VNI{},
+			l3Passthrough: []v1alpha1.L3Passthrough{},
+			logLevel:      "debug",
+			want: frr.Config{
+				Underlay: frr.UnderlayConfig{
+					MyASN:    65000,
+					EVPN:     &frr.UnderlayEvpn{},
+					RouterID: "10.0.0.1",
+					Neighbors: []frr.NeighborConfig{
+						{
+							Name:         "65001@192.168.1.1",
+							ASN:          65001,
+							Addr:         "192.168.1.1",
+							IPFamily:     ipfamily.IPv4,
+							EBGPMultiHop: false,
+						},
+					},
+				},
+				VNIs:        []frr.L3VNIConfig{},
+				BFDProfiles: []frr.BFDProfile{},
+				Loglevel:    "debug",
+			},
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			apiConfig := ApiConfigData{
-				NodeIndex:     tt.nodeIndex,
 				Underlays:     tt.underlays,
 				L3VNIs:        tt.vnis,
 				L3Passthrough: tt.l3Passthrough,
-				LogLevel:      tt.logLevel,
 			}
-			got, err := APItoFRR(apiConfig)
+			got, err := APItoFRR(apiConfig, tt.nodeIndex, tt.logLevel)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("APItoFRR() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !tt.wantErr && !cmp.Equal(got, tt.want) {
+			if tt.wantErr {
+				return
+			}
+			if !cmp.Equal(got, tt.want) {
 				t.Errorf("APItoFRR() = %v, diff %s", got, cmp.Diff(got, tt.want))
+			}
+		})
+	}
+}
+
+func TestAPItoFRRRawConfig(t *testing.T) {
+	baseUnderlay := []v1alpha1.Underlay{
+		{
+			Spec: v1alpha1.UnderlaySpec{
+				ASN:          65000,
+				RouterIDCIDR: "10.0.0.0/24",
+				Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: 65001}},
+			},
+		},
+	}
+
+	tests := []struct {
+		name          string
+		rawFRRConfigs []v1alpha1.RawFRRConfig
+		wantSnippets  []frr.RawFRRSnippet
+	}{
+		{
+			name:          "no raw configs",
+			rawFRRConfigs: nil,
+			wantSnippets:  nil,
+		},
+		{
+			name: "single raw config",
+			rawFRRConfigs: []v1alpha1.RawFRRConfig{
+				{
+					Spec: v1alpha1.RawFRRConfigSpec{
+						RawConfig: "ip prefix-list test seq 10 permit 10.0.0.0/8",
+					},
+				},
+			},
+			wantSnippets: []frr.RawFRRSnippet{
+				{Priority: 0, Config: "ip prefix-list test seq 10 permit 10.0.0.0/8"},
+			},
+		},
+		{
+			name: "multiple raw configs sorted by priority",
+			rawFRRConfigs: []v1alpha1.RawFRRConfig{
+				{
+					Spec: v1alpha1.RawFRRConfigSpec{
+						Priority:  20,
+						RawConfig: "high priority config",
+					},
+				},
+				{
+					Spec: v1alpha1.RawFRRConfigSpec{
+						Priority:  5,
+						RawConfig: "low priority config",
+					},
+				},
+				{
+					Spec: v1alpha1.RawFRRConfigSpec{
+						Priority:  10,
+						RawConfig: "mid priority config",
+					},
+				},
+			},
+			wantSnippets: []frr.RawFRRSnippet{
+				{Priority: 5, Config: "low priority config"},
+				{Priority: 10, Config: "mid priority config"},
+				{Priority: 20, Config: "high priority config"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			apiConfig := ApiConfigData{
+				Underlays:     baseUnderlay,
+				RawFRRConfigs: tt.rawFRRConfigs,
+			}
+			got, err := APItoFRR(apiConfig, 0, "debug")
+			if err != nil {
+				t.Fatalf("APItoFRR() unexpected error: %v", err)
+			}
+			if !cmp.Equal(got.RawConfig, tt.wantSnippets) {
+				t.Errorf("APItoFRR() RawConfig diff: %s", cmp.Diff(got.RawConfig, tt.wantSnippets))
 			}
 		})
 	}

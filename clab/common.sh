@@ -6,7 +6,7 @@ CONTAINER_ENGINE=${CONTAINER_ENGINE:-"docker"}
 CONTAINER_ENGINE_CLI="docker"
 KUBECONFIG_PATH=${KUBECONFIG_PATH:-"$(pwd)/kubeconfig"}
 KIND=${KIND:-"kind"}
-CLAB_VERSION=0.64.0
+CLAB_VERSION="0.67.0"
 
 KIND_CLUSTER_NAME="${KIND_CLUSTER_NAME:-pe-kind}"
 
@@ -54,6 +54,6 @@ load_local_image_to_kind() {
 load_image_to_kind() {
     local image_tag=$1
     local file_name=$2
-    ${CONTAINER_ENGINE_CLI} image pull ${image_tag}
+    ${CONTAINER_ENGINE_CLI} image pull --platform linux/amd64 ${image_tag}
     load_local_image_to_kind ${image_tag} ${file_name}
 }

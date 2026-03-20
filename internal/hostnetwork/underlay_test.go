@@ -13,6 +13,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/openperouter/openperouter/internal/netnamespace"
 	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netns"
 )
@@ -172,7 +173,7 @@ var _ = Describe("Underlay configuration should work when", func() {
 })
 
 func validateUnderlayInNS(g Gomega, ns netns.NsHandle, params UnderlayParams) {
-	_ = inNamespace(ns, func() error {
+	_ = netnamespace.In(ns, func() error {
 		validateUnderlay(g, params, externalInterfaceIP)
 		return nil
 	})
@@ -186,7 +187,7 @@ func validateUnderlay(g Gomega, params UnderlayParams, interfaceIPs ...string) {
 	for _, l := range links {
 		if l.Attrs().Name == UnderlayLoopback {
 			loopbackFound = true
-			if params.EVPN != nil {
+			if params.EVPN != nil && params.EVPN.VtepIP != "" {
 				validateIP(g, l, params.EVPN.VtepIP)
 			}
 		}
@@ -199,7 +200,9 @@ func validateUnderlay(g Gomega, params UnderlayParams, interfaceIPs ...string) {
 		}
 
 	}
-	if params.EVPN != nil {
+	if params.EVPN != nil && params.EVPN.VtepIP == "" {
+		g.Expect(loopbackFound).To(BeFalse(), fmt.Sprintf("loopback should not exist when vtepInterface is set, links %v", links))
+	} else if params.EVPN != nil {
 		g.Expect(loopbackFound).To(BeTrue(), fmt.Sprintf("failed to find loopback in ns, links %v", links))
 	}
 	if params.UnderlayInterface != "" && !mainNicFound {
