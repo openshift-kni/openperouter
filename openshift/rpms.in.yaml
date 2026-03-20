@@ -1,34 +1,55 @@
 contentOrigin:
   repos:
-    - repoid: ubi-10-for-x86_64-baseos-rpms
-      name: Red Hat Universal Base Image 10 (RPMs) - BaseOS
-      baseurl: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os
+    - repoid: centos-stream-10-baseos
+      name: CentOS Stream 10 - BaseOS
+      baseurl: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os
       enabled: 1
       gpgcheck: 1
-      gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
-    - repoid: ubi-10-for-x86_64-appstream-rpms
-      name: Red Hat Universal Base Image 10 (RPMs) - AppStream
-      baseurl: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os
+      gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-centosofficial-SHA256
+    - repoid: centos-stream-10-appstream
+      name: CentOS Stream 10 - AppStream
+      baseurl: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os
       enabled: 1
       gpgcheck: 1
-      gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
-    - repoid: ubi-10-for-x86_64-codeready-builder-rpms
-      name: Red Hat Universal Base Image 10 (RPMs) - CodeReady Builder
-      baseurl: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/codeready-builder/os
+      gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-centosofficial-SHA256
+    - repoid: centos-stream-10-crb
+      name: CentOS Stream 10 - CRB
+      baseurl: https://mirror.stream.centos.org/10-stream/CRB/x86_64/os
       enabled: 1
       gpgcheck: 1
-      gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+      gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-centosofficial-SHA256
 
 arches:
   - x86_64
 
 packages:
+  # runtime deps (installed into staging)
+  - name: glibc-minimal-langpack
+  - name: coreutils-single
+  - name: less
+  - name: shadow-utils
+  - name: tcpdump
+  - name: libedit
+  - name: libevent
+  - name: libmnl
+  - name: rdma-core
+  - name: libibverbs
+  - name: numactl
+  - name: json-c
+  - name: libcap
+  - name: libyang
+  - name: elfutils-libelf
+  - name: python3-pyelftools
+  - name: protobuf-c
+  - name: python3
+  - name: readline
+  # build deps
   - name: gcc
   - name: make
   - name: meson
   - name: ninja-build
   - name: pkgconf
-  - name: python3-pyelftools
+  - name: json-c-devel
   - name: libedit-devel
   - name: libevent-devel
   - name: libmnl-devel
@@ -37,3 +58,14 @@ packages:
   - name: autoconf
   - name: automake
   - name: libtool
+  - name: bison
+  - name: elfutils-libelf-devel
+  - name: flex
+  - name: libcap-devel
+  - name: libyang-devel
+  - name: protobuf-c-compiler
+  - name: protobuf-c-devel
+  - name: python3-devel
+  - name: readline-devel
+  - name: rpm-build
+  - name: numactl-devel

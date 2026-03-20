@@ -4,745 +4,1200 @@ lockfileVendor: redhat
 arches:
 - arch: x86_64
   packages:
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/a/autoconf-2.71-13.el10.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 753832
-    checksum: sha256:8d358894e7306bb84d37bfd14b23589b34b4fc66b12234a9a983bb9e8c0c0467
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/annobin-docs-13.06-1.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 88637
+    checksum: sha256:b6af9e9873e19046838d30294b4cbb0528b37917ee51b972fdf1b9e2a3590913
+    name: annobin-docs
+    evr: 13.06-1.el10
+    sourcerpm: annobin-13.06-1.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/annobin-plugin-gcc-13.06-1.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 700054
+    checksum: sha256:2875bc0b05f70599f3f5fd06a4997760aaf3ff24e0ebbde46ecca80741c22bdf
+    name: annobin-plugin-gcc
+    evr: 13.06-1.el10
+    sourcerpm: annobin-13.06-1.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/autoconf-2.71-13.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 753796
+    checksum: sha256:287b103617f288778f8b4f55717a7e7e38be7d6a19b3775bb9bebc78ab8707be
     name: autoconf
     evr: 2.71-13.el10
     sourcerpm: autoconf-2.71-13.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/a/automake-1.16.5-20.el10.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 723321
-    checksum: sha256:47a8e1dad5bdac47944e6bbb0ce2468590058e42448ab2912b3537cebedc483f
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/automake-1.16.5-20.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 719093
+    checksum: sha256:7c3c7af89630f97ccacc7075d31dcf7317c23aefa0d57f94be78a54aeecfe596
     name: automake
     evr: 1.16.5-20.el10
     sourcerpm: automake-1.16.5-20.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/c/cpp-14.3.1-2.1.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 13442056
-    checksum: sha256:b7a1b8c112c2a1f5366836c33d6ec01e11528b12a7f84b5c0054186107385fbe
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/bison-3.8.2-9.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 1031199
+    checksum: sha256:d233f498327dd1bdaead45a852dcb7e669078de117e8653501fb26ee6a2f8a4e
+    name: bison
+    evr: 3.8.2-9.el10
+    sourcerpm: bison-3.8.2-9.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/cmake-filesystem-3.31.8-1.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 21229
+    checksum: sha256:af5f57099d80a7c69ab6ef5308d6f9b671a68a40407cee1d82c9584bea6f90c4
+    name: cmake-filesystem
+    evr: 3.31.8-1.el10
+    sourcerpm: cmake-3.31.8-1.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/cpp-14.3.1-4.4.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 13432042
+    checksum: sha256:7668973ca6c7706025e30e4b557eb1ac8b55d05bda1ba3d8410d0b502ebfbf72
     name: cpp
-    evr: 14.3.1-2.1.el10
-    sourcerpm: gcc-14.3.1-2.1.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/e/emacs-filesystem-29.4-12.el10.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 10440
-    checksum: sha256:d0393cd2f6560ca0008dea881970c01026e4b4b50acd3bd090d9252dc4b26378
-    name: emacs-filesystem
-    evr: 1:29.4-12.el10
-    sourcerpm: emacs-29.4-12.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/g/gcc-14.3.1-2.1.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 39857423
-    checksum: sha256:d94f8d6b32d60d79b0e28cbbd957670121af21f013d68dd77c90925f44414e8f
+    evr: 14.3.1-4.4.el10
+    sourcerpm: gcc-14.3.1-4.4.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/debugedit-5.1-8.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 81551
+    checksum: sha256:73fc8ff73266dd5145e9cdbb5f4d64b16408634e2698b433e88ae4f0e4920b66
+    name: debugedit
+    evr: 5.1-8.el10
+    sourcerpm: debugedit-5.1-8.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/dwz-0.16-1.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 143400
+    checksum: sha256:960c5a8e1a06a9749dfc0c9c49c0986d33c01f9472b4b4a31f8cebed217a7dd0
+    name: dwz
+    evr: 0.16-1.el10
+    sourcerpm: dwz-0.16-1.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/efi-srpm-macros-6-8.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 23215
+    checksum: sha256:e9045008474c8be261399c091145c6d47a020d0e8641752fe1225cf32dd47d3d
+    name: efi-srpm-macros
+    evr: 6-8.el10
+    sourcerpm: efi-rpm-macros-6-8.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/elfutils-libelf-devel-0.194-2.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 81059
+    checksum: sha256:2857027f659f2439d710fdb81db2b6d7c86443636143d54acb1a7c567f6a4122
+    name: elfutils-libelf-devel
+    evr: 0.194-2.el10
+    sourcerpm: elfutils-0.194-2.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/flex-2.6.4-19.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 305618
+    checksum: sha256:36ac6b2254119262b571c4f8482151bb714c59587b11b8582713358a1ae08529
+    name: flex
+    evr: 2.6.4-19.el10
+    sourcerpm: flex-2.6.4-19.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/fonts-srpm-macros-2.0.5-18.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 27938
+    checksum: sha256:0491be6b5713893963209d381cdd10d31db4be6b19fe1c140ad8bbf603062bd8
+    name: fonts-srpm-macros
+    evr: 1:2.0.5-18.el10
+    sourcerpm: fonts-rpm-macros-2.0.5-18.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/forge-srpm-macros-0.4.0-6.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 21676
+    checksum: sha256:30a146e804c1f89bfff5c75738cb0645cadcf3461b0ee1e29f5437e61b69a8f4
+    name: forge-srpm-macros
+    evr: 0.4.0-6.el10
+    sourcerpm: forge-srpm-macros-0.4.0-6.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/gcc-14.3.1-4.4.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 39839570
+    checksum: sha256:e93acc10b23ee2b9ddef5e593307cdf68ebc72551be03057fa11f44095675803
     name: gcc
-    evr: 14.3.1-2.1.el10
-    sourcerpm: gcc-14.3.1-2.1.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/g/glibc-devel-2.39-58.el10_1.7.x86_64.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 602082
-    checksum: sha256:9b4fa52de1049e5b15c4f037d7746c01e67de065a9a93fb71e25a086a80ab11d
+    evr: 14.3.1-4.4.el10
+    sourcerpm: gcc-14.3.1-4.4.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/gcc-plugin-annobin-14.3.1-4.4.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 63908
+    checksum: sha256:8133cb5eedcb3de3eb31ce85fc4a33884d3d56867f53eb6c9335b41d93ee16ea
+    name: gcc-plugin-annobin
+    evr: 14.3.1-4.4.el10
+    sourcerpm: gcc-14.3.1-4.4.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/gdb-minimal-16.3-3.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 4570871
+    checksum: sha256:aa0645ae9075d98efb070a48d34b0a95f55d9796ad1f2399cc1b49a40d0e3b0c
+    name: gdb-minimal
+    evr: 16.3-3.el10
+    sourcerpm: gdb-16.3-3.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/glibc-devel-2.39-114.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 601276
+    checksum: sha256:c632f2f80421b746a69851a9a95fb8e51301cf931ad084aba65ca139b6d63721
     name: glibc-devel
-    evr: 2.39-58.el10_1.7
-    sourcerpm: glibc-2.39-58.el10_1.7.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/i/infiniband-diags-57.0-2.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 348562
-    checksum: sha256:46b0b40d441ea8d49dce483c9c89d16e4aac9b5606525eb2587fda7d80259b99
+    evr: 2.39-114.el10
+    sourcerpm: glibc-2.39-114.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/go-srpm-macros-3.8.0-1.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 27203
+    checksum: sha256:ee4a4a49c3df7c91350361971a83e47f1ba367bc7513a8003c281cc0a3875581
+    name: go-srpm-macros
+    evr: 3.8.0-1.el10
+    sourcerpm: go-rpm-macros-3.8.0-1.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/infiniband-diags-61.0-1.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 348396
+    checksum: sha256:26a3b878df4e31f7eef1fb5860b7cb8afbbb5d20c78e99b2ba7d575ad3b69d80
     name: infiniband-diags
-    evr: 57.0-2.el10
-    sourcerpm: rdma-core-57.0-2.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/k/kernel-headers-6.12.0-124.45.1.el10_1.x86_64.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 3415777
-    checksum: sha256:94342b6a50a4b0b210719727dd0177125ee466edcc6f6ef35ffa32fde9e92362
+    evr: 61.0-1.el10
+    sourcerpm: rdma-core-61.0-1.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/json-c-devel-0.18-3.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 54428
+    checksum: sha256:db3794103cbd20b51df60f2fbf9b72b213ad89b84e599023635d3b9f2f77c107
+    name: json-c-devel
+    evr: 0.18-3.el10
+    sourcerpm: json-c-0.18-3.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/kernel-headers-6.12.0-213.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 2000477
+    checksum: sha256:a3ffea8883956e9e171401debde246ff707cf0792f5c9e9a723ea6641289034e
     name: kernel-headers
-    evr: 6.12.0-124.45.1.el10_1
-    sourcerpm: kernel-6.12.0-124.45.1.el10_1.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/l/libedit-devel-3.1-52.20230828cvs.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 53585
-    checksum: sha256:77181c2a63ba25219e8546325a93a3026a4154f1548e54643c0e977a4940bbc2
+    evr: 6.12.0-213.el10
+    sourcerpm: kernel-6.12.0-213.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/kernel-srpm-macros-1.0-27.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 8937
+    checksum: sha256:3c9196498c5a05e57bf1070987cab258f5a3a3414cc0012187b05cba599fa04f
+    name: kernel-srpm-macros
+    evr: 1.0-27.el10
+    sourcerpm: kernel-srpm-macros-1.0-27.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/libcap-devel-2.69-7.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 64659
+    checksum: sha256:064ae0a656cb645454b1bf27c93452cc55e8a23c759941a42afed692f156fa5d
+    name: libcap-devel
+    evr: 2.69-7.el10
+    sourcerpm: libcap-2.69-7.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/libedit-devel-3.1-52.20230828cvs.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 49389
+    checksum: sha256:b81c9d28e6f2a6170a946efe5b20180c38b06303b3965645a43956e3a4a9a67a
     name: libedit-devel
     evr: 3.1-52.20230828cvs.el10
     sourcerpm: libedit-3.1-52.20230828cvs.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/l/libevent-devel-2.1.12-16.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 106677
-    checksum: sha256:3ddab78097a9d449250ea3d3bcbefac716d2174f3005239ec1e4a79c1d92bdfc
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/libevent-devel-2.1.12-16.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 102461
+    checksum: sha256:177c1ba6ed8dda52f90efbccaa22bbfbb4d9de20cfc556269930b0a679cd0036
     name: libevent-devel
     evr: 2.1.12-16.el10
     sourcerpm: libevent-2.1.12-16.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/l/libmpc-1.3.1-7.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 75330
-    checksum: sha256:0ffe6cc4aa8936e1ed0d807c8bb059a864aa5cb687cde85f211f3d050a45a1a2
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/libmpc-1.3.1-7.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 72998
+    checksum: sha256:daaa73a35dfe21a8201581e333b79ccd296ae87a93f9796ba522e58edc23777c
     name: libmpc
     evr: 1.3.1-7.el10
     sourcerpm: libmpc-1.3.1-7.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/l/libtool-2.4.7-13.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 617270
-    checksum: sha256:0be1d6a69b6c5e16547e3f5d8b66446618e511c02be44084063628d8751b79be
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/libtool-2.4.7-14.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 611778
+    checksum: sha256:3b5454b41124447c14be0fca2b6701c044c11ecad853f86e56a8d53a47fcd79d
     name: libtool
-    evr: 2.4.7-13.el10
-    sourcerpm: libtool-2.4.7-13.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/l/libxcrypt-devel-4.4.36-10.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 34028
-    checksum: sha256:5e98ac0095da4e23b8a7b0dfc8d6fc97b0fa0d6c5d7bb0d70fe1dbf97ae64eb6
+    evr: 2.4.7-14.el10
+    sourcerpm: libtool-2.4.7-14.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/libxcrypt-devel-4.4.36-10.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 30592
+    checksum: sha256:ccee1b09985e24bfed47cf7b5c965d7e0e869862ac55f3b7f783cdcec93716f3
     name: libxcrypt-devel
     evr: 4.4.36-10.el10
     sourcerpm: libxcrypt-4.4.36-10.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/m/m4-1.4.19-11.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 316657
-    checksum: sha256:d65b945ffee05c0d6dcae6da23e12bd95bd9e2a378979927d42a25b77d1e323d
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/libyang-2.1.148-3.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 489831
+    checksum: sha256:6716fa905fdbb9c4ed10200ed994477423f607f8dceff90ecfcbeb68a6dfced2
+    name: libyang
+    evr: 2.1.148-3.el10
+    sourcerpm: libyang-2.1.148-3.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/libzstd-devel-1.5.5-9.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 53102
+    checksum: sha256:f1a996fbb8a17d35719cb6bd1aa841953b9834da3c24d4e3cad7047db8f9dffe
+    name: libzstd-devel
+    evr: 1.5.5-9.el10
+    sourcerpm: zstd-1.5.5-9.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/lua-srpm-macros-1-15.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 10052
+    checksum: sha256:5ef7b510d6531b5ce12b8ba3f74f97b6db63ce9475b00a8713cf4d38a6579142
+    name: lua-srpm-macros
+    evr: 1-15.el10
+    sourcerpm: lua-rpm-macros-1-15.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/m4-1.4.19-11.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 312445
+    checksum: sha256:aa804e2f20722000a505e61b7e3c356692647bc3c0579e1491db45fdb87aaeee
     name: m4
     evr: 1.4.19-11.el10
     sourcerpm: m4-1.4.19-11.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/n/ncurses-c++-libs-6.4-14.20240127.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 41642
-    checksum: sha256:1849dd46365088178bbb2faddd7d8027306080343e21253c93a24d1101f3a159
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/ncurses-c++-libs-6.4-14.20240127.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 40006
+    checksum: sha256:22a8c8bc66be59768a3731d47c3f1d5ef15d6faaddbd0efa766c1019514cc1c0
     name: ncurses-c++-libs
     evr: 6.4-14.20240127.el10
     sourcerpm: ncurses-6.4-14.20240127.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/n/ncurses-devel-6.4-14.20240127.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 773086
-    checksum: sha256:01c76ba5326213568b56e31a03b3efe214883b50f6fbdf0bd31d93167161f74a
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/ncurses-devel-6.4-14.20240127.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 770602
+    checksum: sha256:87e56b8e3ce3c89d90c59cdbc83da7c4db715c467c38a73f0c512a541d72ce5b
     name: ncurses-devel
     evr: 6.4-14.20240127.el10
     sourcerpm: ncurses-6.4-14.20240127.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/patch-2.7.6-26.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 137658
-    checksum: sha256:8fa7346dfe7b2844b4ec3510107950533472c5286bb550311ddd5ac143bcff82
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/numactl-devel-2.0.19-3.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 22963
+    checksum: sha256:51c3a8eb855c2f5888432a9c484093b63bbd30819f6d53f4ef448c1ab4808f8b
+    name: numactl-devel
+    evr: 2.0.19-3.el10
+    sourcerpm: numactl-2.0.19-3.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/ocaml-srpm-macros-10-4.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 10350
+    checksum: sha256:06e6e166ad6c81bb7313234e4a0ac91a1a148b73c9624ec7fe584caea73c2624
+    name: ocaml-srpm-macros
+    evr: 10-4.el10
+    sourcerpm: ocaml-srpm-macros-10-4.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/openblas-srpm-macros-2-19.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 8877
+    checksum: sha256:a4e42411a9dc2eefa54515fdcdd5499d9c10bf21d5fd27640c274e61bb4961b9
+    name: openblas-srpm-macros
+    evr: 2-19.el10
+    sourcerpm: openblas-srpm-macros-2-19.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/package-notes-srpm-macros-0.5-13.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 10425
+    checksum: sha256:f6b58195976fed7bc20eb8f7c4a7a49e0ae743945f840acbd617ec7e08ea6bac
+    name: package-notes-srpm-macros
+    evr: 0.5-13.el10
+    sourcerpm: package-notes-0.5-13.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/patch-2.7.6-26.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 135338
+    checksum: sha256:8aa5496ab5fc96e78b8e802b434da4fe3daf76835bbe350b1311d730b98d10ae
     name: patch
     evr: 2.7.6-26.el10
     sourcerpm: patch-2.7.6-26.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-AutoLoader-5.74-512.2.el10_0.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 22487
-    checksum: sha256:3adf5d0aea219502bc653e3ea9d1fafe4a918e1037a0fb5dfba66d46332b79ff
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/pcre2-devel-10.44-1.el10.3.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 544501
+    checksum: sha256:1f3b7c5fe699e09ab8cb63d661b426528d98aef3f1f0d8ee6fe43646ce840525
+    name: pcre2-devel
+    evr: 10.44-1.el10.3
+    sourcerpm: pcre2-10.44-1.el10.3.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/pcre2-utf16-10.44-1.el10.3.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 232666
+    checksum: sha256:0a09a5cb6945fabdd089d3087bd0b5e00de88ce533b30fc3b05683043ccbee70
+    name: pcre2-utf16
+    evr: 10.44-1.el10.3
+    sourcerpm: pcre2-10.44-1.el10.3.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/pcre2-utf32-10.44-1.el10.3.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 219664
+    checksum: sha256:8103fd1c13e16e0b05d3f92552834d3e435f7249597ba302afadfa9ad029db28
+    name: pcre2-utf32
+    evr: 10.44-1.el10.3
+    sourcerpm: pcre2-10.44-1.el10.3.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/perl-AutoLoader-5.74-514.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 22415
+    checksum: sha256:cfda4d589a3d99be3443c350fa88c76d6d8d37270b17b17a145bb395994e6f90
     name: perl-AutoLoader
-    evr: 5.74-512.2.el10_0
-    sourcerpm: perl-5.40.2-512.2.el10_0.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-B-1.89-512.2.el10_0.x86_64.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 182303
-    checksum: sha256:3498bc9bfbc115339fa7656a048804d2bb2cb94603eae20579d61325bc5f76f0
+    evr: 5.74-514.el10
+    sourcerpm: perl-5.40.2-514.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/perl-B-1.89-514.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 181940
+    checksum: sha256:8fa51885d8e9a724e7a6337e2dfb5505402ba431c5dbee637dcfc279c7f036cf
     name: perl-B
-    evr: 1.89-512.2.el10_0
-    sourcerpm: perl-5.40.2-512.2.el10_0.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-Carp-1.54-511.el10.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 32152
-    checksum: sha256:e33d8c709b3dbb274aaafcfe4226a7f4b3b134554a08ba16140dda9368f0655e
-    name: perl-Carp
-    evr: 1.54-511.el10
-    sourcerpm: perl-Carp-1.54-511.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-Class-Struct-0.68-512.2.el10_0.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 23329
-    checksum: sha256:ddd41baecacfec46ed07973db48326a7ebf483dcc6ca2b10b049350202b629c4
+    evr: 1.89-514.el10
+    sourcerpm: perl-5.40.2-514.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/perl-Class-Struct-0.68-514.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 23257
+    checksum: sha256:cc0668e900c30fbee15f18c8620ab5c2ff19d8628e02bdb80001be6207ca7d74
     name: perl-Class-Struct
-    evr: 0.68-512.2.el10_0
-    sourcerpm: perl-5.40.2-512.2.el10_0.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-Data-Dumper-2.189-512.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 61309
-    checksum: sha256:12f7afba0d8e2fdca00a7a391b9c536026e8c8e7ca044b42a434917a1caf56a3
-    name: perl-Data-Dumper
-    evr: 2.189-512.el10
-    sourcerpm: perl-Data-Dumper-2.189-512.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-Digest-1.20-511.el10.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 28853
-    checksum: sha256:f3fc3d8bc266271194c9c22ef75fee991dc188855dae762f8a0dde140d1ae3b3
-    name: perl-Digest
-    evr: 1.20-511.el10
-    sourcerpm: perl-Digest-1.20-511.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-Digest-MD5-2.59-6.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 40871
-    checksum: sha256:e71faadc86b93185a2c41fb80f54ab4d407b85eb011013c5d31079d7aff8cc30
-    name: perl-Digest-MD5
-    evr: 2.59-6.el10
-    sourcerpm: perl-Digest-MD5-2.59-6.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-DynaLoader-1.56-512.2.el10_0.x86_64.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 27388
-    checksum: sha256:555e30ab2d2404338ace142d45f1356a3df0edcef144b64bae767804854ea6a2
+    evr: 0.68-514.el10
+    sourcerpm: perl-5.40.2-514.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/perl-DynaLoader-1.56-514.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 27324
+    checksum: sha256:d58338645398f1282c027b567e4a13c704fc4bc9ef33ad726bffb4c7858b7050
     name: perl-DynaLoader
-    evr: 1.56-512.2.el10_0
-    sourcerpm: perl-5.40.2-512.2.el10_0.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-Encode-3.21-511.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 1120252
-    checksum: sha256:9bb023e78910e4a88076d9cef63094fbfec89dfc4d7dd2e8195288ed5f8cfe3d
-    name: perl-Encode
-    evr: 4:3.21-511.el10
-    sourcerpm: perl-Encode-3.21-511.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-Errno-1.38-512.2.el10_0.x86_64.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 16022
-    checksum: sha256:abc756c019b587b027bc05e4dc186769183b89b4d09cae0128c5ed59c392b0c0
+    evr: 1.56-514.el10
+    sourcerpm: perl-5.40.2-514.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/perl-Errno-1.38-514.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 15954
+    checksum: sha256:074ab42a07e18e9434de23748874f6528b95148feaf8c2ceebe426607c0ccb05
     name: perl-Errno
-    evr: 1.38-512.2.el10_0
-    sourcerpm: perl-5.40.2-512.2.el10_0.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-Exporter-5.78-511.el10.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 34406
-    checksum: sha256:7717ade5f90dab98aea4217afdc0ffff8971ddc79a1ba34e133d4dd719e7f499
-    name: perl-Exporter
-    evr: 5.78-511.el10
-    sourcerpm: perl-Exporter-5.78-511.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-Fcntl-1.18-512.2.el10_0.x86_64.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 31237
-    checksum: sha256:d09c7fbc0e8fd2f14a89a06db601849d62ae265ad5f16a8a0b1031595b6b6ddf
+    evr: 1.38-514.el10
+    sourcerpm: perl-5.40.2-514.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/perl-Fcntl-1.18-514.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 31174
+    checksum: sha256:2d8bb72a282aeb5a541ca0d14060e159f7730e81f87726f73f74d1282303a666
     name: perl-Fcntl
-    evr: 1.18-512.2.el10_0
-    sourcerpm: perl-5.40.2-512.2.el10_0.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-File-Basename-2.86-512.2.el10_0.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 18308
-    checksum: sha256:d88970e5564011deb70fc23854ee947fd99c5a9432b0698c986c1ceb50697bc9
+    evr: 1.18-514.el10
+    sourcerpm: perl-5.40.2-514.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/perl-File-Basename-2.86-514.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 18236
+    checksum: sha256:4d9383891a50827d4f4cf83ea5534d8dbe01b63aab300ad7644ef68e8e20932d
     name: perl-File-Basename
-    evr: 2.86-512.2.el10_0
-    sourcerpm: perl-5.40.2-512.2.el10_0.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-File-Compare-1.100.800-512.2.el10_0.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 14307
-    checksum: sha256:662af4e9ff3c9fe7aa1a71cf34a3e97a2425a7d9c116bbdc79a189a275c57558
+    evr: 2.86-514.el10
+    sourcerpm: perl-5.40.2-514.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/perl-File-Compare-1.100.800-514.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 14235
+    checksum: sha256:d9901cf0a4811d09f2f7e1be03ebfa23c4568447967e800fdcf3307ca16e18d2
     name: perl-File-Compare
-    evr: 1.100.800-512.2.el10_0
-    sourcerpm: perl-5.40.2-512.2.el10_0.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-File-Copy-2.41-512.2.el10_0.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 21339
-    checksum: sha256:05e4ff380d0ab8ddacc058210e70ffc3036a74afaa86301c412ff6b5fa08069f
+    evr: 1.100.800-514.el10
+    sourcerpm: perl-5.40.2-514.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/perl-File-Copy-2.41-514.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 21267
+    checksum: sha256:8a3e740dddc38b47a4e84d8a91e845b5b0abedcad6f2e196d0dc49fc5880c53a
     name: perl-File-Copy
-    evr: 2.41-512.2.el10_0
-    sourcerpm: perl-5.40.2-512.2.el10_0.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-File-Find-1.44-512.2.el10_0.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 26682
-    checksum: sha256:a608d0da545e4f04f4c70c71a152a2104acf289c03a4f3daa3226bd857cefe00
+    evr: 2.41-514.el10
+    sourcerpm: perl-5.40.2-514.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/perl-File-Find-1.44-514.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 26610
+    checksum: sha256:a6a35c343dceffe79c1ef460ff9fc2c01da86f73615c5822fdf5c8d221cd6c0d
     name: perl-File-Find
-    evr: 1.44-512.2.el10_0
-    sourcerpm: perl-5.40.2-512.2.el10_0.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-File-Path-2.18-511.el10.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 38358
-    checksum: sha256:deaececfd936dbaa9854f6a84aa1df2715fa299218f79917cff506cca5e381b5
+    evr: 1.44-514.el10
+    sourcerpm: perl-5.40.2-514.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/perl-File-Path-2.18-512.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 35547
+    checksum: sha256:33bc35ca7a4f03c734b0284bcda1b32f5331d975bfb1ba29bdea58a176056d09
     name: perl-File-Path
-    evr: 2.18-511.el10
-    sourcerpm: perl-File-Path-2.18-511.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-File-Temp-0.231.100-512.el10.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 64128
-    checksum: sha256:d7cec8ac7e8a4fe82d09fb3f5fcddc7723b41b0baef680a250ae0f5c27f3709c
-    name: perl-File-Temp
-    evr: 1:0.231.100-512.el10
-    sourcerpm: perl-File-Temp-0.231.100-512.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-File-stat-1.14-512.2.el10_0.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 18196
-    checksum: sha256:b3cf1e12c99db5efe270c1b3c0f1bc476c11ce8767c546ebb330c9e2913cde99
+    evr: 2.18-512.el10
+    sourcerpm: perl-File-Path-2.18-512.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/perl-File-stat-1.14-514.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 18124
+    checksum: sha256:eb8af2f673008308c661c083d74c9c98c5e87537e0e9d26aaa644732cc793164
     name: perl-File-stat
-    evr: 1.14-512.2.el10_0
-    sourcerpm: perl-5.40.2-512.2.el10_0.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-FileHandle-2.05-512.2.el10_0.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 16609
-    checksum: sha256:35e8eba7fb360961b2e6851e89a882f13237de7eea29e62b5c607f56d6453fa7
+    evr: 1.14-514.el10
+    sourcerpm: perl-5.40.2-514.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/perl-FileHandle-2.05-514.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 16537
+    checksum: sha256:78e184629ee47126fadbe05b4d1e86bc1309a5a2096331dc55509f091c545edd
     name: perl-FileHandle
-    evr: 2.05-512.2.el10_0
-    sourcerpm: perl-5.40.2-512.2.el10_0.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-Getopt-Long-2.58-3.el10.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 69925
-    checksum: sha256:18bcc4a23330f281c9d882843d9a552aefea14012a4a5a71896a646e94f87bd6
-    name: perl-Getopt-Long
-    evr: 1:2.58-3.el10
-    sourcerpm: perl-Getopt-Long-2.58-3.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-Getopt-Std-1.14-512.2.el10_0.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 16805
-    checksum: sha256:ed4c349c5eec1c88418ce923908d6084ce4bfc22825c02aab4c0cf77b7f27bf5
+    evr: 2.05-514.el10
+    sourcerpm: perl-5.40.2-514.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/perl-Getopt-Std-1.14-514.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 16733
+    checksum: sha256:1cbe257f41c79b818afa37e859ed9c82f9951e688e8e743a6b6916cea4cdc76e
     name: perl-Getopt-Std
-    evr: 1.14-512.2.el10_0
-    sourcerpm: perl-5.40.2-512.2.el10_0.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-HTTP-Tiny-0.088-512.el10.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 61006
-    checksum: sha256:aaba92b1d9a41f453d92c4a37c236331595556d8b1ef3ba27efe79191b2ee348
-    name: perl-HTTP-Tiny
-    evr: 0.088-512.el10
-    sourcerpm: perl-HTTP-Tiny-0.088-512.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-IO-1.55-512.2.el10_0.x86_64.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 82592
-    checksum: sha256:564e49789131c4e7111f2855d40a44db902cf5cb6867aa72ccc515b091ee793e
+    evr: 1.14-514.el10
+    sourcerpm: perl-5.40.2-514.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/perl-IO-1.55-514.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 82559
+    checksum: sha256:df65aa23f26e6df99e091ebd1af543bc96919479b991995e20e0d5d1280aa5a9
     name: perl-IO
-    evr: 1.55-512.2.el10_0
-    sourcerpm: perl-5.40.2-512.2.el10_0.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-IO-Socket-IP-0.42-512.el10.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 46270
-    checksum: sha256:fc53776bb07d9a12c61b2e2160abda314f0fb3e3bdccbeedc5d186a9bb9bf162
-    name: perl-IO-Socket-IP
-    evr: 0.42-512.el10
-    sourcerpm: perl-IO-Socket-IP-0.42-512.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-IO-Socket-SSL-2.085-3.el10.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 236244
-    checksum: sha256:f78f083f60a73ca447d6727d11cd2182de85acc787369f378e6b1067dbe94eba
-    name: perl-IO-Socket-SSL
-    evr: 2.085-3.el10
-    sourcerpm: perl-IO-Socket-SSL-2.085-3.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-IPC-Open3-1.22-512.2.el10_0.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 23118
-    checksum: sha256:5e90fee835d98079d15ccda622084965b94f7ca44a17c511b3573743f6b37d07
+    evr: 1.55-514.el10
+    sourcerpm: perl-5.40.2-514.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/perl-IPC-Open3-1.22-514.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 23046
+    checksum: sha256:7deb7a02ece7f461102284c0827e43e0a512f81d7105813e6e818a0ec95970ad
     name: perl-IPC-Open3
-    evr: 1.22-512.2.el10_0
-    sourcerpm: perl-5.40.2-512.2.el10_0.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-MIME-Base64-3.16-511.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 34915
-    checksum: sha256:b42ad237a9243106c919cfd59fe863b78912c6d49f7d7b7afa649b02550fac07
-    name: perl-MIME-Base64
-    evr: 3.16-511.el10
-    sourcerpm: perl-MIME-Base64-3.16-511.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-Mozilla-CA-20231213-5.el10.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 16659
-    checksum: sha256:c73ab5645016c9965737ee0871cd91ca898ed6220e63c270d852b015f24e1ec6
-    name: perl-Mozilla-CA
-    evr: 20231213-5.el10
-    sourcerpm: perl-Mozilla-CA-20231213-5.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-NDBM_File-1.17-512.2.el10_0.x86_64.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 23810
-    checksum: sha256:448b3f9668f29575e455be7d310a6d5030716c0f1f996e8bb26065fee270d826
+    evr: 1.22-514.el10
+    sourcerpm: perl-5.40.2-514.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/perl-NDBM_File-1.17-514.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 23847
+    checksum: sha256:71b538e7bbb1ae8bf92ccacec3b6a3e43bc820024d255ddc4879d2e353980ed5
     name: perl-NDBM_File
-    evr: 1.17-512.2.el10_0
-    sourcerpm: perl-5.40.2-512.2.el10_0.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-Net-SSLeay-1.94-8.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 389523
-    checksum: sha256:b81610e8911a065044d009316a4d76f9ea09e0810494b752d92273831d27f57b
+    evr: 1.17-514.el10
+    sourcerpm: perl-5.40.2-514.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/perl-Net-SSLeay-1.94-8.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 389447
+    checksum: sha256:120b2761701f16319b92c391813d5fc7aa02f74e7aeaa8694b608ccda89e1287
     name: perl-Net-SSLeay
     evr: 1.94-8.el10
     sourcerpm: perl-Net-SSLeay-1.94-8.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-POSIX-2.20-512.2.el10_0.x86_64.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 99788
-    checksum: sha256:5ecb25caa7ff8df8c7ba0e6f99aa46f3701fe0092dd406c265b0f5a6057be2d6
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/perl-POSIX-2.20-514.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 99752
+    checksum: sha256:796215b753e761baddbe4078ab6d7e77637f7bc19c739bf2ab4651a8a0423ca0
     name: perl-POSIX
-    evr: 2.20-512.2.el10_0
-    sourcerpm: perl-5.40.2-512.2.el10_0.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-PathTools-3.91-512.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 91403
-    checksum: sha256:c32a4dfcd0782cbcd8560d4d5c19df5cea108d818d55461f377422f05bdd7c7d
-    name: perl-PathTools
-    evr: 3.91-512.el10
-    sourcerpm: perl-PathTools-3.91-512.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-Pod-Escapes-1.07-511.el10.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 22645
-    checksum: sha256:c200e23d737f4f08e231c082ba9efa1151c142b95c2e93668a861ec6e8af6387
-    name: perl-Pod-Escapes
-    evr: 1:1.07-511.el10
-    sourcerpm: perl-Pod-Escapes-1.07-511.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-Pod-Perldoc-3.28.01-512.el10.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 90523
-    checksum: sha256:a58c465c213515cfde8645985bbe1381d2d705c0da208a8629d292288247c186
-    name: perl-Pod-Perldoc
-    evr: 3.28.01-512.el10
-    sourcerpm: perl-Pod-Perldoc-3.28.01-512.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-Pod-Simple-3.45-511.el10.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 227878
-    checksum: sha256:14a770a6482afb5d6e59aeb6d9243018fbed2a775f584f1d5aad8bf57436419e
-    name: perl-Pod-Simple
-    evr: 1:3.45-511.el10
-    sourcerpm: perl-Pod-Simple-3.45-511.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-Pod-Usage-2.03-511.el10.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 44178
-    checksum: sha256:526d436304ad58ac2ae714211b4e633ff1dfa5f481c4669c4b3aac36345c3069
-    name: perl-Pod-Usage
-    evr: 4:2.03-511.el10
-    sourcerpm: perl-Pod-Usage-2.03-511.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-Scalar-List-Utils-1.63-511.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 80199
-    checksum: sha256:0c49a699f11160173f7f96c864d64a05b0bed2ea6a6ec090aef3c3914de405dc
-    name: perl-Scalar-List-Utils
-    evr: 5:1.63-511.el10
-    sourcerpm: perl-Scalar-List-Utils-1.63-511.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-SelectSaver-1.02-512.2.el10_0.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 12745
-    checksum: sha256:230fffbfb3a30a6015c4393db819ab32438b07eeb1d9d77c9ff9e5040104da7b
+    evr: 2.20-514.el10
+    sourcerpm: perl-5.40.2-514.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/perl-SelectSaver-1.02-514.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 12673
+    checksum: sha256:2d4083aefe26942221c63d0b94ec0f93b0ad51718574a7cc0c0af624cab135e5
     name: perl-SelectSaver
-    evr: 1.02-512.2.el10_0
-    sourcerpm: perl-5.40.2-512.2.el10_0.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-Socket-2.038-511.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 60108
-    checksum: sha256:a0cabaab2498a22f30eb695efc836a0245907823487c07993236c4f725569a3b
-    name: perl-Socket
-    evr: 4:2.038-511.el10
-    sourcerpm: perl-Socket-2.038-511.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-Storable-3.32-511.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 103981
-    checksum: sha256:c1606e0986462e8dee953955f864045b84e4efc568333c26e5bb2ab9a5102ae1
-    name: perl-Storable
-    evr: 1:3.32-511.el10
-    sourcerpm: perl-Storable-3.32-511.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-Symbol-1.09-512.2.el10_0.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 15287
-    checksum: sha256:f0689e090f5a7e58b22516fe6b3fbb0039a4be5113e7dbdcc3e9a8a668a17c8a
+    evr: 1.02-514.el10
+    sourcerpm: perl-5.40.2-514.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/perl-Symbol-1.09-514.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 15215
+    checksum: sha256:5f3ae789fb51e5bef3fcdd1eba9125f0f9334ccc1958ea3ff6ea0e3fa4837418
     name: perl-Symbol
-    evr: 1.09-512.2.el10_0
-    sourcerpm: perl-5.40.2-512.2.el10_0.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-Term-ANSIColor-5.01-512.el10.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 52067
-    checksum: sha256:1911e024055c4912acf9cb7b36dcafcaaf9011280baf0fb57f8c0f0557f1ee7a
-    name: perl-Term-ANSIColor
-    evr: 5.01-512.el10
-    sourcerpm: perl-Term-ANSIColor-5.01-512.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-Term-Cap-1.18-511.el10.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 25395
-    checksum: sha256:1a74bbcf53f340c2db848c898d6a1eccb296503576bd803be46716a3f2d07f05
-    name: perl-Term-Cap
-    evr: 1.18-511.el10
-    sourcerpm: perl-Term-Cap-1.18-511.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-Text-ParseWords-3.31-511.el10.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 19126
-    checksum: sha256:1888de997708159ded07c0a55ea8b843ca8f8b2a6499d7b7841969ac36825ca5
-    name: perl-Text-ParseWords
-    evr: 3.31-511.el10
-    sourcerpm: perl-Text-ParseWords-3.31-511.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-Text-Tabs+Wrap-2024.001-511.el10.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 25047
-    checksum: sha256:939259f36c6068e64c071f6b9904e8013330a06ba7c07569a8db47723afdfeaa
-    name: perl-Text-Tabs+Wrap
-    evr: 2024.001-511.el10
-    sourcerpm: perl-Text-Tabs+Wrap-2024.001-511.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-Thread-Queue-3.14-511.el10.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 24871
-    checksum: sha256:a59b8e63eece83314001a522a88c2f5d33ce306b7381653fa7fa7461805a1b14
+    evr: 1.09-514.el10
+    sourcerpm: perl-5.40.2-514.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/perl-Thread-Queue-3.14-511.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 22775
+    checksum: sha256:3a89a57c9b9238db495be4ce9572ae6246e9eff27d8c82e1a8d5b5dd7efafac3
     name: perl-Thread-Queue
     evr: 3.14-511.el10
     sourcerpm: perl-Thread-Queue-3.14-511.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-Time-Local-1.350-511.el10.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 38522
-    checksum: sha256:bc30eb0596ae24503e5baf578b84122b68e3ca8d012562a73406d4afdabfbd6b
-    name: perl-Time-Local
-    evr: 2:1.350-511.el10
-    sourcerpm: perl-Time-Local-1.350-511.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-URI-5.27-3.el10.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 140970
-    checksum: sha256:27d79250ed875e4700f8e10334e670dacb6692ea3f60f225924d238a015dd4c5
-    name: perl-URI
-    evr: 5.27-3.el10
-    sourcerpm: perl-URI-5.27-3.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-base-2.27-512.2.el10_0.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 17341
-    checksum: sha256:287ea390eee501bd5a8f615589df285926eb7986c2384728bee729fbd7117bea
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/perl-base-2.27-514.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 17269
+    checksum: sha256:9e7cf6851087dc693874fccf2d9b3b48b49ced2ce5e1419d015b47f2f905c012
     name: perl-base
-    evr: 2.27-512.2.el10_0
-    sourcerpm: perl-5.40.2-512.2.el10_0.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-constant-1.33-512.el10.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 26066
-    checksum: sha256:2004a0ea190e5bf30a12dae628333d4f31bf89c1611ae4283c77fcdadc921f07
-    name: perl-constant
-    evr: 1.33-512.el10
-    sourcerpm: perl-constant-1.33-512.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-if-0.61.000-512.2.el10_0.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 15075
-    checksum: sha256:54ad6569e062d15cd55f84dab92b0283735a4e9ec9adc7ff14555705066f09d1
+    evr: 2.27-514.el10
+    sourcerpm: perl-5.40.2-514.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/perl-if-0.61.000-514.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 15003
+    checksum: sha256:195e742d633c785aafe72db747ab32c01ce9cbe1e22aace0705123a9184f3a5a
     name: perl-if
-    evr: 0.61.000-512.2.el10_0
-    sourcerpm: perl-5.40.2-512.2.el10_0.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-interpreter-5.40.2-512.2.el10_0.x86_64.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 74653
-    checksum: sha256:9534bd1ab99ae2656b3033e80cf779f6e000e71cb2b420ac56fcf21d2e5362d7
+    evr: 0.61.000-514.el10
+    sourcerpm: perl-5.40.2-514.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/perl-interpreter-5.40.2-514.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 74571
+    checksum: sha256:df8aee553f7f4681b2fcbc5fcc58672b2d7008fe06d4e6fbb3bdae2ef00ea682
     name: perl-interpreter
-    evr: 4:5.40.2-512.2.el10_0
-    sourcerpm: perl-5.40.2-512.2.el10_0.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-libnet-3.15-512.el10.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 134460
-    checksum: sha256:328e9e9c9c216a2bda6f205ff4637754914a6a21cb9fb792c6c3e7dd8adf8bde
-    name: perl-libnet
-    evr: 3.15-512.el10
-    sourcerpm: perl-libnet-3.15-512.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-libs-5.40.2-512.2.el10_0.x86_64.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 2513332
-    checksum: sha256:f9a10f985ae25572388de77da570960d1b200ac1d0e61ff17255a9892ef5330c
+    evr: 4:5.40.2-514.el10
+    sourcerpm: perl-5.40.2-514.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/perl-libs-5.40.2-514.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 2516616
+    checksum: sha256:1e241aa52a8847fe4c93566e8ddead4824b4178f3101a2bb172cf36100b8c469
     name: perl-libs
-    evr: 4:5.40.2-512.2.el10_0
-    sourcerpm: perl-5.40.2-512.2.el10_0.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-locale-1.12-512.2.el10_0.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 14690
-    checksum: sha256:20d56c81a8673dd9dbf294733196197fb8f900b153b88f802dd9bc85e0bd2a6d
+    evr: 4:5.40.2-514.el10
+    sourcerpm: perl-5.40.2-514.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/perl-locale-1.12-514.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 14618
+    checksum: sha256:416b307894c98c67325db8f55edecddb5051b4b8a552450f4ef14a25c5934358
     name: perl-locale
-    evr: 1.12-512.2.el10_0
-    sourcerpm: perl-5.40.2-512.2.el10_0.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-mro-1.29-512.2.el10_0.x86_64.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 31503
-    checksum: sha256:1dbfc0656bbd7a8f4b167bc76dde1af8ff1b471b346110a83874ff570a7b8927
+    evr: 1.12-514.el10
+    sourcerpm: perl-5.40.2-514.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/perl-mro-1.29-514.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 31441
+    checksum: sha256:5ffc92c734452067ad5f59b03c967fa30efce8d8fa0c48a156d0ddbef8bc8d89
     name: perl-mro
-    evr: 1.29-512.2.el10_0
-    sourcerpm: perl-5.40.2-512.2.el10_0.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-overload-1.37-512.2.el10_0.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 47373
-    checksum: sha256:516e303994e70249739c7375ede3f2622831b816a0762e9147dbb2f030d43fc9
+    evr: 1.29-514.el10
+    sourcerpm: perl-5.40.2-514.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/perl-overload-1.37-514.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 47301
+    checksum: sha256:1ee2169df03ee0dc34e044394644369679ce308bb870203802d6430957529b61
     name: perl-overload
-    evr: 1.37-512.2.el10_0
-    sourcerpm: perl-5.40.2-512.2.el10_0.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-overloading-0.02-512.2.el10_0.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 13955
-    checksum: sha256:20d3c52eaea4dc758eb0a84ce26ae1d0cc3b556f64d9accbdfd60640cad8b435
+    evr: 1.37-514.el10
+    sourcerpm: perl-5.40.2-514.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/perl-overloading-0.02-514.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 13883
+    checksum: sha256:b19322f97bc52969b3cce603a757bcd416a6035f0cbfe05be893924fae766799
     name: perl-overloading
-    evr: 0.02-512.2.el10_0
-    sourcerpm: perl-5.40.2-512.2.el10_0.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-parent-0.241-512.el10.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 17274
-    checksum: sha256:f1f3a1a07d86b752c46d96da1ef18e2243732c6354c9a3fd1d17a7e224031d5f
-    name: perl-parent
-    evr: 1:0.241-512.el10
-    sourcerpm: perl-parent-0.241-512.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-podlators-5.01-511.el10.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 130744
-    checksum: sha256:6b8001129818f1f4615a4704e679d380b736ae7333a837ba567967660320a6b2
-    name: perl-podlators
-    evr: 1:5.01-511.el10
-    sourcerpm: perl-podlators-5.01-511.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-threads-2.40-511.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 63350
-    checksum: sha256:801067dd51ea3f6a81020e84cd3f6e469fd68060526f3a4e42143c8074e2026a
+    evr: 0.02-514.el10
+    sourcerpm: perl-5.40.2-514.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/perl-srpm-macros-1-57.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 9725
+    checksum: sha256:90777e1c43417a87e72d531d856a9ba06646574504ec2dd29904f4039fa0ec78
+    name: perl-srpm-macros
+    evr: 1-57.el10
+    sourcerpm: perl-srpm-macros-1-57.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/perl-threads-2.40-511.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 60362
+    checksum: sha256:bd068482f94704d34db493e5a927ff1c2f45dabfca8133139292b3cbb6d8737e
     name: perl-threads
     evr: 1:2.40-511.el10
     sourcerpm: perl-threads-2.40-511.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-threads-shared-1.69-511.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 49989
-    checksum: sha256:722670920d53cafb2c3624d96b6b3221442f2efe014ead681957e8d36db0947a
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/perl-threads-shared-1.69-511.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 46789
+    checksum: sha256:2430a311eeeccb386281cdcc537dfde1638cb2af82ed38232d19ebaac023e22c
     name: perl-threads-shared
     evr: 1.69-511.el10
     sourcerpm: perl-threads-shared-1.69-511.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/p/perl-vars-1.05-512.2.el10_0.noarch.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 14049
-    checksum: sha256:12d8f33c30ae5907ea1510b5c415b66a0a9ed2c02680fc5b68d6145dc5a2d3b4
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/perl-vars-1.05-514.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 13977
+    checksum: sha256:31f6fd47de76d0e7e1a65c1a970d1d0fbf14a2a114099232803f304a4028af51
     name: perl-vars
-    evr: 1.05-512.2.el10_0
-    sourcerpm: perl-5.40.2-512.2.el10_0.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/appstream/os/Packages/r/rdma-core-devel-57.0-2.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-appstream-rpms
-    size: 490528
-    checksum: sha256:3eb2aa2b6180e832222a5e8b2a782fe1ed42ab702efb06ebed6172d3f60478ed
+    evr: 1.05-514.el10
+    sourcerpm: perl-5.40.2-514.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/protobuf-3.19.6-15.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 1062008
+    checksum: sha256:c1c3baaf660639ef1043f204aeb2216fbaa9b7e3c54371e142b1d09d10158394
+    name: protobuf
+    evr: 3.19.6-15.el10
+    sourcerpm: protobuf-3.19.6-15.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/pyproject-srpm-macros-1.18.5-1.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 13454
+    checksum: sha256:29d45adac278d4aaebc25451b37578ac5c5f2edf4715636a067d96cca3411784
+    name: pyproject-srpm-macros
+    evr: 1.18.5-1.el10
+    sourcerpm: pyproject-rpm-macros-1.18.5-1.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/python-rpm-macros-3.12-11.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 16495
+    checksum: sha256:ed22a9f24f96944e5fd67719de02df66038d2887ee8f71ec18942d3d5e06e21d
+    name: python-rpm-macros
+    evr: 3.12-11.el10
+    sourcerpm: python-rpm-macros-3.12-11.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/python-srpm-macros-3.12-11.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 22978
+    checksum: sha256:bec2fe0a6dd2b76266eb62c3b64124f1b0d5e21abc5b11483d7a21e4142ecb57
+    name: python-srpm-macros
+    evr: 3.12-11.el10
+    sourcerpm: python-rpm-macros-3.12-11.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/python3-devel-3.12.12-5.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 336732
+    checksum: sha256:8badb5a9071aab8c70dd8489e591cd8a0681657cfe08d6ad27887a1e7f55f1cd
+    name: python3-devel
+    evr: 3.12.12-5.el10
+    sourcerpm: python3.12-3.12.12-5.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/python3-pip-23.3.2-7.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 3393448
+    checksum: sha256:70cb0ed633da305b80dc7ab6bd03aa94b92e3c449097d869236885165e7e06ec
+    name: python3-pip
+    evr: 23.3.2-7.el10
+    sourcerpm: python-pip-23.3.2-7.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/python3-rpm-generators-14-12.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 30910
+    checksum: sha256:e2cfd00680c04f63e8f4cc3e941205f1560ecd5c5c3f171f0eb06fd304315745
+    name: python3-rpm-generators
+    evr: 14-12.el10
+    sourcerpm: python-rpm-generators-14-12.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/python3-rpm-macros-3.12-11.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 11144
+    checksum: sha256:f5f93d97c5dc3e7c8283733ea7e9501e3811a03233d3b7c66cd56e21f506e666
+    name: python3-rpm-macros
+    evr: 3.12-11.el10
+    sourcerpm: python-rpm-macros-3.12-11.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/qt6-srpm-macros-6.10.1-1.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 9334
+    checksum: sha256:bb24b58534103c4f08bf2667a2f4fbf0d31840bc3c1ac11ded91f9c33c6a6786
+    name: qt6-srpm-macros
+    evr: 6.10.1-1.el10
+    sourcerpm: qt6-6.10.1-1.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/rdma-core-devel-61.0-1.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 502656
+    checksum: sha256:10c51f0a2a2e5418de419d09694a9f52b860dac19a3486fffc16dd72f1a9951b
     name: rdma-core-devel
-    evr: 57.0-2.el10
-    sourcerpm: rdma-core-57.0-2.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os/Packages/b/binutils-2.41-58.el10_1.2.x86_64.rpm
-    repoid: ubi-10-for-x86_64-baseos-rpms
-    size: 6709343
-    checksum: sha256:7059ffc674a7709755c63265dd505262374684b6d88992b6b0e853d2c14a7caa
+    evr: 61.0-1.el10
+    sourcerpm: rdma-core-61.0-1.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/readline-devel-8.2-11.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 211853
+    checksum: sha256:46f300c2aaed4f2171bcff4520d132a186875227441e6e994a7ecbf57ebaf015
+    name: readline-devel
+    evr: 8.2-11.el10
+    sourcerpm: readline-8.2-11.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/redhat-rpm-config-295-1.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 76133
+    checksum: sha256:e249fff7af0436c9ec15b1cd47b791c95a7af5d8d42e715b778da3b440b202a1
+    name: redhat-rpm-config
+    evr: 295-1.el10
+    sourcerpm: redhat-rpm-config-295-1.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/rpm-build-4.19.1.1-23.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 76579
+    checksum: sha256:535bc143ef8f932345fd99bc6e4bf5dc3cce75e248cba53ee75e0905e1a02663
+    name: rpm-build
+    evr: 4.19.1.1-23.el10
+    sourcerpm: rpm-4.19.1.1-23.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/rust-toolset-srpm-macros-1.92.0-1.el10.noarch.rpm
+    repoid: centos-stream-10-appstream
+    size: 10883
+    checksum: sha256:b7a61f4ba7369d243c7ebfd62007479349ce06120b0c8e867b6be3af41850adb
+    name: rust-toolset-srpm-macros
+    evr: 1.92.0-1.el10
+    sourcerpm: rust-1.92.0-1.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/tcpdump-4.99.4-10.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 515373
+    checksum: sha256:4649f4441dc0518d2cb955ae28cbcba6ef9e17c9f630161699c12e3453ce0477
+    name: tcpdump
+    evr: 14:4.99.4-10.el10
+    sourcerpm: tcpdump-4.99.4-10.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os/Packages/zlib-ng-compat-devel-2.2.3-3.el10.x86_64.rpm
+    repoid: centos-stream-10-appstream
+    size: 36911
+    checksum: sha256:8a5a306e08b301ec0b3928967a9f29f582c0b64e7eb78152b1d1d2e41ec495d1
+    name: zlib-ng-compat-devel
+    evr: 2.2.3-3.el10
+    sourcerpm: zlib-ng-2.2.3-3.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/binutils-2.41-64.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 6707271
+    checksum: sha256:d041ed1efe4ddeb6d50569f7e948a88cdab2f172223a571dac4963b9286b9101
     name: binutils
-    evr: 2.41-58.el10_1.2
-    sourcerpm: binutils-2.41-58.el10_1.2.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os/Packages/b/binutils-gold-2.41-58.el10_1.2.x86_64.rpm
-    repoid: ubi-10-for-x86_64-baseos-rpms
-    size: 816566
-    checksum: sha256:276d2e51c7cea1c21363a2c44d099a158188e8bee1e7fc8779ec89145d72fa37
+    evr: 2.41-64.el10
+    sourcerpm: binutils-2.41-64.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/binutils-gold-2.41-64.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 813493
+    checksum: sha256:9ee2b12e77eb53c304d40ff0db247baf22367a9aa1d2165f8c18cd33e409760e
     name: binutils-gold
-    evr: 2.41-58.el10_1.2
-    sourcerpm: binutils-2.41-58.el10_1.2.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os/Packages/e/ed-1.20-5.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-baseos-rpms
-    size: 88249
-    checksum: sha256:37a2bc9b8d187293a0b5464ac113a0689d07e7f237854cfc6f8732486631fcdc
+    evr: 2.41-64.el10
+    sourcerpm: binutils-2.41-64.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/bzip2-1.0.8-25.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 55722
+    checksum: sha256:ff7f8e9c3cc936d35033ec40545ee4a836db27c30c240d3aa39be4c8b0fda631
+    name: bzip2
+    evr: 1.0.8-25.el10
+    sourcerpm: bzip2-1.0.8-25.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/cpio-2.15-3.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 298898
+    checksum: sha256:c9d78552f56c77b0f047123dfb1cf85a958fe7ad276f67e95eaedbe2d80d56b3
+    name: cpio
+    evr: 2.15-3.el10
+    sourcerpm: cpio-2.15-3.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/ed-1.20-5.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 84585
+    checksum: sha256:e990561c863eb196952cc32ca7339b4e68454403cee4fe062a4096f1bd7f4177
     name: ed
     evr: 1.20-5.el10
     sourcerpm: ed-1.20-5.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os/Packages/e/elfutils-debuginfod-client-0.193-1.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-baseos-rpms
-    size: 48345
-    checksum: sha256:f3bf8eb3f2caf92855f79a81e35e62dc8f868787f17d23987f4f730a19260eec
-    name: elfutils-debuginfod-client
-    evr: 0.193-1.el10
-    sourcerpm: elfutils-0.193-1.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os/Packages/g/groff-base-1.23.0-10.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-baseos-rpms
-    size: 1182753
-    checksum: sha256:fe7aaba08cf90b86523b7435aa4caaf08942ec82b04129e44435a3013555c6b3
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/elfutils-0.194-2.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 586629
+    checksum: sha256:217f04ffd9a7f0a3fc931c3b88c58809e3ebb1f97ac7d7e686467143b827c519
+    name: elfutils
+    evr: 0.194-2.el10
+    sourcerpm: elfutils-0.194-2.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/emacs-filesystem-29.4-12.el10.noarch.rpm
+    repoid: centos-stream-10-baseos
+    size: 10384
+    checksum: sha256:e7702c02af1c4b5aae4d3bf3f6cc8671e98143b90002c52eaf03c3f4bea832c2
+    name: emacs-filesystem
+    evr: 1:29.4-12.el10
+    sourcerpm: emacs-29.4-12.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/file-5.45-9.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 48565
+    checksum: sha256:f635a302141d8aa1b9cc9d9061815eec89d657ba41cced3d5faacb6dd2288096
+    name: file
+    evr: 5.45-9.el10
+    sourcerpm: file-5.45-9.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/groff-base-1.23.0-10.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 1178549
+    checksum: sha256:b55cab3f647a517739abdce086e6ad977e4606281bc16786c2268f8d791883ca
     name: groff-base
     evr: 1.23.0-10.el10
     sourcerpm: groff-1.23.0-10.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os/Packages/j/jansson-2.14-3.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-baseos-rpms
-    size: 49616
-    checksum: sha256:b5d6eeea14961f64ece8b3bbefeb53a61424822ccbaedb833f7fc7e50f6707c5
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/hwdata-0.379-10.8.el10.noarch.rpm
+    repoid: centos-stream-10-baseos
+    size: 1767791
+    checksum: sha256:b1503fb4af22475819cd6df6b86681266230cbe55def3c11dcee8f68e97050c7
+    name: hwdata
+    evr: 0.379-10.8.el10
+    sourcerpm: hwdata-0.379-10.8.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/jansson-2.14-3.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 47512
+    checksum: sha256:25d2ef852d5941b27ae105ec780aa367605a6f8b86e6c6a13abdee1c1065979f
     name: jansson
     evr: 2.14-3.el10
     sourcerpm: jansson-2.14-3.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os/Packages/l/libedit-3.1-52.20230828cvs.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-baseos-rpms
-    size: 110822
-    checksum: sha256:d984e5aa4856820528bd2829f086c2f3883173b91daa0a304af215e3a0c6a6be
-    name: libedit
-    evr: 3.1-52.20230828cvs.el10
-    sourcerpm: libedit-3.1-52.20230828cvs.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os/Packages/l/libevent-2.1.12-16.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-baseos-rpms
-    size: 271480
-    checksum: sha256:0cfcc4c1b669d1b334e416230aa3b3e1a91531b96892e52e724242a89d1e75fa
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/less-661-3.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 195697
+    checksum: sha256:1cf4afdf660772f65668cc702722facd7ed79d849150e14cab623cffd4167516
+    name: less
+    evr: 661-3.el10
+    sourcerpm: less-661-3.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/libevent-2.1.12-16.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 267256
+    checksum: sha256:f8f5c3946bbd53590978e9aeca3064d81ab580492c4ff8044c48797870276f47
     name: libevent
     evr: 2.1.12-16.el10
     sourcerpm: libevent-2.1.12-16.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os/Packages/l/libibumad-57.0-2.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-baseos-rpms
-    size: 28704
-    checksum: sha256:2eb9566b40ab634266b9826ffa1db6c4849039a86c586c95a239163c06073d2d
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/libibumad-61.0-1.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 28801
+    checksum: sha256:b9a89fc0c07975594213f95897c25f3ecc5412f88c7e15b14d15f06bd64eebef
     name: libibumad
-    evr: 57.0-2.el10
-    sourcerpm: rdma-core-57.0-2.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os/Packages/l/libibverbs-57.0-2.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-baseos-rpms
-    size: 467798
-    checksum: sha256:160115975c205f5847572081be0fe43a67cebc85d6471ef38175551103d8f84c
+    evr: 61.0-1.el10
+    sourcerpm: rdma-core-61.0-1.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/libibverbs-61.0-1.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 493493
+    checksum: sha256:88dca8a716e29a92ebc90427d331c3039e3f333d4977a008a3359f1ea07f61cc
     name: libibverbs
-    evr: 57.0-2.el10
-    sourcerpm: rdma-core-57.0-2.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os/Packages/l/libnl3-3.11.0-1.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-baseos-rpms
-    size: 374208
-    checksum: sha256:f43e83ce1afebac43eb81dc348829516fb97dce8b0e05ad76a1d06af4342e5f4
+    evr: 61.0-1.el10
+    sourcerpm: rdma-core-61.0-1.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/libmnl-1.0.5-7.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 29904
+    checksum: sha256:1e1d36725d958fc3f9016cc85b238bf5462a43ae7be144d0a4a72be0982d68ce
+    name: libmnl
+    evr: 1.0.5-7.el10
+    sourcerpm: libmnl-1.0.5-7.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/libnl3-3.11.0-1.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 370060
+    checksum: sha256:886324f9d4b8c95a46d5c77c0f5cd90051c83462e78ca752c70cc709f5a01d90
     name: libnl3
     evr: 3.11.0-1.el10
     sourcerpm: libnl3-3.11.0-1.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os/Packages/l/libpkgconf-2.1.0-3.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-baseos-rpms
-    size: 41667
-    checksum: sha256:3c771e6212564874eb7e6200f22cb2e05265e7319984590c0f4de3eb5733b75f
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/libpcap-1.10.4-7.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 179044
+    checksum: sha256:a933eb7fba1535c9df52f7e44504535b25f8b6fb79c5cf68a0b6e80eb4b9dbf8
+    name: libpcap
+    evr: 14:1.10.4-7.el10
+    sourcerpm: libpcap-1.10.4-7.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/libpkgconf-2.1.0-3.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 40023
+    checksum: sha256:813f59114413d5e14fc566262ee3d4b56b621beacbe40eda6f28d31f464de1a6
     name: libpkgconf
     evr: 2.1.0-3.el10
     sourcerpm: pkgconf-2.1.0-3.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os/Packages/l/librdmacm-57.0-2.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-baseos-rpms
-    size: 74193
-    checksum: sha256:c642c9e4792788f27ab5caac95bf1402f31547ae6f9c98c29ccccd2933cf9b2f
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/librdmacm-61.0-1.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 75571
+    checksum: sha256:9c9217121e5ae50d28daddc19a7159288c45bce1435106f4c632a8a7ac37aeb5
     name: librdmacm
-    evr: 57.0-2.el10
-    sourcerpm: rdma-core-57.0-2.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os/Packages/m/make-4.4.1-9.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-baseos-rpms
-    size: 605276
-    checksum: sha256:1c7b61c065106c0eb3a958e55ffbe37734aebcf440b0c36435ca7eb41b8e0110
+    evr: 61.0-1.el10
+    sourcerpm: rdma-core-61.0-1.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/make-4.4.1-9.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 601088
+    checksum: sha256:7d0b52fe16c826f8b08656abd70509987e69e2b8a9f0c42fda803d41a9e7c74e
     name: make
     evr: 1:4.4.1-9.el10
     sourcerpm: make-4.4.1-9.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os/Packages/n/ncurses-6.4-14.20240127.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-baseos-rpms
-    size: 437617
-    checksum: sha256:72771a1c49eb4ccf6c8b5c92ca1617ea2e32fce672ff62875222c7cce2c76d56
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/ncurses-6.4-14.20240127.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 433453
+    checksum: sha256:0a08f1818cc70b19bf319c1e019540aad1019460e6d913a61f6069a4ecf17fa5
     name: ncurses
     evr: 6.4-14.20240127.el10
     sourcerpm: ncurses-6.4-14.20240127.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os/Packages/p/pkgconf-2.1.0-3.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-baseos-rpms
-    size: 49544
-    checksum: sha256:63c965654dfd260d755bd36bdb19ced0036aa4c1e2b64d726c95fad98b2dc041
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/numactl-2.0.19-3.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 74061
+    checksum: sha256:4d0dcfd6da0fe36df7f01adaa2732ad83b2946691147f903bdd9e286dd713398
+    name: numactl
+    evr: 2.0.19-3.el10
+    sourcerpm: numactl-2.0.19-3.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/numactl-libs-2.0.19-3.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 31897
+    checksum: sha256:263ee2cba1d57996778f70045fbc4657067f73edafd6c6b04f4599c3eb12fbfd
+    name: numactl-libs
+    evr: 2.0.19-3.el10
+    sourcerpm: numactl-2.0.19-3.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/pciutils-3.13.0-6.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 125913
+    checksum: sha256:c51394bb59c112a90d466e6fe93919441a48ca0e254f820ccf4a75ec64480ec1
+    name: pciutils
+    evr: 3.13.0-6.el10
+    sourcerpm: pciutils-3.13.0-6.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/pciutils-libs-3.13.0-6.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 52878
+    checksum: sha256:57d74853186c4ada7cbd8e6c381b8f49d40d1d62fdeb86b276169c3a55bb524d
+    name: pciutils-libs
+    evr: 3.13.0-6.el10
+    sourcerpm: pciutils-3.13.0-6.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/perl-Carp-1.54-511.el10.noarch.rpm
+    repoid: centos-stream-10-baseos
+    size: 30508
+    checksum: sha256:ae6bfa843d790faba91cdd9dbfe6efc758dba03ced7df96390eebe702a855dd4
+    name: perl-Carp
+    evr: 1.54-511.el10
+    sourcerpm: perl-Carp-1.54-511.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/perl-Data-Dumper-2.189-512.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 58529
+    checksum: sha256:cd895473bfb2a5aae44f221cad5e7076182736b6b3b85b0d88f143ab409d7050
+    name: perl-Data-Dumper
+    evr: 2.189-512.el10
+    sourcerpm: perl-Data-Dumper-2.189-512.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/perl-Digest-1.20-511.el10.noarch.rpm
+    repoid: centos-stream-10-baseos
+    size: 26301
+    checksum: sha256:306b23d0d290212e5fa61678daeb5adc9a4b9158859f6f9531d9a8316cc73ae1
+    name: perl-Digest
+    evr: 1.20-511.el10
+    sourcerpm: perl-Digest-1.20-511.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/perl-Digest-MD5-2.59-6.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 38095
+    checksum: sha256:aab9fca3c87b9f1e9e64a751868c50cd3611293aa2d4012069e0a1fe70bcc3c2
+    name: perl-Digest-MD5
+    evr: 2.59-6.el10
+    sourcerpm: perl-Digest-MD5-2.59-6.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/perl-Encode-3.21-511.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 1116000
+    checksum: sha256:2382fa2f35b47589aaa74f2a21532b13fd06330fcf4bcd2daad8cc67fdb3367f
+    name: perl-Encode
+    evr: 4:3.21-511.el10
+    sourcerpm: perl-Encode-3.21-511.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/perl-Exporter-5.78-511.el10.noarch.rpm
+    repoid: centos-stream-10-baseos
+    size: 32534
+    checksum: sha256:57c1d8b6a95cdbad17508d362f210090787b0f52b182f43cb519186ab2163ea5
+    name: perl-Exporter
+    evr: 5.78-511.el10
+    sourcerpm: perl-Exporter-5.78-511.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/perl-File-Temp-0.231.100-512.el10.noarch.rpm
+    repoid: centos-stream-10-baseos
+    size: 61604
+    checksum: sha256:12f9bef5649de6044799e552528e6c5e38233a9bfebea7c2841ae45bb128c552
+    name: perl-File-Temp
+    evr: 1:0.231.100-512.el10
+    sourcerpm: perl-File-Temp-0.231.100-512.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/perl-Getopt-Long-2.58-3.el10.noarch.rpm
+    repoid: centos-stream-10-baseos
+    size: 66073
+    checksum: sha256:3424cc36fb45a7223942844f59f6cad5846d04888f2e17b5f70962eb1b41b3c3
+    name: perl-Getopt-Long
+    evr: 1:2.58-3.el10
+    sourcerpm: perl-Getopt-Long-2.58-3.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/perl-HTTP-Tiny-0.088-512.el10.noarch.rpm
+    repoid: centos-stream-10-baseos
+    size: 58046
+    checksum: sha256:f42c0e9f38d5f436471622e51f00512833c52a146166061bab8facb83905283e
+    name: perl-HTTP-Tiny
+    evr: 0.088-512.el10
+    sourcerpm: perl-HTTP-Tiny-0.088-512.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/perl-IO-Socket-IP-0.42-512.el10.noarch.rpm
+    repoid: centos-stream-10-baseos
+    size: 43794
+    checksum: sha256:f63dc80031eedda23d9f4309b7dffdbccea6faf443e44d5db829e2e7d125bd5f
+    name: perl-IO-Socket-IP
+    evr: 0.42-512.el10
+    sourcerpm: perl-IO-Socket-IP-0.42-512.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/perl-IO-Socket-SSL-2.085-3.el10.noarch.rpm
+    repoid: centos-stream-10-baseos
+    size: 232064
+    checksum: sha256:c8729c25b2112ea3e3c0f7eedc319c53bed2a10000734f048237f3430fbe7249
+    name: perl-IO-Socket-SSL
+    evr: 2.085-3.el10
+    sourcerpm: perl-IO-Socket-SSL-2.085-3.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/perl-MIME-Base64-3.16-511.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 31699
+    checksum: sha256:057335a581fac8e8451ccd21231b630c78671809dc79a4fce2e68eb251130036
+    name: perl-MIME-Base64
+    evr: 3.16-511.el10
+    sourcerpm: perl-MIME-Base64-3.16-511.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/perl-Mozilla-CA-20231213-5.el10.noarch.rpm
+    repoid: centos-stream-10-baseos
+    size: 15235
+    checksum: sha256:858fb3f2d3774696543cfd0ce02059725d8f93471ee3eccbb55005a146a091eb
+    name: perl-Mozilla-CA
+    evr: 20231213-5.el10
+    sourcerpm: perl-Mozilla-CA-20231213-5.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/perl-PathTools-3.91-512.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 87217
+    checksum: sha256:64a7dae4507c4aca647e9d081bf427014462f1349c628604aa189dbf633cee7c
+    name: perl-PathTools
+    evr: 3.91-512.el10
+    sourcerpm: perl-PathTools-3.91-512.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/perl-Pod-Escapes-1.07-511.el10.noarch.rpm
+    repoid: centos-stream-10-baseos
+    size: 21221
+    checksum: sha256:9408ceca5c2f25a08b4acc6296ea7385e0c4e0d7eaab6d30ffe08fa1cbe1e93f
+    name: perl-Pod-Escapes
+    evr: 1:1.07-511.el10
+    sourcerpm: perl-Pod-Escapes-1.07-511.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/perl-Pod-Perldoc-3.28.01-512.el10.noarch.rpm
+    repoid: centos-stream-10-baseos
+    size: 86335
+    checksum: sha256:96b3260edfc8fd85079d1a382f2e2de172558c86b50b4094988687b58b9e3602
+    name: perl-Pod-Perldoc
+    evr: 3.28.01-512.el10
+    sourcerpm: perl-Pod-Perldoc-3.28.01-512.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/perl-Pod-Simple-3.45-511.el10.noarch.rpm
+    repoid: centos-stream-10-baseos
+    size: 223682
+    checksum: sha256:16973491f7e88df7ee98fad804e8567165783b6fed70b25b60038451f9ce409d
+    name: perl-Pod-Simple
+    evr: 1:3.45-511.el10
+    sourcerpm: perl-Pod-Simple-3.45-511.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/perl-Pod-Usage-2.03-511.el10.noarch.rpm
+    repoid: centos-stream-10-baseos
+    size: 41886
+    checksum: sha256:b45fbd33e8d5123755f7de7f91d4829ae3b3e5d47c61bb2452709a8a7a150ede
+    name: perl-Pod-Usage
+    evr: 4:2.03-511.el10
+    sourcerpm: perl-Pod-Usage-2.03-511.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/perl-Scalar-List-Utils-1.63-511.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 75963
+    checksum: sha256:7af6a2345c5088f80b3906d526fd79a8b306ed3aee006fae5419985213dbbe9e
+    name: perl-Scalar-List-Utils
+    evr: 5:1.63-511.el10
+    sourcerpm: perl-Scalar-List-Utils-1.63-511.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/perl-Socket-2.038-511.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 57132
+    checksum: sha256:08cd3625895969cbeb392b633c0984c6c0e12da80ec8caf7e6254b35019005e2
+    name: perl-Socket
+    evr: 4:2.038-511.el10
+    sourcerpm: perl-Socket-2.038-511.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/perl-Storable-3.32-511.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 101673
+    checksum: sha256:377029bd654522f36f2cc54fb384e25fcf2c73f181519dafa2cdeed742a3fb1d
+    name: perl-Storable
+    evr: 1:3.32-511.el10
+    sourcerpm: perl-Storable-3.32-511.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/perl-Term-ANSIColor-5.01-512.el10.noarch.rpm
+    repoid: centos-stream-10-baseos
+    size: 49739
+    checksum: sha256:576853fccf5c33ac83820a8bb1c4b77050195bfc4f1ec5f44b1e9022ea41f480
+    name: perl-Term-ANSIColor
+    evr: 5.01-512.el10
+    sourcerpm: perl-Term-ANSIColor-5.01-512.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/perl-Term-Cap-1.18-511.el10.noarch.rpm
+    repoid: centos-stream-10-baseos
+    size: 23535
+    checksum: sha256:c38cbd3a29492a80b007d3422e1c91ccaa5cfa0e0e6ef1510c3d6b65a1327528
+    name: perl-Term-Cap
+    evr: 1.18-511.el10
+    sourcerpm: perl-Term-Cap-1.18-511.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/perl-Text-ParseWords-3.31-511.el10.noarch.rpm
+    repoid: centos-stream-10-baseos
+    size: 17710
+    checksum: sha256:f1fd59199549aebb219a2e6c1ddfefbf1c036dd678879acb0988d654d871f40c
+    name: perl-Text-ParseWords
+    evr: 3.31-511.el10
+    sourcerpm: perl-Text-ParseWords-3.31-511.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/perl-Text-Tabs+Wrap-2024.001-511.el10.noarch.rpm
+    repoid: centos-stream-10-baseos
+    size: 23187
+    checksum: sha256:0e59d9df52d9dd97167b7b792ef3d2db37f55c6eb60c1f5552f6b3bca3673416
+    name: perl-Text-Tabs+Wrap
+    evr: 2024.001-511.el10
+    sourcerpm: perl-Text-Tabs+Wrap-2024.001-511.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/perl-Time-Local-1.350-511.el10.noarch.rpm
+    repoid: centos-stream-10-baseos
+    size: 36210
+    checksum: sha256:5d09c697747203770348541c5c93e316dc7969cd4aa403cbd63b0611d0af7dcf
+    name: perl-Time-Local
+    evr: 2:1.350-511.el10
+    sourcerpm: perl-Time-Local-1.350-511.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/perl-URI-5.27-3.el10.noarch.rpm
+    repoid: centos-stream-10-baseos
+    size: 136758
+    checksum: sha256:eb3c847230fc73cf0300e06d1839819d286abb5e9bedfb125a8a152e86b9a003
+    name: perl-URI
+    evr: 5.27-3.el10
+    sourcerpm: perl-URI-5.27-3.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/perl-constant-1.33-512.el10.noarch.rpm
+    repoid: centos-stream-10-baseos
+    size: 24426
+    checksum: sha256:9c47c9c1960fffc4ed58d75b37d23265cd76eb1f86b26d316dd601ca7b159f7c
+    name: perl-constant
+    evr: 1.33-512.el10
+    sourcerpm: perl-constant-1.33-512.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/perl-libnet-3.15-512.el10.noarch.rpm
+    repoid: centos-stream-10-baseos
+    size: 130260
+    checksum: sha256:52a19c47731fc69d7b5aa4c668d87f765f1790d3ff8a19ccbedbcd76b38bd0e0
+    name: perl-libnet
+    evr: 3.15-512.el10
+    sourcerpm: perl-libnet-3.15-512.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/perl-parent-0.241-512.el10.noarch.rpm
+    repoid: centos-stream-10-baseos
+    size: 16338
+    checksum: sha256:69024b9fb15e0813a2fc53dabc426a73a86f671b747f2a6656506609aa5e2174
+    name: perl-parent
+    evr: 1:0.241-512.el10
+    sourcerpm: perl-parent-0.241-512.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/perl-podlators-5.01-511.el10.noarch.rpm
+    repoid: centos-stream-10-baseos
+    size: 126532
+    checksum: sha256:d2e4a91abfaa138d2c6b1a9cf504184b01627d9c3f39f566b3f5861cb4dbf9d7
+    name: perl-podlators
+    evr: 1:5.01-511.el10
+    sourcerpm: perl-podlators-5.01-511.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/pkgconf-2.1.0-3.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 45652
+    checksum: sha256:ced8f494b664667d52245ff94ce6c0b2cad135586a36a9ff7f81281d1533f178
     name: pkgconf
     evr: 2.1.0-3.el10
     sourcerpm: pkgconf-2.1.0-3.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os/Packages/p/pkgconf-m4-2.1.0-3.el10.noarch.rpm
-    repoid: ubi-10-for-x86_64-baseos-rpms
-    size: 15861
-    checksum: sha256:f6a99c6e64b9358a0b4db60e4fb2b5c858eb0487a504690e80d1b84b9d044995
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/pkgconf-m4-2.1.0-3.el10.noarch.rpm
+    repoid: centos-stream-10-baseos
+    size: 15341
+    checksum: sha256:4de2147846658c2849aa28f756e5e906a3012be53e656b4a39ae77076286e828
     name: pkgconf-m4
     evr: 2.1.0-3.el10
     sourcerpm: pkgconf-2.1.0-3.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os/Packages/p/pkgconf-pkg-config-2.1.0-3.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-baseos-rpms
-    size: 12216
-    checksum: sha256:b90a31630640ca9a05ba842032ccbe7ae786318bb808ffb49f252acdb1419235
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/pkgconf-pkg-config-2.1.0-3.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 11020
+    checksum: sha256:4f5231ffccc59b5f1c42d85cc0dafea9b6901107660931071cf1e65f99af1e0b
     name: pkgconf-pkg-config
     evr: 2.1.0-3.el10
     sourcerpm: pkgconf-2.1.0-3.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os/Packages/p/python3-setuptools-69.0.3-12.el10_0.noarch.rpm
-    repoid: ubi-10-for-x86_64-baseos-rpms
-    size: 1658419
-    checksum: sha256:820393ba86601e0bb0b79d27c1603cf8ae5ac05287628f9d4e628f4382ce2e29
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/protobuf-c-1.5.0-6.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 33962
+    checksum: sha256:a7e792e5ed4f89d5f48eb60453619a6e0ad5cd34469526952c1748f1a99ce3ba
+    name: protobuf-c
+    evr: 1.5.0-6.el10
+    sourcerpm: protobuf-c-1.5.0-6.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/python3-packaging-24.2-2.el10.noarch.rpm
+    repoid: centos-stream-10-baseos
+    size: 156243
+    checksum: sha256:1e8c6c6d409e139878bb8e6126db229e43258532b618fcfa90b92689c51bab98
+    name: python3-packaging
+    evr: 24.2-2.el10
+    sourcerpm: python-packaging-24.2-2.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/python3-setuptools-69.0.3-12.el10.noarch.rpm
+    repoid: centos-stream-10-baseos
+    size: 1658243
+    checksum: sha256:a89d8c55cbd8f833599ca853341b7bd698f70b966590c5dc2b2d160fc3d98f67
     name: python3-setuptools
-    evr: 69.0.3-12.el10_0
-    sourcerpm: python-setuptools-69.0.3-12.el10_0.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os/Packages/v/vim-filesystem-9.1.083-6.el10_1.1.noarch.rpm
-    repoid: ubi-10-for-x86_64-baseos-rpms
-    size: 21679
-    checksum: sha256:7f8651b841424b1000c47cc067f7c42c3fd777687a9d1851b7aa6413306cef5f
+    evr: 69.0.3-12.el10
+    sourcerpm: python-setuptools-69.0.3-12.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/rdma-core-61.0-1.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 72787
+    checksum: sha256:6676613536a282454c4f4123838f138921a20115a96fc728a4c1ba0cf4947d3c
+    name: rdma-core
+    evr: 61.0-1.el10
+    sourcerpm: rdma-core-61.0-1.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/systemd-rpm-macros-257-23.el10.noarch.rpm
+    repoid: centos-stream-10-baseos
+    size: 40142
+    checksum: sha256:d7e9d597d423f6ab44fe2c7c0a193bf26600b46f8de3f820038b463cb7dc5b72
+    name: systemd-rpm-macros
+    evr: 257-23.el10
+    sourcerpm: systemd-257-23.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/unzip-6.0-69.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 194413
+    checksum: sha256:bd0a6b269143ba6994dc7097435c8829a8f03e7a7e1f128c46a64731ed0df924
+    name: unzip
+    evr: 6.0-69.el10
+    sourcerpm: unzip-6.0-69.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/vim-filesystem-9.1.083-8.el10.noarch.rpm
+    repoid: centos-stream-10-baseos
+    size: 14600
+    checksum: sha256:3d6e04a60b245f0077f731227aadc65beb5ab017f78265d8275e8c90045d6cda
     name: vim-filesystem
-    evr: 2:9.1.083-6.el10_1.1
-    sourcerpm: vim-9.1.083-6.el10_1.1.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/codeready-builder/os/Packages/l/libmnl-devel-1.0.5-7.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-codeready-builder-rpms
-    size: 42806
-    checksum: sha256:ea62ed9a79eda768839dcd1c9581c41e7a5fb8805378a4326fafee35dba68e73
+    evr: 2:9.1.083-8.el10
+    sourcerpm: vim-9.1.083-8.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/xz-5.6.2-4.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 492510
+    checksum: sha256:dc71c8e5b558c9f9fdea14a7d38819fc12ad8bdcb6834989188b225ca191eded
+    name: xz
+    evr: 1:5.6.2-4.el10
+    sourcerpm: xz-5.6.2-4.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/zip-3.0-45.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 276519
+    checksum: sha256:be6aa2cff473f6026b32abf0317325009f0c9202094932b08caee4846b445eb8
+    name: zip
+    evr: 3.0-45.el10
+    sourcerpm: zip-3.0-45.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/Packages/zstd-1.5.5-9.el10.x86_64.rpm
+    repoid: centos-stream-10-baseos
+    size: 475257
+    checksum: sha256:4ef415b98ddbe28f836b86699f4cec6002817ea20fb47499d3c6bb0814db6d4b
+    name: zstd
+    evr: 1.5.5-9.el10
+    sourcerpm: zstd-1.5.5-9.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/CRB/x86_64/os/Packages/libmnl-devel-1.0.5-7.el10.x86_64.rpm
+    repoid: centos-stream-10-crb
+    size: 38610
+    checksum: sha256:055212329437f760f4adc357047808cbf26a3ab2887ecce88a2edca1f7ac7758
     name: libmnl-devel
     evr: 1.0.5-7.el10
     sourcerpm: libmnl-1.0.5-7.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/codeready-builder/os/Packages/m/meson-1.4.1-4.el10.noarch.rpm
-    repoid: ubi-10-for-x86_64-codeready-builder-rpms
-    size: 2241729
-    checksum: sha256:d7a379943653f2d29ce8f4d066b51096806c77e846e60a22840e0651c6d359b4
+  - url: https://mirror.stream.centos.org/10-stream/CRB/x86_64/os/Packages/libyang-devel-2.1.148-3.el10.x86_64.rpm
+    repoid: centos-stream-10-crb
+    size: 98464
+    checksum: sha256:fa9efad0960485437dce16c22d82d4d0a2e1d26c3bae36181a2997096f5fe210
+    name: libyang-devel
+    evr: 2.1.148-3.el10
+    sourcerpm: libyang-2.1.148-3.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/CRB/x86_64/os/Packages/meson-1.7.2-1.el10.noarch.rpm
+    repoid: centos-stream-10-crb
+    size: 2358903
+    checksum: sha256:54726b61b487d862d23306035567cc19b64dde3c96f6518dd3ea688a6ab9a591
     name: meson
-    evr: 1.4.1-4.el10
-    sourcerpm: meson-1.4.1-4.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/codeready-builder/os/Packages/n/ninja-build-1.11.1-9.el10.x86_64.rpm
-    repoid: ubi-10-for-x86_64-codeready-builder-rpms
-    size: 187588
-    checksum: sha256:07554cbbe65a30842a324895679df4aebc0a6ca1893ce976e04cc85a6931f4d7
+    evr: 1.7.2-1.el10
+    sourcerpm: meson-1.7.2-1.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/CRB/x86_64/os/Packages/ninja-build-1.11.1-9.el10.x86_64.rpm
+    repoid: centos-stream-10-crb
+    size: 183366
+    checksum: sha256:9bc1eff4a548c6bcea77c55681d3f4baf77c16dbf5701ab608208012fa839464
     name: ninja-build
     evr: 1.11.1-9.el10
     sourcerpm: ninja-build-1.11.1-9.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/codeready-builder/os/Packages/p/python3-pyelftools-0.30-7.el10.noarch.rpm
-    repoid: ubi-10-for-x86_64-codeready-builder-rpms
-    size: 403569
-    checksum: sha256:dc66d063bc519eede3c89573d37563e1bd55fa4932b8fa565194acdedb317102
+  - url: https://mirror.stream.centos.org/10-stream/CRB/x86_64/os/Packages/protobuf-c-compiler-1.5.0-6.el10.x86_64.rpm
+    repoid: centos-stream-10-crb
+    size: 81700
+    checksum: sha256:5eab76f87ba25dec1b3c93924eed4a1548c448c17912094c2508755c63667f82
+    name: protobuf-c-compiler
+    evr: 1.5.0-6.el10
+    sourcerpm: protobuf-c-1.5.0-6.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/CRB/x86_64/os/Packages/protobuf-c-devel-1.5.0-6.el10.x86_64.rpm
+    repoid: centos-stream-10-crb
+    size: 19438
+    checksum: sha256:5845a7c3ed4bf513e79d193ea589a1b1961714db3a201a8190b4ecd40ceb2838
+    name: protobuf-c-devel
+    evr: 1.5.0-6.el10
+    sourcerpm: protobuf-c-1.5.0-6.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/CRB/x86_64/os/Packages/protobuf-compiler-3.19.6-15.el10.x86_64.rpm
+    repoid: centos-stream-10-crb
+    size: 801538
+    checksum: sha256:a3344e6903b9a832e853f0ebb4fd333bf0f06e8c99db469e795666c1b06ce2b0
+    name: protobuf-compiler
+    evr: 3.19.6-15.el10
+    sourcerpm: protobuf-3.19.6-15.el10.src.rpm
+  - url: https://mirror.stream.centos.org/10-stream/CRB/x86_64/os/Packages/python3-pyelftools-0.30-7.el10.noarch.rpm
+    repoid: centos-stream-10-crb
+    size: 399353
+    checksum: sha256:a4ad500218bd9fc6e1b6875818c958def8d4d70c0a7bb8c7134633a7dcf2b2e4
     name: python3-pyelftools
     evr: 0.30-7.el10
     sourcerpm: pyelftools-0.30-7.el10.src.rpm
