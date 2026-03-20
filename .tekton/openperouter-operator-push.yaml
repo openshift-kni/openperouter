@@ -552,6 +552,8 @@ spec:
         value: $(tasks.prefetch-dependencies.results.SOURCE_ARTIFACT)
       - name: CACHI2_ARTIFACT
         value: $(tasks.prefetch-dependencies.results.CACHI2_ARTIFACT)
+      - name: EXCLUDED_DIRS                                                                                                                                                                                                          
+        value: "openshift/grout,openshift/grout-subprojects"     
       runAfter:
       - build-image-index
       taskRef:
