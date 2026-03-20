@@ -26,14 +26,14 @@ FROM quay.io/centos/centos:stream10 AS grout-builder
 RUN mkdir -p /tmp/staging
 
 # install runtime dependencies into a staging dir
-RUN dnf --enablerepo=crb install --setopt=install_weak_deps=0 --nodocs -y \
+RUN dnf --enablerepo='*crb*' install --setopt=install_weak_deps=0 --nodocs -y \
 	--releasever 10 --installroot /tmp/staging \
 	glibc-minimal-langpack coreutils-single less shadow-utils tcpdump \
 	libedit libevent libmnl rdma-core libibverbs numactl json-c libcap \
 	libyang elfutils-libelf python3-pyelftools protobuf-c python3 readline
 
 # install build dependencies
-RUN dnf --enablerepo=crb install --setopt=install_weak_deps=0 --nodocs -y \
+RUN dnf --enablerepo='*crb*' install --setopt=install_weak_deps=0 --nodocs -y \
 	gcc make meson ninja-build pkgconf python3-pyelftools json-c-devel \
 	libedit-devel libevent-devel libmnl-devel rdma-core-devel \
 	patch autoconf automake libtool bison elfutils-libelf-devel flex \
