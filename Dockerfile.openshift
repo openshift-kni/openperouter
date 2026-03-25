@@ -21,64 +21,18 @@ RUN GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=
   GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -mod=vendor -tags strictfipsruntime  -o operatorbinary ./operator
 
 # Build grout and FRR
-FROM quay.io/centos/centos:stream10 AS grout-builder
+FROM registry.redhat.io/ubi10/ubi  AS grout-builder
 
-RUN mkdir -p /tmp/staging
-
-# install runtime dependencies into a staging dir
-RUN dnf --enablerepo='*crb*' --nogpgcheck install --setopt=install_weak_deps=0 --nodocs -y \
-	--releasever 10 --installroot /tmp/staging \
-	glibc-minimal-langpack coreutils-single less shadow-utils tcpdump \
-	libedit libevent libmnl rdma-core libibverbs numactl json-c libcap \
-	libyang elfutils-libelf python3-pyelftools protobuf-c python3 readline
 
 # install build dependencies
-RUN dnf --enablerepo='*crb*' --nogpgcheck install --setopt=install_weak_deps=0 --nodocs -y \
-	gcc make meson ninja-build pkgconf python3-pyelftools json-c-devel \
-	libedit-devel libevent-devel libmnl-devel rdma-core-devel \
-	patch autoconf automake libtool bison elfutils-libelf-devel flex \
-	libcap-devel libyang-devel protobuf-c-compiler protobuf-c-devel \
-	python3-devel readline-devel rpm-build numactl-devel
+RUN dnf -y copr enable mruprich/FRR10 && \
+	dnf -y install --setopt=install_weak_deps=0 --nodocs \
+		git gcc make meson ninja-build pkgconf python3-pyelftools \
+		libedit-devel libevent-devel libmnl-devel rdma-core-devel \
+		patch libarchive-devel rpm-build numactl-devel frr-headers
 
-# build and install FRR in the staging dir
-COPY openshift/grout-subprojects/frr /tmp/frr
-RUN cd /tmp/frr && \
-	autoreconf -ivf && \
-	eval "$(rpm -D '_lto_cflags %nil' --eval %configure)" \
-		--libexecdir=/usr/libexec/frr \
-		--localstatedir=/var \
-		--sbindir=/usr/bin \
-		--with-moduledir=/usr/lib64/frr/modules \
-		--with-yangmodelsdir=/usr/share/frr-yang \
-		--enable-user=frr \
-		--enable-group=frr \
-		--enable-vty-group=frrvty \
-		--disable-doc --enable-multipath=64 \
-		--disable-ripd --disable-ripngd --disable-ospfd --disable-ospf6d \
-		--disable-ldpd --disable-nhrpd --disable-eigrpd --disable-babeld \
-		--disable-isisd --disable-pimd --disable-pim6d --disable-pbrd \
-		--disable-fabricd --disable-vrrpd --disable-pathd --disable-ospfapi \
-		--disable-ospfclient --disable-bfdd --disable-python-runtime && \
-	make -j$(nproc) && \
-	make install && \
-	make install DESTDIR=/tmp/staging && \
-	install -dm 775 /tmp/staging/run/frr && \
-	install -dm 775 /tmp/staging/var/lib/frr && \
-	install -dm 755 /tmp/staging/etc/frr && \
-	install -pDm 755 -t /tmp/staging/usr/bin tools/frrinit.sh && \
-	install -pDm 755 -t /tmp/staging/usr/bin tools/frrcommon.sh && \
-	echo bgpd=yes >> /tmp/staging/etc/frr/daemons && \
-	echo vtysh_enable=yes >> /tmp/staging/etc/frr/daemons && \
-	echo 'frr_global_options="-A 127.0.0.1 --log stdout"' >> /tmp/staging/etc/frr/daemons && \
-	echo 'zebra_options="-s 90000000"' >> /tmp/staging/etc/frr/daemons && \
-	touch /tmp/staging/etc/frr/frr.conf && \
-	touch /tmp/staging/etc/frr/vtysh.conf && \
-	chmod 640 /tmp/staging/etc/frr/* && \
-	chroot /tmp/staging groupadd -r frr && \
-	chroot /tmp/staging groupadd -r frrvty && \
-	chroot /tmp/staging useradd -r -g frr -G frrvty -s /sbin/nologin -d /run/frr frr && \
-	chroot /tmp/staging chown -R frr:frr /etc/frr /run/frr /var/lib/frr && \
-	chroot /tmp/staging chgrp frrvty /etc/frr/vtysh.conf
+
+RUN mkdir -p /tmp/staging
 
 # build and install grout into the staging dir
 COPY openshift/grout /tmp/grout
@@ -89,21 +43,26 @@ COPY openshift/grout-subprojects/ecoli /tmp/grout/subprojects/ecoli
 RUN cat /tmp/grout/subprojects/packagefiles/dpdk/*.patch | \
 	patch -d/tmp/grout/subprojects/dpdk -p1
 
-RUN cd /tmp/grout && \
-	eval "$(rpm -D '_lto_cflags %nil' --eval %meson)" \
-		-Ddpdk:platform=generic \
-		-Dfrr=enabled \
-		-Ddocs=disabled \
-		-Dtests=disabled \
-		-Ddpdk_static=true && \
-	eval "$(rpm --eval %meson_build)" && \
-	eval "$(rpm -D 'buildroot /tmp/staging' --eval %meson_install) --skip-subprojects"
+# remove extraneous stuff from the RPM spec
+RUN sed -i -e /systemd/d -e /scdoc/d -e /_mandir/d -e /git/d \
+	-e /__meson_wrap_mode/d -e /cmocka/d /tmp/grout/rpm/grout.spec
+RUN sed -i 's/-Ddpdk_static=true/& -Ddocs=disabled -Dtests=disabled/' /tmp/grout/rpm/grout.spec
 
-# cleanup staging dir
-RUN rm -rf /tmp/staging/usr/include
-RUN chroot /tmp/staging ldconfig
-RUN dnf -y --installroot /tmp/staging clean all
-RUN rm -rf /tmp/staging/var/cache/* /tmp/staging/var/log/dnf/*
+
+# build grout RPM
+RUN make -C /tmp/grout rpm
+# install runtime dependencies into a staging dir
+RUN mkdir -p /tmp/staging
+RUN dnf -y copr enable mruprich/FRR10 && \
+	dnf -y install --setopt=install_weak_deps=0 --nodocs \
+		--installroot /tmp/staging --releasever 10 \
+		glibc-minimal-langpack coreutils-single less tcpdump frr \
+		/tmp/grout/grout.*.rpm /tmp/grout/grout-debuginfo.*.rpm \
+		/tmp/grout/grout-frr.*.rpm /tmp/grout/grout-frr-debuginfo.*.rpm && \
+	dnf -y clean all && \
+	dnf -y clean all --installroot /tmp/staging && \
+	rm -rf /var/cache/* /var/log/dnf* /tmp/staging/var/cache/* /tmp/staging/var/log/dnf*
+
 
 FROM scratch
 WORKDIR /

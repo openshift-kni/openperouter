@@ -27,45 +27,20 @@ packages:
   - name: glibc-minimal-langpack
   - name: coreutils-single
   - name: less
-  - name: shadow-utils
   - name: tcpdump
-  - name: libedit
-  - name: libevent
-  - name: libmnl
-  - name: rdma-core
-  - name: libibverbs
-  - name: numactl
-  - name: json-c
-  - name: libcap
-  - name: libyang
-  - name: elfutils-libelf
-  - name: python3-pyelftools
-  - name: protobuf-c
-  - name: python3
-  - name: readline
   # build deps
+  - name: git
   - name: gcc
   - name: make
   - name: meson
   - name: ninja-build
   - name: pkgconf
-  - name: json-c-devel
+  - name: python3-pyelftools
   - name: libedit-devel
   - name: libevent-devel
   - name: libmnl-devel
   - name: rdma-core-devel
   - name: patch
-  - name: autoconf
-  - name: automake
-  - name: libtool
-  - name: bison
-  - name: elfutils-libelf-devel
-  - name: flex
-  - name: libcap-devel
-  - name: libyang-devel
-  - name: protobuf-c-compiler
-  - name: protobuf-c-devel
-  - name: python3-devel
-  - name: readline-devel
+  - name: libarchive-devel
   - name: rpm-build
   - name: numactl-devel
