@@ -20,8 +20,11 @@ type Neighbor struct {
 	// +optional
 	Type *string `json:"type,omitempty"`
 
-	// address is the IP address to establish the session with.
-	// +kubebuilder:validation:MinLength=1
+	// address is the IP address to establish the session with. The IP address
+	// can be either IPv4 or IPv6.
+	// +kubebuilder:validation:XValidation:rule="isIP(self)",message="Address must be a valid IPv4 or IPv6 address"
+	// +kubebuilder:validation:MaxLength:=39
+	// +kubebuilder:validation:MinLength:=1
 	// +required
 	Address string `json:"address,omitempty"`
 
