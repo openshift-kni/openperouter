@@ -28,10 +28,6 @@ You also need `skopeo` installed and access to `registry.redhat.io` (run
 1. **Edit `rpms.in.yaml`** — add or remove entries in the `packages` list to
    match the packages installed by `dnf` in the `grout-builder` stage.
 
-   > Packages from external repos (e.g. `frr`, `frr-headers` from the
-   > `mruprich/FRR10` copr) cannot be tracked here — only packages available
-   > in the CentOS Stream 10 repos listed under `contentOrigin`.
-
 2. **Regenerate `rpms.lock.yaml`**:
 
    ```bash
