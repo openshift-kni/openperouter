@@ -25,7 +25,7 @@ FROM registry.redhat.io/ubi10/ubi  AS grout-builder
 
 
 # install build dependencies
-RUN dnf -y install --setopt=install_weak_deps=0 --nodocs \
+RUN dnf -y install --skip-broken --setopt=install_weak_deps=0 --nodocs \
 		git gcc make meson ninja-build pkgconf python3-pyelftools \
 		libedit-devel libevent-devel libmnl-devel rdma-core-devel \
 		patch libarchive-devel rpm-build numactl-devel frr-headers
