@@ -285,11 +285,11 @@ var _ = Describe("Beta: Named netns auto-rebuilds after deletion", Ordered, func
 		By("configuring leafkind with BGP graceful-restart and next-hop-self")
 		nodes, err := k8s.GetNodes(cs)
 		Expect(err).NotTo(HaveOccurred())
-		neighbors := []string{}
+		neighbors := []infra.Neighbor{}
 		for _, node := range nodes {
 			neighborIP, err := infra.NeighborIP(infra.KindLeaf, node.Name)
 			Expect(err).NotTo(HaveOccurred())
-			neighbors = append(neighbors, neighborIP)
+			neighbors = append(neighbors, infra.Neighbor{ID: neighborIP})
 		}
 		leafConfig := infra.LeafKindConfiguration{
 			PERouterASN: 64514,
@@ -324,7 +324,7 @@ var _ = Describe("Beta: Named netns auto-rebuilds after deletion", Ordered, func
 		By("resetting leafkind config to defaults")
 		nodes, err := k8s.GetNodes(cs)
 		Expect(err).NotTo(HaveOccurred())
-		resetLeafKindConfig(nodes)
+		Expect(infra.UpdateLeafKindConfig(nodes, infra.LeafKindConfiguration{})).To(Succeed())
 
 		err = Updater.CleanAll()
 		Expect(err).NotTo(HaveOccurred())
