@@ -29,12 +29,12 @@ You also need `skopeo` installed and access to `registry.redhat.io` (run
    match the packages installed by `dnf` in the `grout-builder` stage.
 
 2. **Regenerate `rpms.lock.yaml`**:
+ Follow instructions at 
+ https://konflux-ci.dev/docs/building/activation-keys-subscription/#configuring-an-rpm-lockfile-for-hermetic-builds
 
+ 
    ```bash
-   rpm-lockfile-prototype \
-     --image registry.redhat.io/ubi10/ubi \
-     --outfile openshift/rpms.lock.yaml \
-     openshift/rpms.in.yaml
+  rpm-lockfile-prototype --debug --bare --outfile openshift/rpms.lock.yaml openshift/rpms.in.yaml > openshift/debug.log
    ```
 
 3. **Commit both files** together.

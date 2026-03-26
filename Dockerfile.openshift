@@ -23,6 +23,7 @@ RUN GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=
 # Build grout and FRR
 FROM registry.redhat.io/ubi10/ubi  AS grout-builder
 
+COPY openshift/frr10.gpg /etc/pki/rpm-gpg/RPM-GPG-KEY-frr10
 
 # install build dependencies
 RUN dnf -y install --skip-broken --setopt=install_weak_deps=0 --nodocs \
