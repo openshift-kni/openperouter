@@ -18,6 +18,13 @@ arches:
     name: annobin-plugin-gcc
     evr: 12.99-1.el10
     sourcerpm: annobin-12.99-1.el10.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/appstream/os/Packages/c/cmake-filesystem-3.30.5-3.el10_0.x86_64.rpm
+    repoid: rhel-10-for-x86_64-appstream-rpms
+    size: 24113
+    checksum: sha256:672cc5bccd6994f5359bfdb4df5842a6134565c6e5a07654b48c6bf31edf2885
+    name: cmake-filesystem
+    evr: 3.30.5-3.el10_0
+    sourcerpm: cmake-3.30.5-3.el10_0.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/appstream/os/Packages/c/cpp-14.3.1-2.1.el10.x86_64.rpm
     repoid: rhel-10-for-x86_64-appstream-rpms
     size: 13442056
@@ -130,6 +137,13 @@ arches:
     name: infiniband-diags
     evr: 57.0-2.el10
     sourcerpm: rdma-core-57.0-2.el10.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/appstream/os/Packages/j/json-c-devel-0.18-3.el10.x86_64.rpm
+    repoid: rhel-10-for-x86_64-appstream-rpms
+    size: 58640
+    checksum: sha256:d70d87a1c349b67c4deadcb1c5b757d92caf033e9f654408596bf31bd3d769be
+    name: json-c-devel
+    evr: 0.18-3.el10
+    sourcerpm: json-c-0.18-3.el10.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/appstream/os/Packages/k/kernel-headers-6.12.0-124.45.1.el10_1.x86_64.rpm
     repoid: rhel-10-for-x86_64-appstream-rpms
     size: 3415777
@@ -277,6 +291,27 @@ arches:
     name: patch
     evr: 2.7.6-26.el10
     sourcerpm: patch-2.7.6-26.el10.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/appstream/os/Packages/p/pcre2-devel-10.44-1.el10.3.x86_64.rpm
+    repoid: rhel-10-for-x86_64-appstream-rpms
+    size: 548673
+    checksum: sha256:5509c74a59611612a21f97dd0baa7f79d576e74309252e03664a30cf23c355e1
+    name: pcre2-devel
+    evr: 10.44-1.el10.3
+    sourcerpm: pcre2-10.44-1.el10.3.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/appstream/os/Packages/p/pcre2-utf16-10.44-1.el10.3.x86_64.rpm
+    repoid: rhel-10-for-x86_64-appstream-rpms
+    size: 233846
+    checksum: sha256:33ac88738346926a2d8f5673dc7b01e6a8feea04939fc970139c14ae9b79b86a
+    name: pcre2-utf16
+    evr: 10.44-1.el10.3
+    sourcerpm: pcre2-10.44-1.el10.3.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/appstream/os/Packages/p/pcre2-utf32-10.44-1.el10.3.x86_64.rpm
+    repoid: rhel-10-for-x86_64-appstream-rpms
+    size: 220836
+    checksum: sha256:eae9d659d054fd8c5a02958a823dae1ccfd37f3af4745cbcfd0486d7e76394f7
+    name: pcre2-utf32
+    evr: 10.44-1.el10.3
+    sourcerpm: pcre2-10.44-1.el10.3.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/appstream/os/Packages/p/perl-AutoLoader-5.74-512.2.el10_0.noarch.rpm
     repoid: rhel-10-for-x86_64-appstream-rpms
     size: 22487
@@ -1117,6 +1152,20 @@ arches:
     name: frr
     evr: 10.5.0-8.el10
     sourcerpm: frr-10.5.0-8.el10.src.rpm
+  - url: https://download.copr.fedorainfracloud.org/results/mruprich/FRR10/epel-10-x86_64/Packages/f/frr-headers-10.5.0-8.el10.noarch.rpm
+    repoid: copr:copr.fedorainfracloud.org:mruprich:FRR10
+    size: 325889
+    checksum: sha256:c3037b376b71adc64e078525798442cff8684e29e26ceeae26d2d8aac0ce62d2
+    name: frr-headers
+    evr: 10.5.0-8.el10
+    sourcerpm: frr-10.5.0-8.el10.src.rpm
+  - url: https://download.copr.fedorainfracloud.org/results/mruprich/FRR10/epel-10-x86_64/Packages/l/libyang-devel-2.1.148-2.el10.x86_64.rpm
+    repoid: copr:copr.fedorainfracloud.org:mruprich:FRR10
+    size: 96952
+    checksum: sha256:97669adb17727bd24fd6441d1905cc42752595fd7150558fb126b7f7a2c7cd57
+    name: libyang-devel
+    evr: 2.1.148-2.el10
+    sourcerpm: libyang-2.1.148-2.el10.src.rpm
   source:
   - url: https://download.copr.fedorainfracloud.org/results/mruprich/FRR10/epel-10-x86_64/Packages/f/frr-10.5.0-8.el10.src.rpm
     repoid: copr:copr.fedorainfracloud.org:mruprich:FRR10
