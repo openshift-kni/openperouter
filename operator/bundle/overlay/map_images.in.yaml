@@ -1,7 +1,0 @@
-# Do not modify the manager 'key' value: 'manager'
-- key: operator
-  staging: registry.stage.redhat.io/openshift4-dev-preview-beta/openperouter-rhel9-operator
-  production: registry.redhat.io/openshift4-dev-preview-beta/openperouter-rhel9-operator
-- key: webhook
-  staging: registry.stage.redhat.io/openshift4-dev-preview-beta/openperouter-rhel9-operator
-  production: registry.redhat.io/openshift4-dev-preview-beta/openperouter-rhel9-operator

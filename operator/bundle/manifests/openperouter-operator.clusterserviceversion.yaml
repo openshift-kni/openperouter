@@ -4,17 +4,7 @@ metadata:
   annotations:
     alm-examples: '[]'
     capabilities: Basic Install
-    createdAt: "2026-03-12T09:39:00Z"
-    features.operators.openshift.io/csi: "false"
-    features.operators.openshift.io/disconnected: "true"
-    features.operators.openshift.io/fips-compliant: "true"
-    features.operators.openshift.io/proxy-aware: "false"
-    features.operators.openshift.io/tls-profiles: "false"
-    features.operators.openshift.io/token-auth-aws: "false"
-    features.operators.openshift.io/token-auth-azure: "false"
-    features.operators.openshift.io/token-auth-gcp: "false"
-    operators.openshift.io/valid-subscription: '["OpenShift Container Platform", "OpenShift
-      Platform Plus"]'
+    createdAt: "2026-03-24T11:22:21Z"
     operators.operatorframework.io/builder: operator-sdk-v1.41.1
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
   name: openperouter-operator.v0.0.0
@@ -285,14 +275,6 @@ spec:
       permissions:
       - rules:
         - apiGroups:
-          - security.openshift.io
-          resourceNames:
-          - privileged
-          resources:
-          - securitycontextconstraints
-          verbs:
-          - use
-        - apiGroups:
           - ""
           resources:
           - secrets
@@ -344,14 +326,6 @@ spec:
           - watch
         serviceAccountName: operator
       - rules:
-        - apiGroups:
-          - security.openshift.io
-          resourceNames:
-          - privileged
-          resources:
-          - securitycontextconstraints
-          verbs:
-          - use
         - apiGroups:
           - ""
           resources:

@@ -5,4 +5,3 @@ resources:
 - secrets_role.yaml
 - perouter_role.yaml
 - perouter_role_binding.yaml
-- privileged_scc.yaml
