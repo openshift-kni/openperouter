@@ -25,8 +25,7 @@ FROM registry.redhat.io/ubi10/ubi  AS grout-builder
 
 
 # install build dependencies
-RUN dnf -y copr enable mruprich/FRR10 && \
-	dnf -y install --setopt=install_weak_deps=0 --nodocs \
+RUN dnf -y install --setopt=install_weak_deps=0 --nodocs \
 		git gcc make meson ninja-build pkgconf python3-pyelftools \
 		libedit-devel libevent-devel libmnl-devel rdma-core-devel \
 		patch libarchive-devel rpm-build numactl-devel frr-headers
@@ -53,8 +52,7 @@ RUN sed -i 's/-Ddpdk_static=true/& -Ddocs=disabled -Dtests=disabled/' /tmp/grout
 RUN make -C /tmp/grout rpm
 # install runtime dependencies into a staging dir
 RUN mkdir -p /tmp/staging
-RUN \
-	dnf -y install --setopt=install_weak_deps=0 --nodocs \
+RUN dnf -y install --setopt=install_weak_deps=0 --nodocs \
 		--installroot /tmp/staging --releasever 10 \
 		glibc-minimal-langpack coreutils-single less tcpdump frr \
 		/tmp/grout/grout.*.rpm /tmp/grout/grout-debuginfo.*.rpm \
