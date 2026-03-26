@@ -1,23 +1,23 @@
 contentOrigin:
   repos:
-    - repoid: centos-stream-10-baseos
-      name: CentOS Stream 10 - BaseOS
-      baseurl: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os
+    - repoid: rhel-10-for-x86_64-baseos-rpms
+      name: Red Hat Enterprise Linux 10 for x86_64 - BaseOS (RPMs)
+      baseurl: https://cdn.redhat.com/content/dist/rhel10/$releasever/x86_64/baseos/os
       enabled: 1
       gpgcheck: 1
-      gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-centosofficial-SHA256
-    - repoid: centos-stream-10-appstream
-      name: CentOS Stream 10 - AppStream
-      baseurl: https://mirror.stream.centos.org/10-stream/AppStream/x86_64/os
+      gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+    - repoid: rhel-10-for-x86_64-appstream-rpms
+      name:  Red Hat Enterprise Linux 10 for x86_64 - AppStream (RPMs)
+      baseurl: https://cdn.redhat.com/content/dist/rhel10/$releasever/x86_64/appstream/os
       enabled: 1
       gpgcheck: 1
-      gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-centosofficial-SHA256
-    - repoid: centos-stream-10-crb
-      name: CentOS Stream 10 - CRB
-      baseurl: https://mirror.stream.centos.org/10-stream/CRB/x86_64/os
+      gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+    - repoid: "copr:copr.fedorainfracloud.org:mruprich:FRR10"
+      name: Copr repo for FRR10 owned by mruprich
+      baseurl: https://download.copr.fedorainfracloud.org/results/mruprich/FRR10/epel-10-$basearch/
       enabled: 1
       gpgcheck: 1
-      gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-centosofficial-SHA256
+      gpgkey: https://download.copr.fedorainfracloud.org/results/mruprich/FRR10/pubkey.gpg
 
 arches:
   - x86_64
@@ -28,6 +28,7 @@ packages:
   - name: coreutils-single
   - name: less
   - name: tcpdump
+  - name: frr
   # build deps
   - name: git
   - name: gcc
