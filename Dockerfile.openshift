@@ -53,7 +53,7 @@ RUN sed -i 's/-Ddpdk_static=true/& -Ddocs=disabled -Dtests=disabled/' /tmp/grout
 RUN make -C /tmp/grout rpm
 # install runtime dependencies into a staging dir
 RUN mkdir -p /tmp/staging
-RUN dnf -y copr enable mruprich/FRR10 && \
+RUN \
 	dnf -y install --setopt=install_weak_deps=0 --nodocs \
 		--installroot /tmp/staging --releasever 10 \
 		glibc-minimal-langpack coreutils-single less tcpdump frr \
