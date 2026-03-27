@@ -33,8 +33,21 @@ You also need `skopeo` installed and access to `registry.redhat.io` (run
  https://konflux-ci.dev/docs/building/activation-keys-subscription/#configuring-an-rpm-lockfile-for-hermetic-builds
 
  
-   ```bash
+```bash
+$ docker run -v `pwd`:/src -it registry.redhat.io/rhel10/rhel-bootc:10.1  bash
+
+$ subscription-manager register --username ... --password ...
+$ <enable codeready-builder-for-rhel-10-x86_64-rpms repo in /etc/yum.repos.d/redhat.repo
+$ dnf install -y pip skopeo
+$ pip install https://github.com/konflux-ci/rpm-lockfile-prototype/archive/refs/tags/v0.13.1.tar.gz
+$ cp /etc/yum.repos.d/redhat.repo /src/openshift/redhat.repo
+<clean redhat.repo by removing all the disabled repositories>
+$ skopeo login registry.redhat.io
+$ cd /src; rpm-lockfile-prototype rpm-lockfile-prototype --debug --bare --outfile openshift/rpms.lock.yaml openshift/rpms.in.yaml
+
+
+
   rpm-lockfile-prototype --debug --bare --outfile openshift/rpms.lock.yaml openshift/rpms.in.yaml > openshift/debug.log
-   ```
+```
 
 3. **Commit both files** together.
