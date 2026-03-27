@@ -10,9 +10,6 @@
 [submodule "openshift/grout"]
 	path = openshift/grout
 	url = https://github.com/DPDK/grout.git
-[submodule "openshift/numactl"]
-	path = openshift/numactl
-	url = https://github.com/numactl/numactl.git
 [submodule "openshift/grout-subprojects/dpdk"]
 	path = openshift/grout-subprojects/dpdk
 	url = https://github.com/DPDK/dpdk-stable.git
