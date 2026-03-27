@@ -57,7 +57,7 @@ FROM scratch
 WORKDIR /
 
 # Grout + FRR staging filesystem
-COPY --from=grout-builder /tmp/staging/ /
+COPY --from=grout-builder /staging/ /
 
 COPY --from=builder /go/openperouter/reloader /reloader
 COPY --from=builder /go/openperouter/controller /controller
