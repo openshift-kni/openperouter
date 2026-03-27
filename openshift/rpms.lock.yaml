@@ -305,6 +305,27 @@ arches:
     name: patch
     evr: 2.7.6-26.el10
     sourcerpm: patch-2.7.6-26.el10.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/appstream/os/Packages/p/pcre2-devel-10.44-1.el10.3.x86_64.rpm
+    repoid: rhel-10-for-x86_64-appstream-rpms
+    size: 548673
+    checksum: sha256:5509c74a59611612a21f97dd0baa7f79d576e74309252e03664a30cf23c355e1
+    name: pcre2-devel
+    evr: 10.44-1.el10.3
+    sourcerpm: pcre2-10.44-1.el10.3.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/appstream/os/Packages/p/pcre2-utf16-10.44-1.el10.3.x86_64.rpm
+    repoid: rhel-10-for-x86_64-appstream-rpms
+    size: 233846
+    checksum: sha256:33ac88738346926a2d8f5673dc7b01e6a8feea04939fc970139c14ae9b79b86a
+    name: pcre2-utf16
+    evr: 10.44-1.el10.3
+    sourcerpm: pcre2-10.44-1.el10.3.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/appstream/os/Packages/p/pcre2-utf32-10.44-1.el10.3.x86_64.rpm
+    repoid: rhel-10-for-x86_64-appstream-rpms
+    size: 220836
+    checksum: sha256:eae9d659d054fd8c5a02958a823dae1ccfd37f3af4745cbcfd0486d7e76394f7
+    name: pcre2-utf32
+    evr: 10.44-1.el10.3
+    sourcerpm: pcre2-10.44-1.el10.3.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/appstream/os/Packages/p/perl-AutoLoader-5.74-512.2.el10_0.noarch.rpm
     repoid: rhel-10-for-x86_64-appstream-rpms
     size: 22487
@@ -2013,11 +2034,5 @@ arches:
     name: python3-pyelftools
     evr: 0.30-7.el10
     sourcerpm: pyelftools-0.30-7.el10.src.rpm
-  source:
-  - url: https://download.copr.fedorainfracloud.org/results/mruprich/FRR10/epel-10-x86_64/Packages/l/libyang-2.1.148-2.el10.src.rpm
-    repoid: copr:copr.fedorainfracloud.org:mruprich:FRR10
-    size: 1287162
-    checksum: sha256:b7b0f928708a63e63d7651631cf67057330f4181ce4a80d52de9c8159e50b05b
-    name: libyang
-    evr: 2.1.148-2.el10
+  source: []
   module_metadata: []

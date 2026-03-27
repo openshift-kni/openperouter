@@ -1,7 +1,6 @@
 contentOrigin:
   repofiles:
     - ./redhat.repo
-    - ./frr10.repo
 
 arches:
   - x86_64
@@ -52,3 +51,5 @@ packages:
   - name: protobuf-c
   - name: python3
   - name: readline
+  - name: pcre2-devel
+  - name: pkgconfig
