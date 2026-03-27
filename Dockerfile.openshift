@@ -26,13 +26,10 @@ FROM registry.redhat.io/ubi10/ubi  AS grout-builder
 COPY openshift/frr10.gpg /etc/pki/rpm-gpg/RPM-GPG-KEY-frr10
 
 # install build dependencies
-RUN dnf -y install --nogpgcheck --skip-broken --setopt=install_weak_deps=0 --nodocs \
-		git gcc make meson ninja-build pkgconf python3-pyelftools \
-		libedit-devel libevent-devel libmnl-devel rdma-core-devel \
-		patch libarchive-devel rpm-build numactl-devel frr-headers
-
-
-RUN mkdir -p /tmp/staging
+RUN dnf -y install --setopt=install_weak_deps=0 --nodocs \
+ git gcc make meson ninja-build pkgconf python3-pyelftools \
+ libedit-devel libevent-devel libmnl-devel rdma-core-devel \
+ patch libarchive-devel rpm-build numactl-devel frr-headers
 
 # build and install grout into the staging dir
 COPY openshift/grout /tmp/grout
@@ -41,27 +38,20 @@ COPY openshift/grout-subprojects/ecoli /tmp/grout/subprojects/ecoli
 
 # apply DPDK patches shipped by grout
 RUN cat /tmp/grout/subprojects/packagefiles/dpdk/*.patch | \
-	patch -d/tmp/grout/subprojects/dpdk -p1
-
-# remove extraneous stuff from the RPM spec
-RUN sed -i -e /systemd/d -e /scdoc/d -e /_mandir/d -e /git/d \
-	-e /__meson_wrap_mode/d -e /cmocka/d /tmp/grout/rpm/grout.spec
-RUN sed -i 's/-Ddpdk_static=true/& -Ddocs=disabled -Dtests=disabled/' /tmp/grout/rpm/grout.spec
-
+ patch -d/tmp/grout/subprojects/dpdk -p1
 
 # build grout RPM
-RUN make -C /tmp/grout rpm
+RUN make -C /tmp/grout rpm WITHOUT="docs tests systemd download" WITH="frr"
 # install runtime dependencies into a staging dir
-RUN mkdir -p /tmp/staging
+RUN mkdir -p /staging
 RUN dnf -y install --nogpgcheck --setopt=install_weak_deps=0 --nodocs \
-		--installroot /tmp/staging --releasever 10 \
-		glibc-minimal-langpack coreutils-single less tcpdump frr \
-		/tmp/grout/grout.*.rpm /tmp/grout/grout-debuginfo.*.rpm \
-		/tmp/grout/grout-frr.*.rpm /tmp/grout/grout-frr-debuginfo.*.rpm && \
-	dnf -y clean all && \
-	dnf -y clean all --installroot /tmp/staging && \
-	rm -rf /var/cache/* /var/log/dnf* /tmp/staging/var/cache/* /tmp/staging/var/log/dnf*
-
+  --installroot /staging --releasever 10 \
+  glibc-minimal-langpack coreutils-single less tcpdump frr \
+  /tmp/grout/grout.*.rpm /tmp/grout/grout-debuginfo.*.rpm \
+  /tmp/grout/grout-frr.*.rpm /tmp/grout/grout-frr-debuginfo.*.rpm && \
+ dnf -y clean all && \
+ dnf -y clean all --installroot /staging && \
+ rm -rf /var/cache/* /var/log/dnf* /staging/var/cache/* /staging/var/log/dnf*
 
 FROM scratch
 WORKDIR /
