@@ -589,6 +589,16 @@ func (in *Neighbor) DeepCopyInto(out *Neighbor) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.Address != nil {
+		in, out := &in.Address, &out.Address
+		*out = new(string)
+		**out = **in
+	}
+	if in.Interface != nil {
+		in, out := &in.Interface, &out.Interface
+		*out = new(string)
+		**out = **in
+	}
 	if in.Port != nil {
 		in, out := &in.Port, &out.Port
 		*out = new(int32)
