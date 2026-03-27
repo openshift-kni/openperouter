@@ -39,7 +39,7 @@ func TestParityDefaults(t *testing.T) {
 				Spec: v1alpha1.UnderlaySpec{
 					ASN: 65000,
 					Neighbors: []v1alpha1.Neighbor{
-						{ASN: new(int64(65001)), Address: "192.168.1.1"},
+						{ASN: new(int64(65001)), Address: new("192.168.1.1")},
 					},
 				},
 			},
@@ -166,7 +166,7 @@ func TestParityDefaults(t *testing.T) {
 					ASN:          65100,
 					RouterIDCIDR: new("172.16.0.0/16"),
 					Neighbors: []v1alpha1.Neighbor{
-						{ASN: new(int64(65200)), Address: "10.0.0.1"},
+						{ASN: new(int64(65200)), Address: new("10.0.0.1")},
 					},
 					Nics: []string{"eth0"},
 					EVPN: &v1alpha1.EVPNConfig{
@@ -213,7 +213,7 @@ func TestParityValidation(t *testing.T) {
 					ASN:          65000,
 					RouterIDCIDR: new("10.0.0.0/24"),
 					Neighbors: []v1alpha1.Neighbor{
-						{ASN: new(int64(65001)), Address: "192.168.1.1"},
+						{ASN: new(int64(65001)), Address: new("192.168.1.1")},
 					},
 					EVPN: &v1alpha1.EVPNConfig{
 						VTEPCIDR:      new("10.200.0.0/24"),
@@ -295,7 +295,7 @@ func TestParityRoundTrip(t *testing.T) {
 					Neighbors: []v1alpha1.Neighbor{
 						{
 							ASN:             new(int64(65200)),
-							Address:         "10.0.0.1",
+							Address:         new("10.0.0.1"),
 							Port:            new(int32(179)),
 							Password:        new("secret"),
 							HoldTimeSeconds: new(int64(90)),

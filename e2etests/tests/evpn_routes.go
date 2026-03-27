@@ -429,7 +429,7 @@ var _ = Describe("Routes between bgp and the fabric with iBGP testing e2e integr
 			Neighbors: []v1alpha1.Neighbor{
 				{
 					Type:    new("internal"),
-					Address: "192.168.11.2",
+					Address: new("192.168.11.2"),
 				},
 			},
 			EVPN: &v1alpha1.EVPNConfig{

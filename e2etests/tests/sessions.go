@@ -787,7 +787,7 @@ var _ = Describe("Underlay BFD Configuration", Ordered, func() {
 					Neighbors: []v1alpha1.Neighbor{
 						{
 							ASN:     new(int64(64512)),
-							Address: "192.168.11.2",
+							Address: new("192.168.11.2"),
 							BFD:     &v1alpha1.BFDSettings{},
 						},
 					},
@@ -808,7 +808,7 @@ var _ = Describe("Underlay BFD Configuration", Ordered, func() {
 					Neighbors: []v1alpha1.Neighbor{
 						{
 							ASN:     new(int64(64512)),
-							Address: "192.168.11.2",
+							Address: new("192.168.11.2"),
 							BFD: &v1alpha1.BFDSettings{
 								TransmitInterval: new(int32(90)),
 								ReceiveInterval:  new(int32(80)),

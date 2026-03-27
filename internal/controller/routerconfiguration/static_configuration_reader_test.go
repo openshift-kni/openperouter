@@ -253,10 +253,10 @@ func TestReadStaticConfigs_ExistingTestdata(t *testing.T) {
 					RouterIDCIDR: new(defaultRouterIDCIDR),
 					Nics:         []string{"toswitch", "eth0"},
 					Neighbors: []v1alpha1.Neighbor{
-						{ASN: new(int64(64512)), Address: "192.168.11.2"},
+						{ASN: new(int64(64512)), Address: new("192.168.11.2")},
 						{
 							ASN:     new(int64(64512)),
-							Address: "192.168.11.3",
+							Address: new("192.168.11.3"),
 							BFD: &v1alpha1.BFDSettings{
 								ReceiveInterval:  new(int32(300)),
 								TransmitInterval: new(int32(300)),
