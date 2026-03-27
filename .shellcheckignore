@@ -1,0 +1,3 @@
+# External dependencies (git submodules) - skip SAST analysis
+openshift/grout
+openshift/grout-subprojects

@@ -20,22 +20,121 @@ RUN GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=
   && \
   GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -mod=vendor -tags strictfipsruntime  -o operatorbinary ./operator
 
-FROM registry.redhat.io/openshift4/frr-rhel9:v4.21
+# Build grout and FRR
+FROM registry.redhat.io/rhel10/rhel-bootc:10.1  AS grout-builder
+
+# install build dependencies
+COPY openshift/libyang-devel-2.1.148-2.el10.x86_64.rpm /
+RUN dnf --enablerepo='codeready-builder-for-rhel-10-x86_64-rpms' --nogpgcheck install -y /libyang-devel-2.1.148-2.el10.x86_64.rpm
+RUN dnf --enablerepo='codeready-builder-for-rhel-10-x86_64-rpms' --nogpgcheck install --setopt=install_weak_deps=0 --nodocs -y \
+  gcc make meson ninja-build pkgconf python3-pyelftools json-c-devel \
+  libedit-devel libevent-devel libmnl-devel rdma-core-devel \
+  patch autoconf automake libtool bison elfutils-libelf-devel flex \
+  libcap-devel protobuf-c-compiler protobuf-c-devel \
+  python3-devel readline-devel rpm-build numactl-devel
+
+RUN mkdir -p /staging
+
+# install runtime dependencies into a staging dir
+RUN dnf --enablerepo='codeready-builder-for-rhel-10-x86_64-rpms' --nogpgcheck install --setopt=install_weak_deps=0 --nodocs -y \
+	--releasever 10 --installroot /staging \
+	glibc-minimal-langpack coreutils-single less shadow-utils tcpdump \
+	libedit libevent libmnl rdma-core libibverbs numactl json-c libcap \
+	libyang elfutils-libelf python3-pyelftools protobuf-c python3 readline
+
+
+# build and install FRR in the staging dir
+COPY openshift/grout-subprojects/frr /tmp/frr
+
+
+RUN cd /tmp/frr && \
+	autoreconf -ivf && \
+	eval "$(rpm -D '_lto_cflags %nil' --eval %configure)" \
+		--libexecdir=/usr/libexec/frr \
+		--localstatedir=/var \
+		--sbindir=/usr/bin \
+		--with-moduledir=/usr/lib64/frr/modules \
+		--with-yangmodelsdir=/usr/share/frr-yang \
+		--enable-user=frr \
+		--enable-group=frr \
+		--enable-vty-group=frrvty \
+		--disable-doc --enable-multipath=64 \
+		--disable-ripd --disable-ripngd --disable-ospfd --disable-ospf6d \
+		--disable-ldpd --disable-nhrpd --disable-eigrpd --disable-babeld \
+		--disable-isisd --disable-pimd --disable-pim6d --disable-pbrd \
+		--disable-fabricd --disable-vrrpd --disable-pathd --disable-ospfapi \
+		--disable-ospfclient --disable-bfdd --disable-python-runtime && \
+	make -j$(nproc) && \
+	make install && \
+	make install DESTDIR=/staging && \
+	install -dm 775 /staging/run/frr && \
+	install -dm 775 /staging/var/lib/frr && \
+	install -dm 755 /staging/etc/frr && \
+	install -pDm 755 -t /staging/usr/bin tools/frrinit.sh && \
+	install -pDm 755 -t /staging/usr/bin tools/frrcommon.sh && \
+	echo bgpd=yes >> /staging/etc/frr/daemons && \
+	echo vtysh_enable=yes >> /staging/etc/frr/daemons && \
+	echo 'frr_global_options="-A 127.0.0.1 --log stdout"' >> /staging/etc/frr/daemons && \
+	echo 'zebra_options="-s 90000000"' >> /staging/etc/frr/daemons && \
+	touch /staging/etc/frr/frr.conf && \
+	touch /staging/etc/frr/vtysh.conf && \
+	chmod 640 /staging/etc/frr/* && \
+	chroot /staging groupadd -r frr && \
+	chroot /staging groupadd -r frrvty && \
+	chroot /staging useradd -r -g frr -G frrvty -s /sbin/nologin -d /run/frr frr && \
+	chroot /staging chown -R frr:frr /etc/frr /run/frr /var/lib/frr && \
+	chroot /staging chgrp frrvty /etc/frr/vtysh.conf
+
+
+# build and install grout into the staging dir
+COPY openshift/grout /tmp/grout
+COPY openshift/grout-subprojects/dpdk /tmp/grout/subprojects/dpdk
+COPY openshift/grout-subprojects/ecoli /tmp/grout/subprojects/ecoli
+
+# apply DPDK patches shipped by grout
+RUN cat /tmp/grout/subprojects/packagefiles/dpdk/*.patch | \
+ patch -d/tmp/grout/subprojects/dpdk -p1
+
+# build grout RPM
+RUN cd /tmp/grout && \
+	eval "$(rpm -D '_lto_cflags %nil' --eval %meson)" \
+		-Ddpdk:platform=generic \
+		-Dfrr=enabled \
+		-Ddocs=disabled \
+		-Dtests=disabled \
+		-Ddpdk_static=true && \
+	eval "$(rpm --eval %meson_build)" && \
+	eval "$(rpm -D 'buildroot /staging' --eval %meson_install) --skip-subprojects"
+
+
+# cleanup staging dir
+RUN rm -rf /staging/usr/include
+RUN chroot /staging ldconfig
+RUN dnf -y --installroot /staging clean all
+RUN rm -rf /staging/var/cache/* /staging/var/log/dnf/*
+
+FROM scratch
 WORKDIR /
-COPY --from=builder /go/openperouter/reloader .
-COPY --from=builder /go/openperouter/controller .
-COPY --from=builder /go/openperouter/hostbridge .
-COPY --from=builder /go/openperouter/nodemarker .
-COPY --from=builder /go/openperouter/operatorbinary ./operator
-COPY operator/bindata bindata
+
+# Grout + FRR staging filesystem
+COPY --from=grout-builder /staging/ /grout
+
+COPY --from=builder /go/openperouter/reloader /reloader
+COPY --from=builder /go/openperouter/controller /controller
+COPY --from=builder /go/openperouter/hostbridge /hostbridge
+COPY --from=builder /go/openperouter/nodemarker /nodemaker
+COPY --from=builder /go/openperouter/operatorbinary /operator
+COPY operator/bindata /bindata
 
 # Copy FRR startup configuration to the default location
 COPY systemdmode/frrconfig/daemons /etc/frr/daemons
 COPY systemdmode/frrconfig/vtysh.conf /etc/frr/vtysh.conf
 COPY systemdmode/frrconfig/frr.conf /etc/frr/frr.conf
 
+RUN chmod 640 /etc/frr/* && chown -R frr:frr /etc/frr && chgrp frrvty /etc/frr/vtysh.conf
+
 LABEL com.redhat.component="openperouter" \
-    name="openshift4-dev-preview-beta/openperouter-rhel9-operator" \
+    name="openshift4-dev-preview-beta/openperouter-rhel10-operator" \
     summary="openperouter" \
     io.openshift.expose-services="" \
     io.openshift.tags="openperouter" \
@@ -46,6 +145,5 @@ LABEL com.redhat.component="openperouter" \
     release="4.22" \
     url="https://github.com/openperouter/openperouter" \
     vendor="Red Hat, Inc."
-
 
 ENTRYPOINT ["/controller"]
