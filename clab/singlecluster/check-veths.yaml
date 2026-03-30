@@ -1,0 +1,19 @@
+interfaces:
+# requiresTemp: the interface must be fully configured before being given its final name,
+# otherwise the OpenPERouter controller pod could steal and move it into its namespace prematurely.
+- left:
+    bridge: "leafkind-switch"
+    name: "kindctrlpl"
+  right:
+    container: "pe-kind-control-plane"
+    name: "toswitch"
+    ips: ["192.168.11.3/24"]
+    requiresTemp: true
+- left:
+    bridge: "leafkind-switch"
+    name: "kindworker"
+  right:
+    container: "pe-kind-worker"
+    name: "toswitch"
+    ips: ["192.168.11.4/24"]
+    requiresTemp: true
