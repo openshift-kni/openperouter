@@ -33,19 +33,16 @@ RUN dnf --enablerepo='codeready-builder-for-rhel-10-x86_64-rpms' --nogpgcheck in
   libcap-devel protobuf-c-compiler protobuf-c-devel \
   python3-devel readline-devel rpm-build numactl-devel
 
-RUN mkdir -p /staging
-
-# install runtime dependencies into a staging dir
+# install runtime
 RUN dnf --enablerepo='codeready-builder-for-rhel-10-x86_64-rpms' --nogpgcheck install --setopt=install_weak_deps=0 --nodocs -y \
-	--releasever 10 --installroot /staging \
-	glibc-minimal-langpack coreutils-single less shadow-utils tcpdump \
+	--releasever 10 \
+	glibc-minimal-langpack less shadow-utils tcpdump \
 	libedit libevent libmnl rdma-core libibverbs numactl json-c libcap \
 	libyang elfutils-libelf python3-pyelftools protobuf-c python3 readline
 
 
-# build and install FRR in the staging dir
+# build and install FRR
 COPY openshift/grout-subprojects/frr /tmp/frr
-
 
 RUN cd /tmp/frr && \
 	autoreconf -ivf && \
@@ -65,28 +62,9 @@ RUN cd /tmp/frr && \
 		--disable-fabricd --disable-vrrpd --disable-pathd --disable-ospfapi \
 		--disable-ospfclient --disable-bfdd --disable-python-runtime && \
 	make -j$(nproc) && \
-	make install && \
-	make install DESTDIR=/staging && \
-	install -dm 775 /staging/run/frr && \
-	install -dm 775 /staging/var/lib/frr && \
-	install -dm 755 /staging/etc/frr && \
-	install -pDm 755 -t /staging/usr/bin tools/frrinit.sh && \
-	install -pDm 755 -t /staging/usr/bin tools/frrcommon.sh && \
-	echo bgpd=yes >> /staging/etc/frr/daemons && \
-	echo vtysh_enable=yes >> /staging/etc/frr/daemons && \
-	echo 'frr_global_options="-A 127.0.0.1 --log stdout"' >> /staging/etc/frr/daemons && \
-	echo 'zebra_options="-s 90000000"' >> /staging/etc/frr/daemons && \
-	touch /staging/etc/frr/frr.conf && \
-	touch /staging/etc/frr/vtysh.conf && \
-	chmod 640 /staging/etc/frr/* && \
-	chroot /staging groupadd -r frr && \
-	chroot /staging groupadd -r frrvty && \
-	chroot /staging useradd -r -g frr -G frrvty -s /sbin/nologin -d /run/frr frr && \
-	chroot /staging chown -R frr:frr /etc/frr /run/frr /var/lib/frr && \
-	chroot /staging chgrp frrvty /etc/frr/vtysh.conf
+	make install
 
-
-# build and install grout into the staging dir
+# build and install grout
 COPY openshift/grout /tmp/grout
 COPY openshift/grout-subprojects/dpdk /tmp/grout/subprojects/dpdk
 COPY openshift/grout-subprojects/ecoli /tmp/grout/subprojects/ecoli
@@ -97,27 +75,14 @@ RUN cat /tmp/grout/subprojects/packagefiles/dpdk/*.patch | \
 
 # build grout RPM
 RUN cd /tmp/grout && \
-	eval "$(rpm -D '_lto_cflags %nil' --eval %meson)" \
-		-Ddpdk:platform=generic \
-		-Dfrr=enabled \
-		-Ddocs=disabled \
-		-Dtests=disabled \
-		-Ddpdk_static=true && \
-	eval "$(rpm --eval %meson_build)" && \
-	eval "$(rpm -D 'buildroot /staging' --eval %meson_install) --skip-subprojects"
+	make install
 
+FROM registry.redhat.io/openshift4/frr-rhel9:v4.21
 
-# cleanup staging dir
-RUN rm -rf /staging/usr/include
-RUN chroot /staging ldconfig
-RUN dnf -y --installroot /staging clean all
-RUN rm -rf /staging/var/cache/* /staging/var/log/dnf/*
-
-FROM scratch
 WORKDIR /
 
 # Grout + FRR staging filesystem
-COPY --from=grout-builder /staging/ /grout
+COPY --from=grout-builder / /grout
 
 COPY --from=builder /go/openperouter/reloader /reloader
 COPY --from=builder /go/openperouter/controller /controller
