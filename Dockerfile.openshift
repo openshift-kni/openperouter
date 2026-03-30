@@ -21,12 +21,13 @@ RUN GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=
   GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -mod=vendor -tags strictfipsruntime  -o operatorbinary ./operator
 
 # Build grout and FRR
-FROM registry.redhat.io/rhel10/rhel-bootc:10.1  AS grout-builder
+FROM registry.redhat.io/ubi10/ubi:10.1-1774545609  AS grout-builder
 
+ENV REPOS="codeready-builder-for-rhel-10-x86_64-rpms,rhel-10-for-x86_64-baseos-rpms,rhel-10-for-x86_64-appstream-rpms"
 # install build dependencies
 COPY openshift/libyang-devel-2.1.148-2.el10.x86_64.rpm /
-RUN dnf --enablerepo='codeready-builder-for-rhel-10-x86_64-rpms' --nogpgcheck install -y /libyang-devel-2.1.148-2.el10.x86_64.rpm
-RUN dnf --enablerepo='codeready-builder-for-rhel-10-x86_64-rpms' --nogpgcheck install --setopt=install_weak_deps=0 --nodocs -y \
+RUN dnf --repo=${REPOS} --nogpgcheck install -y /libyang-devel-2.1.148-2.el10.x86_64.rpm
+RUN dnf --repo=${REPOS} --nogpgcheck install --setopt=install_weak_deps=0 --nodocs -y \
   gcc make meson ninja-build pkgconf python3-pyelftools json-c-devel \
   libedit-devel libevent-devel libmnl-devel rdma-core-devel \
   patch autoconf automake libtool bison elfutils-libelf-devel flex \
@@ -34,7 +35,7 @@ RUN dnf --enablerepo='codeready-builder-for-rhel-10-x86_64-rpms' --nogpgcheck in
   python3-devel readline-devel rpm-build numactl-devel
 
 # install runtime
-RUN dnf --enablerepo='codeready-builder-for-rhel-10-x86_64-rpms' --nogpgcheck install --setopt=install_weak_deps=0 --nodocs -y \
+RUN dnf --repo=${REPOS} --nogpgcheck install --setopt=install_weak_deps=0 --nodocs -y \
 	--releasever 10 \
 	glibc-minimal-langpack less shadow-utils tcpdump \
 	libedit libevent libmnl rdma-core libibverbs numactl json-c libcap \
@@ -76,6 +77,9 @@ RUN cat /tmp/grout/subprojects/packagefiles/dpdk/*.patch | \
 # build grout RPM
 RUN cd /tmp/grout && \
 	make install
+
+RUN rm -rf /tmp/* && \
+	dnf -y clean all
 
 FROM registry.redhat.io/openshift4/frr-rhel9:v4.21
 
