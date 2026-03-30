@@ -1,4 +1,29 @@
-# Refreshing RPM lockfiles
+# OpenShift image build
+
+First, register the subscription
+```
+$ subscription-manager register --username ... --password ...
+
+# or
+
+$ subscription-manager register --org ... --activationkey ...
+```
+
+Then, build the image with
+```
+$ TMPDIR=$(mktemp -d)
+  cp -r /etc/pki/entitlement "$TMPDIR/entitlement"
+  cp -r /etc/rhsm "$TMPDIR/rhsm"
+  
+
+$ podman build -v "$TMPDIR/entitlement:/run/secrets/etc-pki-entitlement:Z"  \
+               -v "$TMPDIR/rhsm:/run/secrets/rhsm:Z" \
+               -f Dockerfile.openshift .
+
+$ rm -rf "$TMPDIR"  
+```
+
+## Refreshing RPM lockfiles
 
 The `rpms.in.yaml` and `rpms.lock.yaml` files declare the RPM dependencies
 needed by the `grout-builder` stage in `Dockerfile.openshift`. Konflux uses
@@ -12,18 +37,7 @@ Update these files whenever:
   lines in the `grout-builder` stage).
 - You want to pick up newer package versions from CentOS Stream 10.
 
-## Prerequisites
-
-Install the lock file generator:
-
-```bash
-pip install rpm-lockfile-prototype
-```
-
-You also need `skopeo` installed and access to `registry.redhat.io` (run
-`podman login registry.redhat.io` if not already authenticated).
-
-## Steps
+### Steps
 
 1. **Edit `rpms.in.yaml`** — add or remove entries in the `packages` list to
    match the packages installed by `dnf` in the `grout-builder` stage.
@@ -46,8 +60,7 @@ $ skopeo login registry.redhat.io
 $ cd /src; rpm-lockfile-prototype rpm-lockfile-prototype --debug --bare --outfile openshift/rpms.lock.yaml openshift/rpms.in.yaml
 
 
-
-  rpm-lockfile-prototype --debug --bare --outfile openshift/rpms.lock.yaml openshift/rpms.in.yaml > openshift/debug.log
+$ rpm-lockfile-prototype --debug --bare --outfile openshift/rpms.lock.yaml openshift/rpms.in.yaml > openshift/debug.log
 ```
 
 3. **Commit both files** together.
