@@ -24,9 +24,13 @@ RUN GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=
 FROM registry.redhat.io/ubi10/ubi:10.1-1774545609  AS grout-builder
 
 ENV REPOS="codeready-builder-for-rhel-10-x86_64-rpms,rhel-10-for-x86_64-baseos-rpms,rhel-10-for-x86_64-appstream-rpms"
+
 # install build dependencies
+
+# TODO: install libyang-devel from codeready-builder repo once RHEL-119430 is solved
 COPY openshift/libyang-devel-2.1.148-2.el10.x86_64.rpm /
 RUN dnf --repo=${REPOS} --nogpgcheck install -y /libyang-devel-2.1.148-2.el10.x86_64.rpm
+
 RUN dnf --repo=${REPOS} --nogpgcheck install --setopt=install_weak_deps=0 --nodocs -y \
   gcc make meson ninja-build pkgconf python3-pyelftools json-c-devel \
   libedit-devel libevent-devel libmnl-devel rdma-core-devel \
@@ -41,7 +45,7 @@ RUN dnf --repo=${REPOS} --nogpgcheck install --setopt=install_weak_deps=0 --nodo
 	libedit libevent libmnl rdma-core libibverbs numactl json-c libcap \
 	libyang elfutils-libelf python3-pyelftools protobuf-c python3 readline
 
-
+# TODO: install FRR from repo as soon as 10.5.1 has been released to `rhel-10-for-x86_64-appstream-rpms` 
 # build and install FRR
 COPY openshift/grout-subprojects/frr /tmp/frr
 
@@ -65,6 +69,8 @@ RUN cd /tmp/frr && \
 	make -j$(nproc) && \
 	make install
 
+# TODO: install grout from RPM when added to `rhel-10-for-x86_64-appstream-rpms`
+
 # build and install grout
 COPY openshift/grout /tmp/grout
 COPY openshift/grout-subprojects/dpdk /tmp/grout/subprojects/dpdk
@@ -85,8 +91,8 @@ FROM registry.redhat.io/openshift4/frr-rhel9:v4.21
 
 WORKDIR /
 
-# Grout + FRR staging filesystem
-COPY --from=grout-builder / /grout
+
+
 
 COPY --from=builder /go/openperouter/reloader /reloader
 COPY --from=builder /go/openperouter/controller /controller
@@ -114,5 +120,19 @@ LABEL com.redhat.component="openperouter" \
     release="4.22" \
     url="https://github.com/openperouter/openperouter" \
     vendor="Red Hat, Inc."
+
+
+# Grout + FRR staging filesystem
+# TODO: remove once FRR 10.5.1 is available in `rhel-10-for-x86_64-appstream-rpms`
+COPY --from=grout-builder / /grout
+RUN cp /sbin/tini  /grout/sbin/tini
+RUN mkdir -p /grout/usr/lib/frr && \
+    cp /usr/lib/frr/docker-start /grout/usr/lib/frr/docker-start
+
+COPY systemdmode/frrconfig/daemons /grout/etc/frr/daemons
+COPY systemdmode/frrconfig/vtysh.conf /grout/etc/frr/vtysh.conf
+COPY systemdmode/frrconfig/frr.conf /grout/etc/frr/frr.conf
+
+RUN chmod 640 /grout/etc/frr/* && chown -R frr:frr /grout/etc/frr && chgrp frrvty /grout/etc/frr/vtysh.conf
 
 ENTRYPOINT ["/controller"]
