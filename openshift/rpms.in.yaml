@@ -53,3 +53,5 @@ packages:
   - name: readline
   - name: pcre2-devel
   - name: pkgconfig
+  - name: frr
+  - name: catatonit

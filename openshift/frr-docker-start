@@ -1,0 +1,9 @@
+#!/bin/bash
+
+if [ -z ${GROUT_DATAPATH+x} ]; then
+    source /usr/libexec/frr/frrcommon.sh
+    /usr/libexec/frr/watchfrr $(daemon_list)
+else
+    source /frr-staging/usr/sbin/frrcommon.sh
+    /frr-staging/usr/sbin/watchfrr $(daemon_list)
+fi

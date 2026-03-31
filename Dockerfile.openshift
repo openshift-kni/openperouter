@@ -49,23 +49,20 @@ RUN dnf --repo=${REPOS} --nogpgcheck install --setopt=install_weak_deps=0 --nodo
 # build and install FRR
 COPY openshift/grout-subprojects/frr /tmp/frr
 
+RUN mkdir -p /frr-staging/usr
 RUN cd /tmp/frr && \
 	autoreconf -ivf && \
-	eval "$(rpm -D '_lto_cflags %nil' --eval %configure)" \
-		--libexecdir=/usr/libexec/frr \
-		--localstatedir=/var \
-		--sbindir=/usr/bin \
-		--with-moduledir=/usr/lib64/frr/modules \
-		--with-yangmodelsdir=/usr/share/frr-yang \
-		--enable-user=frr \
-		--enable-group=frr \
+  ./configure \
+    --sysconfdir=/etc \
+    --localstatedir=/var \
+		--prefix=/frr-staging/usr \
 		--enable-vty-group=frrvty \
 		--disable-doc --enable-multipath=64 \
 		--disable-ripd --disable-ripngd --disable-ospfd --disable-ospf6d \
 		--disable-ldpd --disable-nhrpd --disable-eigrpd --disable-babeld \
 		--disable-isisd --disable-pimd --disable-pim6d --disable-pbrd \
 		--disable-fabricd --disable-vrrpd --disable-pathd --disable-ospfapi \
-		--disable-ospfclient --disable-bfdd --disable-python-runtime && \
+		--disable-ospfclient --disable-bfdd && \
 	make -j$(nproc) && \
 	make install
 
@@ -80,6 +77,9 @@ COPY openshift/grout-subprojects/ecoli /tmp/grout/subprojects/ecoli
 RUN cat /tmp/grout/subprojects/packagefiles/dpdk/*.patch | \
  patch -d/tmp/grout/subprojects/dpdk -p1
 
+ENV PKG_CONFIG_PATH=/frr-staging/usr/lib64/pkgconfig                                                                                                                                                                                                    
+
+#RUN find / -name zebra_dplane.h
 # build grout RPM
 RUN cd /tmp/grout && \
 	make install
@@ -87,12 +87,9 @@ RUN cd /tmp/grout && \
 RUN rm -rf /tmp/* && \
 	dnf -y clean all
 
-FROM registry.redhat.io/openshift4/frr-rhel9:v4.21
+FROM registry.redhat.io/ubi10/ubi:10.1-1774545609
 
 WORKDIR /
-
-
-
 
 COPY --from=builder /go/openperouter/reloader /reloader
 COPY --from=builder /go/openperouter/controller /controller
@@ -100,6 +97,13 @@ COPY --from=builder /go/openperouter/hostbridge /hostbridge
 COPY --from=builder /go/openperouter/nodemarker /nodemaker
 COPY --from=builder /go/openperouter/operatorbinary /operator
 COPY operator/bindata /bindata
+
+ENV REPOS="codeready-builder-for-rhel-10-x86_64-rpms,rhel-10-for-x86_64-baseos-rpms,rhel-10-for-x86_64-appstream-rpms"
+
+RUN dnf --repo=${REPOS} --nogpgcheck install -y \
+  frr catatonit
+
+RUN  ln -s /usr/libexec/podman/catatonit /sbin/tini
 
 # Copy FRR startup configuration to the default location
 COPY systemdmode/frrconfig/daemons /etc/frr/daemons
@@ -109,30 +113,25 @@ COPY systemdmode/frrconfig/frr.conf /etc/frr/frr.conf
 RUN chmod 640 /etc/frr/* && chown -R frr:frr /etc/frr && chgrp frrvty /etc/frr/vtysh.conf
 
 LABEL com.redhat.component="openperouter" \
-    name="openshift4-dev-preview-beta/openperouter-rhel10-operator" \
-    summary="openperouter" \
-    io.openshift.expose-services="" \
-    io.openshift.tags="openperouter" \
-    io.k8s.display-name="openperouter" \
-    io.k8s.description="openperouter" \
-    description="openperouter" \
-    distribution-scope="public" \
-    release="4.22" \
-    url="https://github.com/openperouter/openperouter" \
-    vendor="Red Hat, Inc."
+   name="openshift4-dev-preview-beta/openperouter-rhel10-operator" \
+   summary="openperouter" \
+   io.openshift.expose-services="" \
+   io.openshift.tags="openperouter" \
+   io.k8s.display-name="openperouter" \
+   io.k8s.description="openperouter" \
+   description="openperouter" \
+   distribution-scope="public" \
+   release="4.22" \
+   url="https://github.com/openperouter/openperouter" \
+   vendor="Red Hat, Inc."
 
 
 # Grout + FRR staging filesystem
 # TODO: remove once FRR 10.5.1 is available in `rhel-10-for-x86_64-appstream-rpms`
-COPY --from=grout-builder / /grout
-RUN cp /sbin/tini  /grout/sbin/tini
-RUN mkdir -p /grout/usr/lib/frr && \
-    cp /usr/lib/frr/docker-start /grout/usr/lib/frr/docker-start
+COPY --from=grout-builder /usr/local/bin/grout /usr/local/bin/grout
+COPY --from=grout-builder /frr-staging /frr-staging
 
-COPY systemdmode/frrconfig/daemons /grout/etc/frr/daemons
-COPY systemdmode/frrconfig/vtysh.conf /grout/etc/frr/vtysh.conf
-COPY systemdmode/frrconfig/frr.conf /grout/etc/frr/frr.conf
-
-RUN chmod 640 /grout/etc/frr/* && chown -R frr:frr /grout/etc/frr && chgrp frrvty /grout/etc/frr/vtysh.conf
+#RUN mkdir -p /grout/usr/lib/frr && \
+COPY openshift/frr-docker-start /usr/lib/frr/docker-start
 
 ENTRYPOINT ["/controller"]
