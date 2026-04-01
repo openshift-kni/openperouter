@@ -21,14 +21,11 @@ RUN GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=
   GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -mod=vendor -tags strictfipsruntime  -o operatorbinary ./operator
 
 # Build grout and FRR
-FROM registry.redhat.io/ubi10/ubi:10.1-1774545609  AS grout-builder
+FROM registry.ci.openshift.org/ocp/4.22:rhel-coreos-10  AS grout-builder
 
-RUN dnf repolist
 ENV REPOS="codeready-builder-for-rhel-10-x86_64-rpms,rhel-10-for-x86_64-baseos-rpms,rhel-10-for-x86_64-appstream-rpms"
-
-RUN dnf config-manager --set-enabled ${REPOS} || \
-    rm -rf /etc/yum.repos.d/* && curl http://base-4-22-rhel102.ocp.svc > /etc/yum.repos.d/base-4-22-rhel10.repo && \
-    dnf config-manager --set-enabled "rhel*"
+RUN dnf config-manager --set-enabled "codeready-builder-*"
+RUN dnf repolist
 
 RUN cat /etc/yum.repos.d/base-4-22-rhel10.repo
 
@@ -96,7 +93,7 @@ RUN cd /tmp/grout && \
 RUN rm -rf /tmp/* && \
 	dnf -y clean all
 
-FROM registry.redhat.io/ubi10/ubi:10.1-1774545609
+FROM registry.ci.openshift.org/ocp/4.22:rhel-coreos-10
 
 WORKDIR /
 
@@ -110,10 +107,7 @@ COPY operator/bindata /bindata
 ENV REPOS="codeready-builder-for-rhel-10-x86_64-rpms,rhel-10-for-x86_64-baseos-rpms,rhel-10-for-x86_64-appstream-rpms"
 
 
-RUN dnf config-manager --set-enabled ${REPOS} || \
-    rm -rf /etc/yum.repos.d/* && curl http://base-4-22-rhel102.ocp.svc > /etc/yum.repos.d/base-4-22-rhel10.repo && \
-    dnf config-manager --set-enabled "rhel*"
-
+RUN dnf config-manager --set-enabled "codeready-builder-*"
 
 RUN dnf --nogp--repo=${REPOS}gcheck install -y \
   frr catatonit
