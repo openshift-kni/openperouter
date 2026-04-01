@@ -24,6 +24,8 @@ RUN GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=
 FROM registry.ci.openshift.org/ocp/4.22:rhel-coreos-10  AS grout-builder
 
 ENV REPOS="codeready-builder-for-rhel-10-x86_64-rpms,rhel-10-for-x86_64-baseos-rpms,rhel-10-for-x86_64-appstream-rpms"
+RUN find /etc/yum.repos.d/
+RUN cat /etc/yum.repos.d/
 RUN dnf config-manager --set-enabled "codeready-builder-*"
 RUN dnf repolist
 
