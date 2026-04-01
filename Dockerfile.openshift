@@ -23,6 +23,7 @@ RUN GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=
 # Build grout and FRR
 FROM registry.redhat.io/ubi10/ubi:10.1-1774545609  AS grout-builder
 
+RUN dnf repolist
 ENV REPOS="codeready-builder-for-rhel-10-x86_64-rpms,rhel-10-for-x86_64-baseos-rpms,rhel-10-for-x86_64-appstream-rpms"
 
 # install build dependencies
