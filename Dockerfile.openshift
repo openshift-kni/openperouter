@@ -26,13 +26,21 @@ FROM registry.redhat.io/ubi10/ubi:10.1-1774545609  AS grout-builder
 RUN dnf repolist
 ENV REPOS="codeready-builder-for-rhel-10-x86_64-rpms,rhel-10-for-x86_64-baseos-rpms,rhel-10-for-x86_64-appstream-rpms"
 
+RUN dnf config-manager --set-enabled ${REPOS} || \
+    rm -rf /etc/yum.repos.d/* && curl http://base-4-22-rhel102.ocp.svc > /etc/yum.repos.d/base-4-22-rhel10.repo && \
+    dnf config-manager --set-enabled "rhel*"
+
+RUN cat /etc/yum.repos.d/base-4-22-rhel10.repo
+
+#ENV REPOS="crb,baseos,appstream"
+
 # install build dependencies
 
 # TODO: install libyang-devel from codeready-builder repo once RHEL-119430 is solved
 COPY openshift/libyang-devel-2.1.148-2.el10.x86_64.rpm /
-RUN dnf --repo=${REPOS} --nogpgcheck install -y /libyang-devel-2.1.148-2.el10.x86_64.rpm
+RUN dnf --nogpgcheck install -y /libyang-devel-2.1.148-2.el10.x86_64.rpm
 
-RUN dnf --repo=${REPOS} --nogpgcheck install --setopt=install_weak_deps=0 --nodocs -y \
+RUN dnf --nogpgcheck install --setopt=install_weak_deps=0 --nodocs -y \
   gcc make meson ninja-build pkgconf python3-pyelftools json-c-devel \
   libedit-devel libevent-devel libmnl-devel rdma-core-devel \
   patch autoconf automake libtool bison elfutils-libelf-devel flex \
@@ -40,7 +48,7 @@ RUN dnf --repo=${REPOS} --nogpgcheck install --setopt=install_weak_deps=0 --nodo
   python3-devel readline-devel rpm-build numactl-devel
 
 # install runtime
-RUN dnf --repo=${REPOS} --nogpgcheck install --setopt=install_weak_deps=0 --nodocs -y \
+RUN dnf --nogpgcheck install --setopt=install_weak_deps=0 --nodocs -y \
 	--releasever 10 \
 	glibc-minimal-langpack less shadow-utils tcpdump \
 	libedit libevent libmnl rdma-core libibverbs numactl json-c libcap \
@@ -101,7 +109,13 @@ COPY operator/bindata /bindata
 
 ENV REPOS="codeready-builder-for-rhel-10-x86_64-rpms,rhel-10-for-x86_64-baseos-rpms,rhel-10-for-x86_64-appstream-rpms"
 
-RUN dnf --repo=${REPOS} --nogpgcheck install -y \
+
+RUN dnf config-manager --set-enabled ${REPOS} || \
+    rm -rf /etc/yum.repos.d/* && curl http://base-4-22-rhel102.ocp.svc > /etc/yum.repos.d/base-4-22-rhel10.repo && \
+    dnf config-manager --set-enabled "rhel*"
+
+
+RUN dnf --nogp--repo=${REPOS}gcheck install -y \
   frr catatonit
 
 RUN  ln -s /usr/libexec/podman/catatonit /sbin/tini
