@@ -1,3 +1,6 @@
+# Tekton piplines override this with a UBI image
+ARG BASE_IMAGE=quay.io/centos/centos:stream10
+
 # Build the manager binary
 FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_9_golang_1.25 AS builder
 
@@ -21,23 +24,26 @@ RUN GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=
   GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -mod=vendor -tags strictfipsruntime  -o operatorbinary ./operator
 
 # Build grout and FRR
-FROM registry.ci.openshift.org/ocp/4.22:rhel-coreos-10  AS grout-builder
+FROM ${BASE_IMAGE} AS grout-builder
 
-ENV REPOS="codeready-builder-for-rhel-10-x86_64-rpms,rhel-10-for-x86_64-baseos-rpms,rhel-10-for-x86_64-appstream-rpms"
-RUN find /etc/yum.repos.d/
-RUN cat /etc/yum.repos.d/
-RUN dnf config-manager --set-enabled "codeready-builder-*"
-RUN dnf repolist
+RUN . /etc/os-release && \
+      if [ "$ID" = "rhel" ] || [ "$ID" = "ubi" ]; then \
+        dnf config-manager --set-enabled "codeready-builder-for-rhel-10-x86_64-rpms,rhel-10-for-x86_64-baseos-rpms,rhel-10-for-x86_64-appstream-rpms"; \
+      else \
+        dnf config-manager --set-enabled "crb,baseos,appstream"; \
+      fi
 
-RUN cat /etc/yum.repos.d/base-4-22-rhel10.repo
-
-#ENV REPOS="crb,baseos,appstream"
 
 # install build dependencies
 
 # TODO: install libyang-devel from codeready-builder repo once RHEL-119430 is solved
 COPY openshift/libyang-devel-2.1.148-2.el10.x86_64.rpm /
-RUN dnf --nogpgcheck install -y /libyang-devel-2.1.148-2.el10.x86_64.rpm
+RUN . /etc/os-release && \
+      if [ "$ID" = "rhel" ] || [ "$ID" = "ubi" ]; then \
+        dnf --nogpgcheck install -y /libyang-devel-2.1.148-2.el10.x86_64.rpm
+      else 
+        dnf --nogpgcheck install -y libyang-devel
+      fi
 
 RUN dnf --nogpgcheck install --setopt=install_weak_deps=0 --nodocs -y \
   gcc make meson ninja-build pkgconf python3-pyelftools json-c-devel \
@@ -95,7 +101,7 @@ RUN cd /tmp/grout && \
 RUN rm -rf /tmp/* && \
 	dnf -y clean all
 
-FROM registry.ci.openshift.org/ocp/4.22:rhel-coreos-10
+FROM ${BASE_IMAGE}
 
 WORKDIR /
 
@@ -106,12 +112,15 @@ COPY --from=builder /go/openperouter/nodemarker /nodemaker
 COPY --from=builder /go/openperouter/operatorbinary /operator
 COPY operator/bindata /bindata
 
-ENV REPOS="codeready-builder-for-rhel-10-x86_64-rpms,rhel-10-for-x86_64-baseos-rpms,rhel-10-for-x86_64-appstream-rpms"
 
+RUN . /etc/os-release && \
+      if [ "$ID" = "rhel" ] || [ "$ID" = "ubi" ]; then \
+        dnf config-manager --set-enabled "codeready-builder-for-rhel-10-x86_64-rpms,rhel-10-for-x86_64-baseos-rpms,rhel-10-for-x86_64-appstream-rpms"; \
+      else \
+        dnf config-manager --set-enabled "crb,baseos,appstream"; \
+      fi
 
-RUN dnf config-manager --set-enabled "codeready-builder-*"
-
-RUN dnf --nogp--repo=${REPOS}gcheck install -y \
+RUN dnf --nogpgcheck install -y \
   frr catatonit
 
 RUN  ln -s /usr/libexec/podman/catatonit /sbin/tini
@@ -142,7 +151,6 @@ LABEL com.redhat.component="openperouter" \
 COPY --from=grout-builder /usr/local/bin/grout /usr/local/bin/grout
 COPY --from=grout-builder /frr-staging /frr-staging
 
-#RUN mkdir -p /grout/usr/lib/frr && \
 COPY openshift/frr-docker-start /usr/lib/frr/docker-start
 
 ENTRYPOINT ["/controller"]
