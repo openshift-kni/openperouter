@@ -40,9 +40,9 @@ RUN . /etc/os-release && \
 COPY openshift/libyang-devel-2.1.148-2.el10.x86_64.rpm /
 RUN . /etc/os-release && \
       if [ "$ID" = "rhel" ] || [ "$ID" = "ubi" ]; then \
-        dnf --nogpgcheck install -y /libyang-devel-2.1.148-2.el10.x86_64.rpm
-      else 
-        dnf --nogpgcheck install -y libyang-devel
+        dnf --nogpgcheck install -y /libyang-devel-2.1.148-2.el10.x86_64.rpm; \
+      else \
+        dnf --nogpgcheck install -y libyang-devel; \
       fi
 
 RUN dnf --nogpgcheck install --setopt=install_weak_deps=0 --nodocs -y \
