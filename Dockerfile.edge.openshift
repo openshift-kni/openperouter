@@ -2,7 +2,7 @@
 ARG BASE_IMAGE=quay.io/centos/centos:stream10
 
 # Build the manager binary
-FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_9_golang_1.26 AS builder
+FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_9_golang_1.25 AS builder
 
 ARG GIT_COMMIT=dev
 ARG GIT_BRANCH=dev
@@ -54,33 +54,33 @@ RUN dnf --nogpgcheck install --setopt=install_weak_deps=0 --nodocs -y \
   groff pam-devel systemd-devel openssl-devel libarchive-devel
 
 COPY openshift/grout /src
-COPY openshift/deps/dpdk /src/subprojects/dpdk-stable-25.11.2
-COPY openshift/deps/libecoli /src/subprojects/libecoli-0.11.3
-COPY openshift/deps/frr /src/subprojects/frr-frr-10.6.1
+COPY openshift/deps/dpdk /src/subprojects/dpdk-25.11
+COPY openshift/deps/libecoli /src/subprojects/libecoli-0.10.1
+COPY openshift/deps/frr /src/subprojects/frr-frr-10.5.3
 
 WORKDIR /src
 
 # Apply dpdk patches (meson skips diff_files for pre-existing directories)
-RUN for p in subprojects/packagefiles/dpdk/*.patch; do patch -d subprojects/dpdk-stable-25.11.2 -p1 < "$p"; done
+RUN for p in subprojects/packagefiles/dpdk/*.patch; do patch -d subprojects/dpdk-25.11 -p1 < "$p"; done
 
 # Apply frr overlay files (meson skips patch_directory for pre-existing directories)
-RUN cp subprojects/packagefiles/frr/* subprojects/frr-frr-10.6.1/
+RUN cp subprojects/packagefiles/frr/* subprojects/frr-frr-10.5.3/
 
 # Create frr tarball in packagecache (make frr-rpm expects it there)
 RUN mkdir -p subprojects/packagecache && \
-    tar -C subprojects -czf subprojects/packagecache/frr-10.6.1.tar.gz frr-frr-10.6.1/
+    tar -C subprojects -czf subprojects/packagecache/frr-10.5.3.tar.gz frr-frr-10.5.3/
 
 
 # Update frr.wrap source_hash to match the locally created tarball
-RUN HASH=$(sha256sum subprojects/packagecache/frr-10.6.1.tar.gz | cut -d' ' -f1) && \
-    sed -i "s/^source_hash = .*/source_hash = $HASH/" subprojects/frr-10.6.wrap
+RUN HASH=$(sha256sum subprojects/packagecache/frr-10.5.3.tar.gz | cut -d' ' -f1) && \
+    sed -i "s/^source_hash = .*/source_hash = $HASH/" subprojects/frr.wrap
 
-RUN make frr-rpm FRR=10.6
+RUN make frr-rpm
 
 RUN dnf --nogpgcheck install -y \
    frr-headers.noarch.rpm
 
-RUN make rpm FRR=10.6 WITHOUT="tests docs systemd"
+RUN make rpm WITHOUT="tests docs systemd"
 
 ENTRYPOINT ["/bin/bash"]
 
@@ -99,9 +99,8 @@ RUN dnf --nogpgcheck install --setopt=install_weak_deps=0 --nodocs -y \
 	--releasever 10 \
 	glibc-minimal-langpack less shadow-utils tcpdump \
 	libedit libevent libmnl rdma-core libibverbs numactl json-c libcap \
-	libyang elfutils-libelf protobuf-c python3 readline catatonit \
-  wget
-RUN ln -s /usr/libexec/podman/catatonit /sbin/tini
+	libyang elfutils-libelf python3-pyelftools protobuf-c python3 readline catatonit
+RUN  ln -s /usr/libexec/podman/catatonit /sbin/tini
 
 COPY --from=grout-builder /src/*.rpm /grout/
 RUN dnf --nogpgcheck install -y \
@@ -111,7 +110,6 @@ RUN dnf --nogpgcheck install -y \
     /grout/frr-debuginfo.x86_64.rpm \
     /grout/grout-debuginfo.x86_64.rpm \
     /grout/grout-frr-debuginfo.x86_64.rpm
-
 
 RUN . /etc/os-release && \
       if [ "$ID" = "rhel" ] || [ "$ID" = "ubi" ]; then \
@@ -127,12 +125,10 @@ COPY systemdmode/frrconfig/vtysh.conf /etc/frr/vtysh.conf
 COPY systemdmode/frrconfig/frr.conf /etc/frr/frr.conf
 COPY openshift/frr-docker-start /usr/lib/frr/docker-start
 
-RUN ln -s /usr/libexec/frr/frr-reload.py /usr/lib/frr/frr-reload.py
-
 RUN chmod 640 /etc/frr/* && chown -R frr:frr /etc/frr
 
 LABEL com.redhat.component="openperouter" \
-   name="openshift4-dev-preview-beta/openperouter-edge-rhel10-operator" \
+   name="openshift4-dev-preview-beta/openperouter-rhel10-operator-edge" \
    summary="openperouter" \
    io.openshift.expose-services="" \
    io.openshift.tags="openperouter" \

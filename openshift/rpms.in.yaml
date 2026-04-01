@@ -57,4 +57,3 @@ packages:
   - name: groff 
   - name: pam-devel
   - name: libarchive-devel
-  - name: wget
