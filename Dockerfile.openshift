@@ -63,13 +63,13 @@ RUN dnf --nogpgcheck install --setopt=install_weak_deps=0 --nodocs -y \
 # build and install FRR
 COPY openshift/grout-subprojects/frr /tmp/frr
 
-RUN mkdir -p /frr-staging/usr
+RUN mkdir -p /frr-edge/usr
 RUN cd /tmp/frr && \
 	autoreconf -ivf && \
   ./configure \
     --sysconfdir=/etc \
     --localstatedir=/var \
-		--prefix=/frr-staging/usr \
+		--prefix=/frr-edge/usr \
 		--enable-vty-group=frrvty \
 		--disable-doc --enable-multipath=64 \
 		--disable-ripd --disable-ripngd --disable-ospfd --disable-ospf6d \
@@ -91,7 +91,7 @@ COPY openshift/grout-subprojects/ecoli /tmp/grout/subprojects/ecoli
 RUN cat /tmp/grout/subprojects/packagefiles/dpdk/*.patch | \
  patch -d/tmp/grout/subprojects/dpdk -p1
 
-ENV PKG_CONFIG_PATH=/frr-staging/usr/lib64/pkgconfig                                                                                                                                                                                                    
+ENV PKG_CONFIG_PATH=/frr-edge/usr/lib64/pkgconfig                                                                                                                                                                                                    
 
 #RUN find / -name zebra_dplane.h
 # build grout RPM
@@ -149,7 +149,7 @@ LABEL com.redhat.component="openperouter" \
 # Grout + FRR staging filesystem
 # TODO: remove once FRR 10.5.1 is available in `rhel-10-for-x86_64-appstream-rpms`
 COPY --from=grout-builder /usr/local/bin/grout /usr/local/bin/grout
-COPY --from=grout-builder /frr-staging /frr-staging
+COPY --from=grout-builder /frr-edge /frr-edge
 
 COPY openshift/frr-docker-start /usr/lib/frr/docker-start
 
