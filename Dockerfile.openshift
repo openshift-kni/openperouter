@@ -108,7 +108,7 @@ WORKDIR /
 COPY --from=builder /go/openperouter/reloader /reloader
 COPY --from=builder /go/openperouter/controller /controller
 COPY --from=builder /go/openperouter/hostbridge /hostbridge
-COPY --from=builder /go/openperouter/nodemarker /nodemaker
+COPY --from=builder /go/openperouter/nodemarker /nodemarker
 COPY --from=builder /go/openperouter/operatorbinary /operator
 COPY operator/bindata /bindata
 
