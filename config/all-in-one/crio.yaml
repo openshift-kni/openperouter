@@ -1276,7 +1276,7 @@ spec:
             fieldRef:
               fieldPath: metadata.namespace
         image: quay.io/openperouter/router:main
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         livenessProbe:
           httpGet:
             path: /healthz
@@ -1361,7 +1361,7 @@ spec:
             fieldRef:
               fieldPath: metadata.namespace
         image: quay.io/openperouter/router:main
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         livenessProbe:
           failureThreshold: 3
           httpGet:
@@ -1485,8 +1485,10 @@ spec:
         env:
         - name: TINI_SUBREAPER
           value: "true"
+        - name: FRR_EDGE
+          value: "true"
         image: quay.io/openperouter/router:main
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         name: frr
         securityContext:
           capabilities:
@@ -1506,8 +1508,11 @@ spec:
         - --unixsocket=/etc/perouter/reload.sock
         command:
         - /reloader
+        env:
+        - name: FRR_EDGE
+          value: "true"
         image: quay.io/openperouter/router:main
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         livenessProbe:
           failureThreshold: 3
           httpGet:
@@ -1545,7 +1550,7 @@ spec:
         - -c
         - cp -rLf /tmp/frr/* /etc/frr/
         image: quay.io/openperouter/router:main
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         name: cp-frr-files
         volumeMounts:
         - mountPath: /tmp/frr

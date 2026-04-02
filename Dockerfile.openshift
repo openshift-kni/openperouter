@@ -1,3 +1,6 @@
+# Tekton piplines override this with a UBI image
+ARG BASE_IMAGE=quay.io/centos/centos:stream10
+
 # Build the manager binary
 FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_9_golang_1.25 AS builder
 
@@ -20,32 +23,136 @@ RUN GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=
   && \
   GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -mod=vendor -tags strictfipsruntime  -o operatorbinary ./operator
 
-FROM registry.redhat.io/openshift4/frr-rhel9:v4.21
+# Build grout and FRR
+FROM ${BASE_IMAGE} AS grout-builder
+
+RUN . /etc/os-release && \
+      if [ "$ID" = "rhel" ] || [ "$ID" = "ubi" ]; then \
+        dnf config-manager --set-enabled "codeready-builder-for-rhel-10-x86_64-rpms,rhel-10-for-x86_64-baseos-rpms,rhel-10-for-x86_64-appstream-rpms"; \
+      else \
+        dnf config-manager --set-enabled "crb,baseos,appstream"; \
+      fi
+
+
+# install build dependencies
+
+# TODO: install libyang-devel from codeready-builder repo once RHEL-119430 is solved
+COPY openshift/libyang-devel-2.1.148-2.el10.x86_64.rpm /
+RUN . /etc/os-release && \
+      if [ "$ID" = "rhel" ] || [ "$ID" = "ubi" ]; then \
+        dnf --nogpgcheck install -y /libyang-devel-2.1.148-2.el10.x86_64.rpm; \
+      else \
+        dnf --nogpgcheck install -y libyang-devel; \
+      fi
+
+RUN dnf --nogpgcheck install --setopt=install_weak_deps=0 --nodocs -y \
+  gcc make meson ninja-build pkgconf python3-pyelftools json-c-devel \
+  libedit-devel libevent-devel libmnl-devel rdma-core-devel \
+  patch autoconf automake libtool bison elfutils-libelf-devel flex \
+  libcap-devel protobuf-c-compiler protobuf-c-devel \
+  python3-devel readline-devel rpm-build numactl-devel
+
+# install runtime
+RUN dnf --nogpgcheck install --setopt=install_weak_deps=0 --nodocs -y \
+	--releasever 10 \
+	glibc-minimal-langpack less shadow-utils tcpdump \
+	libedit libevent libmnl rdma-core libibverbs numactl json-c libcap \
+	libyang elfutils-libelf python3-pyelftools protobuf-c python3 readline
+
+# TODO: install FRR from repo as soon as 10.5.1 has been released to `rhel-10-for-x86_64-appstream-rpms` 
+# build and install FRR
+COPY openshift/grout-subprojects/frr /tmp/frr
+
+RUN mkdir -p /frr-edge/usr
+RUN cd /tmp/frr && \
+	autoreconf -ivf && \
+  ./configure \
+    --sysconfdir=/etc \
+    --localstatedir=/var \
+		--prefix=/frr-edge/usr \
+		--enable-vty-group=frrvty \
+		--disable-doc --enable-multipath=64 \
+		--disable-ripd --disable-ripngd --disable-ospfd --disable-ospf6d \
+		--disable-ldpd --disable-nhrpd --disable-eigrpd --disable-babeld \
+		--disable-isisd --disable-pimd --disable-pim6d --disable-pbrd \
+		--disable-fabricd --disable-vrrpd --disable-pathd --disable-ospfapi \
+		--disable-ospfclient && \
+	make -j$(nproc) && \
+	make install
+
+# TODO: install grout from RPM when added to `rhel-10-for-x86_64-appstream-rpms`
+
+# build and install grout
+COPY openshift/grout /tmp/grout
+COPY openshift/grout-subprojects/dpdk /tmp/grout/subprojects/dpdk
+COPY openshift/grout-subprojects/ecoli /tmp/grout/subprojects/ecoli
+
+# apply DPDK patches shipped by grout
+RUN cat /tmp/grout/subprojects/packagefiles/dpdk/*.patch | \
+ patch -d/tmp/grout/subprojects/dpdk -p1
+
+ENV PKG_CONFIG_PATH=/frr-edge/usr/lib64/pkgconfig                                                                                                                                                                                                    
+
+#RUN find / -name zebra_dplane.h
+# build grout RPM
+RUN cd /tmp/grout && \
+	make install
+
+RUN rm -rf /tmp/* && \
+	dnf -y clean all
+
+FROM ${BASE_IMAGE}
+
 WORKDIR /
-COPY --from=builder /go/openperouter/reloader .
-COPY --from=builder /go/openperouter/controller .
-COPY --from=builder /go/openperouter/hostbridge .
-COPY --from=builder /go/openperouter/nodemarker .
-COPY --from=builder /go/openperouter/operatorbinary ./operator
-COPY operator/bindata bindata
+
+COPY --from=builder /go/openperouter/reloader /reloader
+COPY --from=builder /go/openperouter/controller /controller
+COPY --from=builder /go/openperouter/hostbridge /hostbridge
+COPY --from=builder /go/openperouter/nodemarker /nodemarker
+COPY --from=builder /go/openperouter/operatorbinary /operator
+COPY operator/bindata /bindata
+
+
+RUN . /etc/os-release && \
+      if [ "$ID" = "rhel" ] || [ "$ID" = "ubi" ]; then \
+        dnf config-manager --set-enabled "codeready-builder-for-rhel-10-x86_64-rpms,rhel-10-for-x86_64-baseos-rpms,rhel-10-for-x86_64-appstream-rpms"; \
+      else \
+        dnf config-manager --set-enabled "crb,baseos,appstream"; \
+      fi
+
+RUN dnf --nogpgcheck install -y \
+  frr catatonit
+
+RUN  ln -s /usr/libexec/podman/catatonit /sbin/tini
 
 # Copy FRR startup configuration to the default location
 COPY systemdmode/frrconfig/daemons /etc/frr/daemons
 COPY systemdmode/frrconfig/vtysh.conf /etc/frr/vtysh.conf
 COPY systemdmode/frrconfig/frr.conf /etc/frr/frr.conf
 
-LABEL com.redhat.component="openperouter" \
-    name="openshift4-dev-preview-beta/openperouter-rhel9-operator" \
-    summary="openperouter" \
-    io.openshift.expose-services="" \
-    io.openshift.tags="openperouter" \
-    io.k8s.display-name="openperouter" \
-    io.k8s.description="openperouter" \
-    description="openperouter" \
-    distribution-scope="public" \
-    release="4.22" \
-    url="https://github.com/openperouter/openperouter" \
-    vendor="Red Hat, Inc."
+RUN chmod 640 /etc/frr/* && chown -R frr:frr /etc/frr && chgrp frrvty /etc/frr/vtysh.conf
 
+LABEL com.redhat.component="openperouter" \
+   name="openshift4-dev-preview-beta/openperouter-rhel10-operator" \
+   summary="openperouter" \
+   io.openshift.expose-services="" \
+   io.openshift.tags="openperouter" \
+   io.k8s.display-name="openperouter" \
+   io.k8s.description="openperouter" \
+   description="openperouter" \
+   distribution-scope="public" \
+   release="4.22" \
+   url="https://github.com/openperouter/openperouter" \
+   vendor="Red Hat, Inc."
+
+
+# Grout + FRR staging filesystem
+# TODO: remove once FRR 10.5.1 is available in `rhel-10-for-x86_64-appstream-rpms`
+COPY --from=grout-builder /usr/local/bin/grout /usr/local/bin/grout
+COPY --from=grout-builder /frr-edge /frr-edge
+
+COPY openshift/frr-docker-start /usr/lib/frr/docker-start
+RUN mv /reloader /reloader-original
+COPY openshift/reloader-wrapper.sh /reloader
 
 ENTRYPOINT ["/controller"]

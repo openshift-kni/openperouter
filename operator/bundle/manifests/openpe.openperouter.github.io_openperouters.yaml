@@ -39,6 +39,10 @@ spec:
           spec:
             description: OpenPERouterSpec defines the desired state of OpenPERouter
             properties:
+              groutDataPath:
+                description: 'GroutDataPath enables the Grout data path. (default:
+                  false)'
+                type: boolean
               healthProbePort:
                 default: 9081
                 description: 'HealthProbePort specifies the port for the controller''s

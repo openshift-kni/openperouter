@@ -37,7 +37,7 @@ spec:
             fieldRef:
               fieldPath: metadata.namespace
         image: controller:main
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         name: webhook
         ports:
           - containerPort: 9443

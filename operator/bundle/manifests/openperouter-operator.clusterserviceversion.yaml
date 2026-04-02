@@ -4,7 +4,7 @@ metadata:
   annotations:
     alm-examples: '[]'
     capabilities: Basic Install
-    createdAt: "2026-03-12T09:39:00Z"
+    createdAt: "2026-04-02T10:54:01Z"
     features.operators.openshift.io/csi: "false"
     features.operators.openshift.io/disconnected: "true"
     features.operators.openshift.io/fips-compliant: "true"
@@ -213,7 +213,7 @@ spec:
                 - name: DEPLOY_KUBE_RBAC_PROXIES
                   value: "false"
                 image: quay.io/openperouter/router:main
-                imagePullPolicy: IfNotPresent
+                imagePullPolicy: Always
                 name: operator
                 resources:
                   limits:
@@ -259,7 +259,7 @@ spec:
                     fieldRef:
                       fieldPath: metadata.namespace
                 image: quay.io/openperouter/router:main
-                imagePullPolicy: IfNotPresent
+                imagePullPolicy: Always
                 name: webhook
                 ports:
                 - containerPort: 9443
