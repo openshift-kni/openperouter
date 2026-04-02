@@ -37,7 +37,7 @@ spec:
             fieldRef:
               fieldPath: metadata.namespace
         image: router:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         name: nodemarker
         ports:
           - containerPort: 9443

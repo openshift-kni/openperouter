@@ -29,7 +29,7 @@ spec:
         args:
         - "--loglevel=debug"
         image: controller:main
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         name: operator
         env:
         - name: OPERATOR_NAMESPACE

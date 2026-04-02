@@ -213,7 +213,7 @@ spec:
                 - name: DEPLOY_KUBE_RBAC_PROXIES
                   value: "false"
                 image: quay.io/openperouter/router:main
-                imagePullPolicy: IfNotPresent
+                imagePullPolicy: Always
                 name: operator
                 resources:
                   limits:
@@ -259,7 +259,7 @@ spec:
                     fieldRef:
                       fieldPath: metadata.namespace
                 image: quay.io/openperouter/router:main
-                imagePullPolicy: IfNotPresent
+                imagePullPolicy: Always
                 name: webhook
                 ports:
                 - containerPort: 9443

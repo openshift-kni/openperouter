@@ -33,7 +33,7 @@ spec:
         - "--frrconfig=/etc/frr/frr.conf"
         - "--reloader-socket=/etc/frr/reload.sock"
         image: router:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         name: controller
         ports:
         - containerPort: 9081
