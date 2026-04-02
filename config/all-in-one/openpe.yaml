@@ -1482,6 +1482,8 @@ spec:
         env:
         - name: TINI_SUBREAPER
           value: "true"
+        - name: FRR_EDGE
+          value: "true"
         image: quay.io/openperouter/router:main
         imagePullPolicy: IfNotPresent
         name: frr

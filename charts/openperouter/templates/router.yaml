@@ -151,6 +151,8 @@ spec:
         env:
           - name: TINI_SUBREAPER
             value: "true"
+          - name: FRR_EDGE
+            value: "true"
         volumeMounts:
           - name: frr-sockets
             mountPath: /var/run/frr
