@@ -58,6 +58,9 @@ type OpenPERouterSpec struct {
 	// +kubebuilder:validation:Minimum=1
 	// +kubebuilder:validation:Maximum=65535
 	HealthProbePort int `json:"healthProbePort,omitempty"`
+	// GroutDataPath enables the Grout data path. (default: false)
+	// +optional
+	GroutDataPath bool `json:"groutDataPath,omitempty"`
 }
 
 // OpenPERouterStatus defines the observed state of OpenPERouter

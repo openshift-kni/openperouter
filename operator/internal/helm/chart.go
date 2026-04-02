@@ -100,6 +100,7 @@ func patchChartValues(envConfig envconfig.EnvConfig, crdConfig *operatorapi.Open
 		"logLevel":                logLevelValue(crdConfig),
 		"multusNetworkAnnotation": crdConfig.Spec.MultusNetworkAnnotation,
 		"runOnMaster":             crdConfig.Spec.RunOnMaster,
+		"groutDataPath":           crdConfig.Spec.GroutDataPath,
 		"image": map[string]any{
 			"repository": envConfig.ControllerImage.Repo,
 			"tag":        envConfig.ControllerImage.Tag,
