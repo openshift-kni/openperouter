@@ -76,7 +76,7 @@ RUN cd /tmp/frr && \
 		--disable-ldpd --disable-nhrpd --disable-eigrpd --disable-babeld \
 		--disable-isisd --disable-pimd --disable-pim6d --disable-pbrd \
 		--disable-fabricd --disable-vrrpd --disable-pathd --disable-ospfapi \
-		--disable-ospfclient --disable-bfdd && \
+		--disable-ospfclient && \
 	make -j$(nproc) && \
 	make install
 
