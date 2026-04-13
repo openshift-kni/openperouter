@@ -736,7 +736,7 @@ func TestAPItoFRR(t *testing.T) {
 						EVPN: &v1alpha1.EVPNConfig{
 							VTEPCIDR: new("192.168.1.0/24"),
 						},
-						RouterIDCIDR: new(""),
+						RouterIDCIDR: new("10.0.0.0/24"),
 						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: new(int64(65001))}},
 					},
 				},
@@ -805,7 +805,7 @@ func TestAPItoFRR(t *testing.T) {
 						EVPN: &v1alpha1.EVPNConfig{
 							VTEPCIDR: new("192.168.1.0/24"),
 						},
-						RouterIDCIDR: new(""),
+						RouterIDCIDR: new("10.0.0.0/24"),
 						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: new(int64(65001))}},
 					},
 				},
@@ -875,7 +875,7 @@ func TestAPItoFRR(t *testing.T) {
 						EVPN: &v1alpha1.EVPNConfig{
 							VTEPCIDR: new("192.168.1.0/24"),
 						},
-						RouterIDCIDR: new(""),
+						RouterIDCIDR: new("10.0.0.0/24"),
 						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: new(int64(65001))}},
 					},
 				},
