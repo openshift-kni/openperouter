@@ -30,6 +30,8 @@ type StaticConfigReconciler struct {
 	FRRReloadSocket string
 	RouterProvider  RouterProvider
 	ConfigDir       string
+	MyNode          string
+	MyNamespace     string
 
 	TriggerChan chan event.GenericEvent
 }
@@ -41,7 +43,7 @@ func (r *StaticConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 	logger.Info("using config dir", "dir", r.ConfigDir)
 	// Read and merge router configs from directory
-	apiConfig, err := readStaticConfigs(r.ConfigDir)
+	apiConfig, err := readStaticConfigs(r.ConfigDir, r.MyNode, r.MyNamespace)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to read static router configurations from %s: %w", r.ConfigDir, err)
 	}
