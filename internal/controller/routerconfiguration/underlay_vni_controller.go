@@ -42,17 +42,16 @@ import (
 
 type PERouterReconciler struct {
 	client.Client
-	Scheme             *runtime.Scheme
-	MyNode             string
-	MyNamespace        string
-	LogLevel           string
-	Logger             *slog.Logger
-	UnderlayFromMultus bool
-	FRRConfigPath      string
-	FRRReloadSocket    string
-	StaticConfigDir    string
-	NodeConfigPath     string
-	RouterProvider     RouterProvider
+	Scheme          *runtime.Scheme
+	MyNode          string
+	MyNamespace     string
+	LogLevel        string
+	Logger          *slog.Logger
+	FRRConfigPath   string
+	FRRReloadSocket string
+	StaticConfigDir string
+	NodeConfigPath  string
+	RouterProvider  RouterProvider
 
 	// TriggerChan receives events from FileWatcher (in host mode)
 	TriggerChan chan event.GenericEvent
@@ -122,13 +121,14 @@ func (r *PERouterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, err
 	}
 
-	err = Reconcile(ctx, config, r.UnderlayFromMultus, nodeIndex, r.LogLevel, r.FRRConfigPath, targetNS, updater)
+	err = Reconcile(ctx, config, nodeIndex, r.LogLevel, r.FRRConfigPath, targetNS, updater)
 	if nonRecoverableHostError(err) {
 		logger.Error("non recoverable error", "error", err)
 		if err := router.HandleNonRecoverableError(ctx); err != nil {
 			slog.Error("failed to handle non recoverable error", "error", err)
 			return ctrl.Result{}, err
 		}
+		return ctrl.Result{}, nil
 	}
 	if err != nil {
 		slog.Error("failed to configure the host", "error", err)

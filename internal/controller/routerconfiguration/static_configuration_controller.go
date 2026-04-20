@@ -74,11 +74,13 @@ func (r *StaticConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 	updater := frrconfig.UpdaterForSocket(r.FRRReloadSocket, r.FRRConfigPath)
 
-	err = Reconcile(ctx, apiConfig, false, r.NodeIndex, r.LogLevel, r.FRRConfigPath, targetNS, updater)
+	err = Reconcile(ctx, apiConfig, r.NodeIndex, r.LogLevel, r.FRRConfigPath, targetNS, updater)
 	if nonRecoverableHostError(err) {
+		logger.Error("non recoverable error", "error", err)
 		if err := router.HandleNonRecoverableError(ctx); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to handle non recoverable error: %w", err)
 		}
+		return ctrl.Result{}, nil
 	}
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to configure the host: %w", err)

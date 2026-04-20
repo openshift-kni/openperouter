@@ -13,7 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func APItoHostConfig(nodeIndex int, targetNS string, underlayFromMultus bool, apiConfig APIConfigData) (HostConfigData, error) {
+func APItoHostConfig(nodeIndex int, targetNS string, apiConfig APIConfigData) (HostConfigData, error) {
 	res := HostConfigData{
 		L3VNIs: []hostnetwork.L3VNIParams{},
 		L2VNIs: []hostnetwork.L2VNIParams{},
@@ -30,8 +30,8 @@ func APItoHostConfig(nodeIndex int, targetNS string, underlayFromMultus bool, ap
 
 	underlay := apiConfig.Underlays[0]
 
-	if len(underlay.Spec.Nics) == 0 && !underlayFromMultus {
-		return res, fmt.Errorf("underlay interface must be specified when Multus is not enabled")
+	if len(underlay.Spec.Nics) == 0 {
+		return res, fmt.Errorf("underlay interface must be specified")
 	}
 
 	res.Underlay = hostnetwork.UnderlayParams{
