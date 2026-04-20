@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_9_golang_1.24 AS builder
+FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_9_golang_1.25 AS builder
 
 ARG GIT_COMMIT=dev
 ARG GIT_BRANCH=dev
@@ -20,7 +20,7 @@ RUN GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=
   && \
   GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -mod=vendor -tags strictfipsruntime  -o operatorbinary ./operator
 
-FROM registry.access.redhat.com/ubi9-minimal:9.4
+FROM registry.redhat.io/openshift4/frr-rhel9:v4.21
 WORKDIR /
 COPY --from=builder /go/openperouter/reloader .
 COPY --from=builder /go/openperouter/controller .
@@ -46,5 +46,6 @@ LABEL com.redhat.component="openperouter" \
     release="4.21" \
     url="https://github.com/openperouter/openperouter" \
     vendor="Red Hat, Inc."
+
 
 ENTRYPOINT ["/controller"]

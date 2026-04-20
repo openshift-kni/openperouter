@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/openperouter/openperouter/internal/netnamespace"
 	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netns"
 )
@@ -52,8 +53,11 @@ func SetupUnderlay(ctx context.Context, params UnderlayParams) error {
 	if params.EVPN == nil {
 		return nil
 	}
-	if err := createLoopback(ctx, ns, params.EVPN.VtepIP); err != nil {
-		return err
+
+	if params.EVPN.VtepIP != "" {
+		if err := ensureLoopback(ctx, ns, params.EVPN.VtepIP); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -65,11 +69,11 @@ func (e UnderlayExistsError) Error() string {
 	return string(e)
 }
 
-func createLoopback(ctx context.Context, ns netns.NsHandle, vtepIP string) error {
+func ensureLoopback(ctx context.Context, ns netns.NsHandle, vtepIP string) error {
 	slog.DebugContext(ctx, "setup underlay", "step", "creating loopback interface")
 	defer slog.DebugContext(ctx, "setup underlay", "step", "loopback interface created")
 
-	if err := inNamespace(ns, func() error {
+	if err := netnamespace.In(ns, func() error {
 		loopback, err := netlink.LinkByName(UnderlayLoopback)
 		if errors.As(err, &netlink.LinkNotFoundError{}) {
 			slog.DebugContext(ctx, "setup underlay", "step", "creating loopback interface")
@@ -83,7 +87,6 @@ func createLoopback(ctx context.Context, ns netns.NsHandle, vtepIP string) error
 		if err != nil {
 			return err
 		}
-
 		return nil
 	}); err != nil {
 		return err
@@ -117,7 +120,7 @@ func moveUnderlayInterface(ctx context.Context, underlayInterface string, ns net
 		return err
 	}
 
-	if err := inNamespace(ns, func() error {
+	if err := netnamespace.In(ns, func() error {
 		underlay, err := netlink.LinkByName(underlayInterface)
 		if err != nil {
 			return fmt.Errorf("failed to get underlay nic by name %s: %w", underlayInterface, err)
@@ -161,7 +164,7 @@ func HasUnderlayInterface(namespace string) (bool, error) {
 // in the given network ns.
 func findInterfaceWithIP(ns netns.NsHandle, ip string) (string, error) {
 	res := ""
-	err := inNamespace(ns, func() error {
+	err := netnamespace.In(ns, func() error {
 		links, err := netlink.LinkList()
 		if err != nil {
 			return fmt.Errorf("failed to list links: %w", err)

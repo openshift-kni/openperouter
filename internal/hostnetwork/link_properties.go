@@ -8,10 +8,12 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/openperouter/openperouter/internal/netnamespace"
 	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netlink/nl"
 	"github.com/vishvananda/netns"
@@ -71,13 +73,23 @@ func interfaceHasNoIP(link netlink.Link, family int) (bool, error) {
 	return false, nil
 }
 
-// setAddrGenModeNone sets addr_gen_mode to none to the given link.
+// setAddrGenModeNone sets addr_gen_mode to none (value "1") on the given link.
+// It is idempotent: if already set, it does nothing to avoid unnecessary netlink events.
 func setAddrGenModeNone(l netlink.Link) error {
 	fileName := fmt.Sprintf("/proc/sys/net/ipv6/conf/%s/addr_gen_mode", l.Attrs().Name)
 	fileName = filepath.Clean(fileName)
 	if !strings.HasPrefix(fileName, "/proc/sys/") {
 		panic(fmt.Errorf("attempt to escape")) // TODO: replace with os.Root when Go 1.24 is out
 	}
+
+	currentValue, err := os.ReadFile(fileName)
+	if err != nil {
+		return fmt.Errorf("addrGenModeNone: error reading file: %w", err)
+	}
+	if strings.TrimSpace(string(currentValue)) == "1" {
+		return nil
+	}
+
 	file, err := os.OpenFile(fileName, os.O_WRONLY, 0)
 	if err != nil {
 		return fmt.Errorf("addrGenModeNone: error opening file: %w", err)
@@ -92,6 +104,36 @@ func setAddrGenModeNone(l netlink.Link) error {
 		return fmt.Errorf("addrGenModeNone: error writing to file: %w", err)
 	}
 	return nil
+}
+
+// linkSetUp sets the link up only if it's not already up.
+// This avoids unnecessary RTM_NEWLINK events that can cause FRR to flush neighbor entries.
+func linkSetUp(l netlink.Link) error {
+	currentLink, err := netlink.LinkByIndex(l.Attrs().Index)
+	if err != nil {
+		return fmt.Errorf("linkSetUp: failed to get link by index: %w", err)
+	}
+
+	if currentLink.Attrs().Flags&net.FlagUp != 0 {
+		return nil
+	}
+
+	return netlink.LinkSetUp(l)
+}
+
+// linkSetMaster sets the master of a link only if it's not already set to the desired master.
+// This avoids unnecessary RTM_NEWLINK events that can cause FRR to flush neighbor entries.
+func linkSetMaster(link, master netlink.Link) error {
+	currentLink, err := netlink.LinkByIndex(link.Attrs().Index)
+	if err != nil {
+		return fmt.Errorf("linkSetMaster: failed to get link by index: %w", err)
+	}
+
+	if currentLink.Attrs().MasterIndex == master.Attrs().Index {
+		return nil
+	}
+
+	return netlink.LinkSetMaster(link, master)
 }
 
 // setNeighSuppression sets neighbor suppression to the given link.
@@ -121,7 +163,7 @@ func moveInterfaceToNamespace(ctx context.Context, intf string, ns netns.NsHandl
 	slog.DebugContext(ctx, "move intf to namespace", "intf", intf, "namespace", ns.String())
 	defer slog.DebugContext(ctx, "move intf to namespace end", "intf", intf, "namespace", ns.String())
 
-	err := inNamespace(ns, func() error {
+	err := netnamespace.In(ns, func() error {
 		_, err := netlink.LinkByName(intf)
 		if err != nil {
 			return fmt.Errorf("moveInterfaceToNamespace: Failed to find link %s: %w", intf, err)
@@ -132,7 +174,7 @@ func moveInterfaceToNamespace(ctx context.Context, intf string, ns netns.NsHandl
 		slog.DebugContext(ctx, "intf is already in namespace", "intf", intf, "namespace", ns.String())
 		return nil
 	}
-	var nsError setNamespaceError
+	var nsError netnamespace.SetNamespaceError
 	if errors.As(err, &nsError) {
 		return fmt.Errorf("moveInterfaceToNamespace: Failed to execute in ns %s: %w", intf, err)
 	}
@@ -152,7 +194,7 @@ func moveInterfaceToNamespace(ctx context.Context, intf string, ns netns.NsHandl
 	if err != nil {
 		return fmt.Errorf("moveInterfaceToNamespace: Failed to move %s to network namespace %s: %w", link.Attrs().Name, ns.String(), err)
 	}
-	if err := inNamespace(ns, func() error {
+	if err := netnamespace.In(ns, func() error {
 		nsLink, err := netlink.LinkByName(intf)
 		if err != nil {
 			return fmt.Errorf("moveInterfaceToNamespace: Failed to get link by name %s up in network namespace %s: %w", intf, ns.String(), err)

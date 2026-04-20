@@ -40,6 +40,13 @@ spec:
 | `asn` | integer | Local ASN for BGP sessions | Yes |
 | `nics` | array | List of network interface names to move to router namespace | Yes |
 | `neighbors` | array | List of BGP neighbors to peer with | Yes |
+| `nodeSelector` | object | Label selector to target specific nodes (applies to all nodes if omitted) | No |
+
+### Per-Node Configuration
+
+The Underlay resource supports an optional `nodeSelector` field that allows you to target specific configurations to specific nodes. This is useful for multi-rack deployments, multi-datacenter clusters, or heterogeneous hardware environments.
+
+For detailed information and examples, see the [Node Selector Configuration]({{< ref "node-selector.md" >}}) documentation.
 
 ### Alternative: Multus Network for Top of Rack Connectivity
 
@@ -65,6 +72,12 @@ helm install openperouter ./charts/openperouter \
 ```
 
 This will add the annotation `k8s.v1.cni.cncf.io/networks: macvlan-conf` to the router pods.
+
+## Sysctl Configuration
+
+OpenPERouter automatically tunes several kernel sysctl settings inside the router's network namespace (IP forwarding, ARP accept, IPv6 Neighbor Advertisement accept). Some of these settings require a minimum kernel version.
+
+For the full list of sysctls and kernel requirements, see the [Sysctl Configuration]({{< ref "sysctl.md" >}}) documentation.
 
 #### Using Kustomize
 

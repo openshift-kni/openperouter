@@ -12,7 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func APItoHostConfig(nodeIndex int, targetNS string, apiConfig ApiConfigData) (HostConfigData, error) {
+func APItoHostConfig(nodeIndex int, targetNS string, underlayFromMultus bool, apiConfig ApiConfigData) (HostConfigData, error) {
 	res := HostConfigData{
 		L3VNIs: []hostnetwork.L3VNIParams{},
 		L2VNIs: []hostnetwork.L2VNIParams{},
@@ -29,7 +29,7 @@ func APItoHostConfig(nodeIndex int, targetNS string, apiConfig ApiConfigData) (H
 
 	underlay := apiConfig.Underlays[0]
 
-	if len(underlay.Spec.Nics) == 0 && !apiConfig.UnderlayFromMultus {
+	if len(underlay.Spec.Nics) == 0 && !underlayFromMultus {
 		return res, fmt.Errorf("underlay interface must be specified when Multus is not enabled")
 	}
 
@@ -67,22 +67,24 @@ func APItoHostConfig(nodeIndex int, targetNS string, apiConfig ApiConfigData) (H
 		return res, nil
 	}
 
-	vtepIP, err := ipam.VTEPIp(underlay.Spec.EVPN.VTEPCIDR, nodeIndex)
-	if err != nil {
-		return res, fmt.Errorf("failed to get vtep ip, cidr %s, nodeIntex %d", underlay.Spec.EVPN.VTEPCIDR, nodeIndex)
-	}
-	res.Underlay.EVPN = &hostnetwork.UnderlayEVPNParams{
-		VtepIP: vtepIP.String(),
+	res.Underlay.EVPN = &hostnetwork.UnderlayEVPNParams{}
+	if underlay.Spec.EVPN.VTEPCIDR != "" {
+		vtepIP, err := ipam.VTEPIp(underlay.Spec.EVPN.VTEPCIDR, nodeIndex)
+		if err != nil {
+			return res, fmt.Errorf("failed to get vtep ip, cidr %s, nodeIndex %d: %w", underlay.Spec.EVPN.VTEPCIDR, nodeIndex, err)
+		}
+		res.Underlay.EVPN.VtepIP = vtepIP.String()
 	}
 
 	for _, vni := range apiConfig.L3VNIs {
 		v := hostnetwork.L3VNIParams{
 			VNIParams: hostnetwork.VNIParams{
-				VRF:       vni.Spec.VRF,
-				TargetNS:  targetNS,
-				VTEPIP:    vtepIP.String(),
-				VNI:       int(vni.Spec.VNI),
-				VXLanPort: int(vni.Spec.VXLanPort),
+				VRF:           vni.Spec.VRF,
+				TargetNS:      targetNS,
+				VTEPIP:        res.Underlay.EVPN.VtepIP,
+				VTEPInterface: underlay.Spec.EVPN.VTEPInterface,
+				VNI:           int(vni.Spec.VNI),
+				VXLanPort:     int(vni.Spec.VXLanPort),
 			},
 		}
 		if vni.Spec.HostSession == nil {
@@ -109,11 +111,12 @@ func APItoHostConfig(nodeIndex int, targetNS string, apiConfig ApiConfigData) (H
 	for _, l2vni := range apiConfig.L2VNIs {
 		vni := hostnetwork.L2VNIParams{
 			VNIParams: hostnetwork.VNIParams{
-				VRF:       l2vni.VRFName(),
-				TargetNS:  targetNS,
-				VTEPIP:    vtepIP.String(),
-				VNI:       int(l2vni.Spec.VNI),
-				VXLanPort: int(l2vni.Spec.VXLanPort),
+				VRF:           l2vni.VRFName(),
+				TargetNS:      targetNS,
+				VTEPIP:        res.Underlay.EVPN.VtepIP,
+				VTEPInterface: underlay.Spec.EVPN.VTEPInterface,
+				VNI:           int(l2vni.Spec.VNI),
+				VXLanPort:     int(l2vni.Spec.VXLanPort),
 			},
 		}
 		if len(l2vni.Spec.L2GatewayIPs) > 0 {

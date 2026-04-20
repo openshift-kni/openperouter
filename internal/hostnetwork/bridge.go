@@ -16,7 +16,7 @@ import (
 // setup bridge creates the bridge if not exists, and it enslaves it to the provided
 // vrf.
 func setupBridge(params VNIParams, vrf *netlink.Vrf) (*netlink.Bridge, error) {
-	name := bridgeName(params.VNI)
+	name := BridgeName(params.VNI)
 	bridge, err := createBridge(name, vrf.Index)
 	if err != nil {
 		return nil, err
@@ -27,7 +27,7 @@ func setupBridge(params VNIParams, vrf *netlink.Vrf) (*netlink.Bridge, error) {
 		return nil, fmt.Errorf("failed to set addr_gen_mode to 1 for %s: %w", bridge.Name, err)
 	}
 
-	err = netlink.LinkSetUp(bridge)
+	err = linkSetUp(bridge)
 	if err != nil {
 		return nil, fmt.Errorf("could not set link up for bridge %s: %v", name, err)
 	}
@@ -78,7 +78,10 @@ const (
 
 var macHeader = []byte{0x00, 0xF3}
 
-func setBridgeFixedMacAddress(bridge netlink.Link, vni int) error {
+// ensureBridgeFixedMacAddress sets a deterministic MAC address on the bridge based on the VNI.
+// It is idempotent: if the MAC is already correct, it skips the update to avoid
+// unnecessary RTM_NEWLINK events that can cause FRR to flush neighbor entries.
+func ensureBridgeFixedMacAddress(bridge netlink.Link, vni int) error {
 	macAddress := make([]byte, macSize)
 
 	buf := new(bytes.Buffer)
@@ -88,6 +91,11 @@ func setBridgeFixedMacAddress(bridge netlink.Link, vni int) error {
 	}
 	copy(macAddress, macHeader)
 	copy(macAddress[2:], buf.Bytes())
+
+	if bytes.Equal(bridge.Attrs().HardwareAddr, macAddress) {
+		return nil
+	}
+
 	if err := netlink.LinkSetHardwareAddr(bridge, macAddress); err != nil {
 		return fmt.Errorf("failed to set mac address to bridge %s %x: %w", bridge.Attrs().Name, macAddress, err)
 	}
@@ -96,7 +104,8 @@ func setBridgeFixedMacAddress(bridge netlink.Link, vni int) error {
 
 const bridgePrefix = "br-pe-"
 
-func bridgeName(vni int) string {
+// BridgeName returns the PE bridge name for a given VNI.
+func BridgeName(vni int) string {
 	return fmt.Sprintf("%s%d", bridgePrefix, vni)
 }
 

@@ -74,6 +74,13 @@ func Process(data string) error {
 }
 ```
 
+### Code Readability: Line Length
+
+Limit line length to 120 characters whenever possible:
+- Break long function calls, struct definitions, and statements into multiple lines
+- Use appropriate indentation for continuation lines
+- Prioritize readability over strict adherence when necessary
+
 ### Package Organization
 
 **Naming:**
@@ -84,7 +91,10 @@ func Process(data string) error {
 **File Structure:**
 - Name the primary file after the package (e.g., `network.go` in package `network`)
 - Place public APIs and important types at the top of files
-- Place internal helpers and implementation details at the bottom
+- **Place helper functions at the bottom of files, after where they are used**
+  - This applies to ALL files (production code and tests)
+  - Main/exported functions first, internal helpers last
+  - In test files: test functions first, helper functions at the bottom
 - Utility functions should be in separate files within the package
 
 ### Error Handling
@@ -134,7 +144,7 @@ When reviewing or writing code, verify:
 - [ ] Errors wrapped with context using `%w`
 - [ ] No environment variable reads outside main()
 - [ ] Package-named entry point file exists
-- [ ] Public APIs at top of file, helpers at bottom
+- [ ] Helper functions placed at bottom of file (after where they are used)
 - [ ] Switch used instead of long if-else chains
 - [ ] No named returns unless absolutely necessary
 - [ ] Goroutines in controllers are carefully managed

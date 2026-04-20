@@ -8,5 +8,22 @@
     },
     "helm-values": {
       "enabled": false
+    },
+    "kubernetes": {
+        "enabled": false
+    },
+    "jsonnet-bundler": {
+        "enabled": false
+    },
+    "tekton" {
+        "enabled": true,
+        "includePaths": [
+            ".tekton/**"
+        ],
+        "addLabels": [
+            "approved",
+            "lgtm",
+            "ok-to-test"
+        ]
     }
 }
