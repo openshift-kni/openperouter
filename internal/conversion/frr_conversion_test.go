@@ -19,6 +19,7 @@ func TestAPItoFRR(t *testing.T) {
 		nodeIndex     int
 		underlays     []v1alpha1.Underlay
 		vnis          []v1alpha1.L3VNI
+		l2vnis        []v1alpha1.L2VNI
 		l3Passthrough []v1alpha1.L3Passthrough
 		logLevel      string
 		want          frr.Config
@@ -1209,6 +1210,189 @@ func TestAPItoFRR(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name:      "l3vni with matching L2 gateway IPv4",
+			nodeIndex: 0,
+			underlays: []v1alpha1.Underlay{
+				{
+					Spec: v1alpha1.UnderlaySpec{
+						ASN:          65000,
+						RouterIDCIDR: new("10.0.0.0/24"),
+						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: new(int64(65001))}},
+					},
+				},
+			},
+			vnis: []v1alpha1.L3VNI{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "vni1"},
+					Spec: v1alpha1.L3VNISpec{
+						VRF: "red",
+						VNI: 200,
+					},
+				},
+			},
+			l2vnis: []v1alpha1.L2VNI{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "l2vni1"},
+					Spec: v1alpha1.L2VNISpec{
+						VRF:          new("red"),
+						VNI:          100,
+						L2GatewayIPs: []string{"192.168.100.1/24"},
+					},
+				},
+			},
+			l3Passthrough: []v1alpha1.L3Passthrough{},
+			logLevel:      "debug",
+			want: frr.Config{
+				Underlay: frr.UnderlayConfig{
+					MyASN:    65000,
+					RouterID: "10.0.0.1",
+					Neighbors: []frr.NeighborConfig{
+						{
+							Name:         "65001@192.168.1.1",
+							ASN:          mustNewPeerASNFromNumber(65001),
+							Addr:         "192.168.1.1",
+							IPFamily:     ipfamily.IPv4,
+							EBGPMultiHop: false,
+						},
+					},
+				},
+				VNIs: []frr.L3VNIConfig{
+					{
+						ASN:             65000,
+						VNI:             200,
+						VRF:             "red",
+						RouterID:        "10.0.0.1",
+						ToAdvertiseIPv4: []string{"192.168.100.0/24"},
+					},
+				},
+				BFDProfiles: []frr.BFDProfile{},
+				Loglevel:    "debug",
+			},
+			wantErr: false,
+		},
+		{
+			name:      "l3vni with matching L2 gateway dual-stack",
+			nodeIndex: 0,
+			underlays: []v1alpha1.Underlay{
+				{
+					Spec: v1alpha1.UnderlaySpec{
+						ASN:          65000,
+						RouterIDCIDR: new("10.0.0.0/24"),
+						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: new(int64(65001))}},
+					},
+				},
+			},
+			vnis: []v1alpha1.L3VNI{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "vni1"},
+					Spec: v1alpha1.L3VNISpec{
+						VRF: "red",
+						VNI: 200,
+					},
+				},
+			},
+			l2vnis: []v1alpha1.L2VNI{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "l2vni1"},
+					Spec: v1alpha1.L2VNISpec{
+						VRF:          new("red"),
+						VNI:          100,
+						L2GatewayIPs: []string{"10.0.0.1/24", "2001:db8::1/64"},
+					},
+				},
+			},
+			l3Passthrough: []v1alpha1.L3Passthrough{},
+			logLevel:      "debug",
+			want: frr.Config{
+				Underlay: frr.UnderlayConfig{
+					MyASN:    65000,
+					RouterID: "10.0.0.1",
+					Neighbors: []frr.NeighborConfig{
+						{
+							Name:         "65001@192.168.1.1",
+							ASN:          mustNewPeerASNFromNumber(65001),
+							Addr:         "192.168.1.1",
+							IPFamily:     ipfamily.IPv4,
+							EBGPMultiHop: false,
+						},
+					},
+				},
+				VNIs: []frr.L3VNIConfig{
+					{
+						ASN:             65000,
+						VNI:             200,
+						VRF:             "red",
+						RouterID:        "10.0.0.1",
+						ToAdvertiseIPv4: []string{"10.0.0.0/24"},
+						ToAdvertiseIPv6: []string{"2001:db8::/64"},
+					},
+				},
+				BFDProfiles: []frr.BFDProfile{},
+				Loglevel:    "debug",
+			},
+			wantErr: false,
+		},
+		{
+			name:      "l3vni with non-matching L2 gateway VRF",
+			nodeIndex: 0,
+			underlays: []v1alpha1.Underlay{
+				{
+					Spec: v1alpha1.UnderlaySpec{
+						ASN:          65000,
+						RouterIDCIDR: new("10.0.0.0/24"),
+						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: new(int64(65001))}},
+					},
+				},
+			},
+			vnis: []v1alpha1.L3VNI{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "vni1"},
+					Spec: v1alpha1.L3VNISpec{
+						VRF: "red",
+						VNI: 200,
+					},
+				},
+			},
+			l2vnis: []v1alpha1.L2VNI{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "l2vni1"},
+					Spec: v1alpha1.L2VNISpec{
+						VRF:          new("blue"),
+						VNI:          100,
+						L2GatewayIPs: []string{"192.168.100.1/24"},
+					},
+				},
+			},
+			l3Passthrough: []v1alpha1.L3Passthrough{},
+			logLevel:      "debug",
+			want: frr.Config{
+				Underlay: frr.UnderlayConfig{
+					MyASN:    65000,
+					RouterID: "10.0.0.1",
+					Neighbors: []frr.NeighborConfig{
+						{
+							Name:         "65001@192.168.1.1",
+							ASN:          mustNewPeerASNFromNumber(65001),
+							Addr:         "192.168.1.1",
+							IPFamily:     ipfamily.IPv4,
+							EBGPMultiHop: false,
+						},
+					},
+				},
+				VNIs: []frr.L3VNIConfig{
+					{
+						ASN:      65000,
+						VNI:      200,
+						VRF:      "red",
+						RouterID: "10.0.0.1",
+					},
+				},
+				BFDProfiles: []frr.BFDProfile{},
+				Loglevel:    "debug",
+			},
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -1216,6 +1400,7 @@ func TestAPItoFRR(t *testing.T) {
 			apiConfig := APIConfigData{
 				Underlays:     tt.underlays,
 				L3VNIs:        tt.vnis,
+				L2VNIs:        tt.l2vnis,
 				L3Passthrough: tt.l3Passthrough,
 			}
 			got, err := APItoFRR(apiConfig, tt.nodeIndex, tt.logLevel)
@@ -1430,6 +1615,73 @@ func TestAPItoFRRRawConfigWithoutUnderlay(t *testing.T) {
 
 			if !cmp.Equal(got, wantConfig) {
 				t.Errorf("APItoFRR() diff: %s", cmp.Diff(got, wantConfig))
+			}
+		})
+	}
+}
+
+func TestAPItoFRRGracefulRestart(t *testing.T) {
+	baseUnderlay := v1alpha1.Underlay{
+		ObjectMeta: metav1.ObjectMeta{Name: "underlay", Namespace: "openperouter-system"},
+		Spec: v1alpha1.UnderlaySpec{
+			ASN: 64514,
+			Neighbors: []v1alpha1.Neighbor{
+				{ASN: new(int64(64517)), Address: "192.168.11.2"},
+			},
+			EVPN: &v1alpha1.EVPNConfig{VTEPCIDR: new("100.65.0.0/24")},
+		},
+	}
+
+	tests := []struct {
+		name string
+		gr   *v1alpha1.GracefulRestartConfig
+		want *frr.GracefulRestart
+	}{
+		{
+			name: "GR disabled (nil)",
+			gr:   nil,
+			want: nil,
+		},
+		{
+			name: "GR enabled with defaults",
+			gr:   &v1alpha1.GracefulRestartConfig{},
+			want: &frr.GracefulRestart{RestartTime: 120, StalePathTime: 360},
+		},
+		{
+			name: "GR enabled with custom timers",
+			gr:   &v1alpha1.GracefulRestartConfig{RestartTimeSeconds: new(int64(90)), StalePathTimeSeconds: new(int64(180))},
+			want: &frr.GracefulRestart{RestartTime: 90, StalePathTime: 180},
+		},
+		{
+			name: "GR enabled with partial custom timers",
+			gr:   &v1alpha1.GracefulRestartConfig{RestartTimeSeconds: new(int64(60))},
+			want: &frr.GracefulRestart{RestartTime: 60, StalePathTime: 360},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			u := baseUnderlay.DeepCopy()
+			u.Spec.GracefulRestart = tt.gr
+
+			config := APIConfigData{
+				Underlays: []v1alpha1.Underlay{*u},
+			}
+			got, err := APItoFRR(config, 0, "")
+			if err != nil {
+				t.Fatalf("APItoFRR() unexpected error: %v", err)
+			}
+
+			if !cmp.Equal(got.Underlay.GracefulRestart, tt.want) {
+				t.Errorf("GracefulRestart diff: %s", cmp.Diff(tt.want, got.Underlay.GracefulRestart))
+			}
+
+			if tt.want != nil {
+				for _, n := range got.Underlay.Neighbors {
+					if n.ConnectTime == nil || *n.ConnectTime != 5 {
+						t.Errorf("expected ConnectTime=5 when GR enabled, got %v", n.ConnectTime)
+					}
+				}
 			}
 		})
 	}
