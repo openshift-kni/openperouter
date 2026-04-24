@@ -41,10 +41,10 @@ func TestAPItoFRR(t *testing.T) {
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
 						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: "192.168.1.0/24",
+							VTEPCIDR: ptr.To("192.168.1.0/24"),
 						},
-						RouterIDCIDR: "10.0.0.0/24",
-						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: 65001}},
+						RouterIDCIDR: ptr.To("10.0.0.0/24"),
+						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: ptr.To(int64(65001))}},
 					},
 				},
 			},
@@ -82,10 +82,10 @@ func TestAPItoFRR(t *testing.T) {
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
 						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: "192.168.1.0/24",
+							VTEPCIDR: ptr.To("192.168.1.0/24"),
 						},
-						RouterIDCIDR: "10.0.0.0/24",
-						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", Type: "external"}},
+						RouterIDCIDR: ptr.To("10.0.0.0/24"),
+						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", Type: ptr.To("external")}},
 					},
 				},
 			},
@@ -123,13 +123,13 @@ func TestAPItoFRR(t *testing.T) {
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
 						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: "192.168.1.0/24",
+							VTEPCIDR: ptr.To("192.168.1.0/24"),
 						},
-						RouterIDCIDR: "10.0.0.0/24",
+						RouterIDCIDR: ptr.To("10.0.0.0/24"),
 						Neighbors: []v1alpha1.Neighbor{
 							{
 								Address: "192.168.1.1",
-								Type:    "internal",
+								Type:    ptr.To("internal"),
 							},
 						},
 					},
@@ -169,13 +169,13 @@ func TestAPItoFRR(t *testing.T) {
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
 						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: "192.168.1.0/24",
+							VTEPCIDR: ptr.To("192.168.1.0/24"),
 						},
-						RouterIDCIDR: "10.0.0.0/24",
+						RouterIDCIDR: ptr.To("10.0.0.0/24"),
 						Neighbors: []v1alpha1.Neighbor{
 							{
 								Address: "192.168.1.1",
-								ASN:     65000,
+								ASN:     ptr.To(int64(65000)),
 							},
 						},
 					},
@@ -215,10 +215,10 @@ func TestAPItoFRR(t *testing.T) {
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
 						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: "192.168.1.0/24",
+							VTEPCIDR: ptr.To("192.168.1.0/24"),
 						},
-						RouterIDCIDR: "10.0.0.0/24",
-						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: 65001}},
+						RouterIDCIDR: ptr.To("10.0.0.0/24"),
+						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: ptr.To(int64(65001))}},
 					},
 				},
 			},
@@ -229,9 +229,9 @@ func TestAPItoFRR(t *testing.T) {
 						HostSession: &v1alpha1.HostSession{
 							ASN: 65000,
 							LocalCIDR: v1alpha1.LocalCIDRConfig{
-								IPv4: "192.168.2.0/24",
+								IPv4: ptr.To("192.168.2.0/24"),
 							},
-							HostASN: 65001,
+							HostASN: ptr.To(int64(65001)),
 						},
 						VRF: "vrf1",
 						VNI: 200,
@@ -284,10 +284,10 @@ func TestAPItoFRR(t *testing.T) {
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
 						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: "192.168.1.0/24",
+							VTEPCIDR: ptr.To("192.168.1.0/24"),
 						},
-						RouterIDCIDR: "10.0.0.0/24",
-						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: 65001}},
+						RouterIDCIDR: ptr.To("10.0.0.0/24"),
+						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: ptr.To(int64(65001))}},
 					},
 				},
 			},
@@ -298,9 +298,9 @@ func TestAPItoFRR(t *testing.T) {
 						HostSession: &v1alpha1.HostSession{
 							ASN: 65000,
 							LocalCIDR: v1alpha1.LocalCIDRConfig{
-								IPv6: "2001:db8::/64",
+								IPv6: ptr.To("2001:db8::/64"),
 							},
-							HostASN: 65001,
+							HostASN: ptr.To(int64(65001)),
 						},
 						VRF: "vrf1",
 						VNI: 200,
@@ -353,10 +353,10 @@ func TestAPItoFRR(t *testing.T) {
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
 						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: "192.168.1.0/24",
+							VTEPCIDR: ptr.To("192.168.1.0/24"),
 						},
-						RouterIDCIDR: "10.0.0.0/24",
-						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: 65001}},
+						RouterIDCIDR: ptr.To("10.0.0.0/24"),
+						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: ptr.To(int64(65001))}},
 					},
 				},
 			},
@@ -367,10 +367,10 @@ func TestAPItoFRR(t *testing.T) {
 						HostSession: &v1alpha1.HostSession{
 							ASN: 65000,
 							LocalCIDR: v1alpha1.LocalCIDRConfig{
-								IPv4: "192.168.2.0/24",
-								IPv6: "2001:db8::/64",
+								IPv4: ptr.To("192.168.2.0/24"),
+								IPv6: ptr.To("2001:db8::/64"),
 							},
-							HostASN: 65001,
+							HostASN: ptr.To(int64(65001)),
 						},
 						VRF: "vrf1",
 						VNI: 200,
@@ -435,17 +435,17 @@ func TestAPItoFRR(t *testing.T) {
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
 						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: "192.168.1.0/24",
+							VTEPCIDR: ptr.To("192.168.1.0/24"),
 						},
-						RouterIDCIDR: "10.0.0.0/24",
+						RouterIDCIDR: ptr.To("10.0.0.0/24"),
 						Neighbors: []v1alpha1.Neighbor{
 							{
 								Address: "192.168.1.100",
-								ASN:     65001,
+								ASN:     ptr.To(int64(65001)),
 								BFD: &v1alpha1.BFDSettings{
-									ReceiveInterval:  ptr.To(uint32(300)),
-									TransmitInterval: ptr.To(uint32(300)),
-									DetectMultiplier: ptr.To(uint32(3)),
+									ReceiveInterval:  ptr.To(int32(300)),
+									TransmitInterval: ptr.To(int32(300)),
+									DetectMultiplier: ptr.To(int32(3)),
 									EchoMode:         ptr.To(false),
 									PassiveMode:      ptr.To(false),
 								},
@@ -480,9 +480,9 @@ func TestAPItoFRR(t *testing.T) {
 				BFDProfiles: []frr.BFDProfile{
 					{
 						Name:             "neighbor-192.168.1.100",
-						ReceiveInterval:  ptr.To(uint32(300)),
-						TransmitInterval: ptr.To(uint32(300)),
-						DetectMultiplier: ptr.To(uint32(3)),
+						ReceiveInterval:  ptr.To(int32(300)),
+						TransmitInterval: ptr.To(int32(300)),
+						DetectMultiplier: ptr.To(int32(3)),
 					},
 				},
 				Loglevel: "debug",
@@ -497,13 +497,13 @@ func TestAPItoFRR(t *testing.T) {
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
 						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: "192.168.1.0/24",
+							VTEPCIDR: ptr.To("192.168.1.0/24"),
 						},
-						RouterIDCIDR: "10.0.0.0/24",
+						RouterIDCIDR: ptr.To("10.0.0.0/24"),
 						Neighbors: []v1alpha1.Neighbor{
 							{
 								Address: "192.168.1.100",
-								ASN:     65001,
+								ASN:     ptr.To(int64(65001)),
 								BFD:     &v1alpha1.BFDSettings{},
 							},
 						},
@@ -546,10 +546,10 @@ func TestAPItoFRR(t *testing.T) {
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
 						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: "192.168.1.0/24",
+							VTEPCIDR: ptr.To("192.168.1.0/24"),
 						},
-						RouterIDCIDR: "10.0.0.0/24",
-						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: 65001}},
+						RouterIDCIDR: ptr.To("10.0.0.0/24"),
+						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: ptr.To(int64(65001))}},
 					},
 				},
 			},
@@ -602,10 +602,10 @@ func TestAPItoFRR(t *testing.T) {
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
 						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: "192.168.1.0/24",
+							VTEPCIDR: ptr.To("192.168.1.0/24"),
 						},
-						RouterIDCIDR: "10.0.0.0/24",
-						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: 65001}},
+						RouterIDCIDR: ptr.To("10.0.0.0/24"),
+						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: ptr.To(int64(65001))}},
 					},
 				},
 			},
@@ -616,9 +616,9 @@ func TestAPItoFRR(t *testing.T) {
 						HostSession: &v1alpha1.HostSession{
 							ASN: 65000,
 							LocalCIDR: v1alpha1.LocalCIDRConfig{
-								IPv4: "192.168.2.0/24",
+								IPv4: ptr.To("192.168.2.0/24"),
 							},
-							HostASN: 65001,
+							HostASN: ptr.To(int64(65001)),
 						},
 						VRF:       "vrf1",
 						VNI:       200,
@@ -675,10 +675,10 @@ func TestAPItoFRR(t *testing.T) {
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
 						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: "192.168.1.0/24",
+							VTEPCIDR: ptr.To("192.168.1.0/24"),
 						},
-						RouterIDCIDR: "10.0.0.0/24",
-						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: 65001}},
+						RouterIDCIDR: ptr.To("10.0.0.0/24"),
+						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: ptr.To(int64(65001))}},
 					},
 				},
 			},
@@ -735,10 +735,10 @@ func TestAPItoFRR(t *testing.T) {
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
 						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: "192.168.1.0/24",
+							VTEPCIDR: ptr.To("192.168.1.0/24"),
 						},
-						RouterIDCIDR: "",
-						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: 65001}},
+						RouterIDCIDR: ptr.To(""),
+						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: ptr.To(int64(65001))}},
 					},
 				},
 			},
@@ -749,9 +749,9 @@ func TestAPItoFRR(t *testing.T) {
 						HostSession: &v1alpha1.HostSession{
 							ASN: 65000,
 							LocalCIDR: v1alpha1.LocalCIDRConfig{
-								IPv4: "192.168.2.0/24",
+								IPv4: ptr.To("192.168.2.0/24"),
 							},
-							HostASN: 65001,
+							HostASN: ptr.To(int64(65001)),
 						},
 						VRF: "vni1",
 						VNI: 200,
@@ -804,10 +804,10 @@ func TestAPItoFRR(t *testing.T) {
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
 						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: "192.168.1.0/24",
+							VTEPCIDR: ptr.To("192.168.1.0/24"),
 						},
-						RouterIDCIDR: "",
-						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: 65001}},
+						RouterIDCIDR: ptr.To(""),
+						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: ptr.To(int64(65001))}},
 					},
 				},
 			},
@@ -818,10 +818,10 @@ func TestAPItoFRR(t *testing.T) {
 						HostSession: &v1alpha1.HostSession{
 							ASN: 65000,
 							LocalCIDR: v1alpha1.LocalCIDRConfig{
-								IPv4: "192.168.2.0/24",
+								IPv4: ptr.To("192.168.2.0/24"),
 							},
-							HostASN:  0,
-							HostType: "external",
+							HostASN:  ptr.To(int64(0)),
+							HostType: ptr.To("external"),
 						},
 						VRF: "vni1",
 						VNI: 200,
@@ -874,10 +874,10 @@ func TestAPItoFRR(t *testing.T) {
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
 						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: "192.168.1.0/24",
+							VTEPCIDR: ptr.To("192.168.1.0/24"),
 						},
-						RouterIDCIDR: "",
-						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: 65001}},
+						RouterIDCIDR: ptr.To(""),
+						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: ptr.To(int64(65001))}},
 					},
 				},
 			},
@@ -888,10 +888,10 @@ func TestAPItoFRR(t *testing.T) {
 						HostSession: &v1alpha1.HostSession{
 							ASN: 65000,
 							LocalCIDR: v1alpha1.LocalCIDRConfig{
-								IPv4: "192.168.2.0/24",
+								IPv4: ptr.To("192.168.2.0/24"),
 							},
-							HostASN:  0,
-							HostType: "internal",
+							HostASN:  ptr.To(int64(0)),
+							HostType: ptr.To("internal"),
 						},
 						VRF: "vni1",
 						VNI: 200,
@@ -943,8 +943,8 @@ func TestAPItoFRR(t *testing.T) {
 				{
 					Spec: v1alpha1.UnderlaySpec{
 						ASN:          65000,
-						RouterIDCIDR: "10.0.0.0/24",
-						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: 65001}},
+						RouterIDCIDR: ptr.To("10.0.0.0/24"),
+						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: ptr.To(int64(65001))}},
 					},
 				},
 			},
@@ -979,10 +979,10 @@ func TestAPItoFRR(t *testing.T) {
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
 						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: "192.168.1.0/24",
+							VTEPCIDR: ptr.To("192.168.1.0/24"),
 						},
-						RouterIDCIDR: "10.0.0.0/24",
-						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: 65001}},
+						RouterIDCIDR: ptr.To("10.0.0.0/24"),
+						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: ptr.To(int64(65001))}},
 					},
 				},
 			},
@@ -991,11 +991,11 @@ func TestAPItoFRR(t *testing.T) {
 				{
 					Spec: v1alpha1.L3PassthroughSpec{
 						HostSession: v1alpha1.HostSession{
-							HostASN: 65001,
+							HostASN: ptr.To(int64(65001)),
 							ASN:     65000,
 							LocalCIDR: v1alpha1.LocalCIDRConfig{
-								IPv4: "192.168.2.0/24",
-								IPv6: "2001:db8::/64",
+								IPv4: ptr.To("192.168.2.0/24"),
+								IPv6: ptr.To("2001:db8::/64"),
 							},
 						},
 					},
@@ -1045,10 +1045,10 @@ func TestAPItoFRR(t *testing.T) {
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
 						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: "192.168.1.0/24",
+							VTEPCIDR: ptr.To("192.168.1.0/24"),
 						},
-						RouterIDCIDR: "10.0.0.0/24",
-						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: 65001}},
+						RouterIDCIDR: ptr.To("10.0.0.0/24"),
+						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: ptr.To(int64(65001))}},
 					},
 				},
 			},
@@ -1057,12 +1057,12 @@ func TestAPItoFRR(t *testing.T) {
 				{
 					Spec: v1alpha1.L3PassthroughSpec{
 						HostSession: v1alpha1.HostSession{
-							HostASN:  0,
-							HostType: "external",
+							HostASN:  ptr.To(int64(0)),
+							HostType: ptr.To("external"),
 							ASN:      65000,
 							LocalCIDR: v1alpha1.LocalCIDRConfig{
-								IPv4: "192.168.2.0/24",
-								IPv6: "2001:db8::/64",
+								IPv4: ptr.To("192.168.2.0/24"),
+								IPv6: ptr.To("2001:db8::/64"),
 							},
 						},
 					},
@@ -1112,10 +1112,10 @@ func TestAPItoFRR(t *testing.T) {
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
 						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: "192.168.1.0/24",
+							VTEPCIDR: ptr.To("192.168.1.0/24"),
 						},
-						RouterIDCIDR: "10.0.0.0/24",
-						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: 65001}},
+						RouterIDCIDR: ptr.To("10.0.0.0/24"),
+						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: ptr.To(int64(65001))}},
 					},
 				},
 			},
@@ -1124,12 +1124,12 @@ func TestAPItoFRR(t *testing.T) {
 				{
 					Spec: v1alpha1.L3PassthroughSpec{
 						HostSession: v1alpha1.HostSession{
-							HostASN:  0,
-							HostType: "internal",
+							HostASN:  ptr.To(int64(0)),
+							HostType: ptr.To("internal"),
 							ASN:      65000,
 							LocalCIDR: v1alpha1.LocalCIDRConfig{
-								IPv4: "192.168.2.0/24",
-								IPv6: "2001:db8::/64",
+								IPv4: ptr.To("192.168.2.0/24"),
+								IPv6: ptr.To("2001:db8::/64"),
 							},
 						},
 					},
@@ -1179,10 +1179,10 @@ func TestAPItoFRR(t *testing.T) {
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
 						EVPN: &v1alpha1.EVPNConfig{
-							VTEPInterface: "eth1",
+							VTEPInterface: ptr.To("eth1"),
 						},
-						RouterIDCIDR: "10.0.0.0/24",
-						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: 65001}},
+						RouterIDCIDR: ptr.To("10.0.0.0/24"),
+						Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: ptr.To(int64(65001))}},
 					},
 				},
 			},
@@ -1239,8 +1239,8 @@ func TestAPItoFRRRawConfig(t *testing.T) {
 		{
 			Spec: v1alpha1.UnderlaySpec{
 				ASN:          65000,
-				RouterIDCIDR: "10.0.0.0/24",
-				Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: 65001}},
+				RouterIDCIDR: ptr.To("10.0.0.0/24"),
+				Neighbors:    []v1alpha1.Neighbor{{Address: "192.168.1.1", ASN: ptr.To(int64(65001))}},
 			},
 		},
 	}
@@ -1265,7 +1265,7 @@ func TestAPItoFRRRawConfig(t *testing.T) {
 				},
 			},
 			wantSnippets: []frr.RawFRRSnippet{
-				{Priority: 0, Config: "ip prefix-list test seq 10 permit 10.0.0.0/8"},
+				{Config: "ip prefix-list test seq 10 permit 10.0.0.0/8"},
 			},
 		},
 		{
@@ -1273,27 +1273,27 @@ func TestAPItoFRRRawConfig(t *testing.T) {
 			rawFRRConfigs: []v1alpha1.RawFRRConfig{
 				{
 					Spec: v1alpha1.RawFRRConfigSpec{
-						Priority:  20,
+						Priority:  ptr.To(int32(20)),
 						RawConfig: "high priority config",
 					},
 				},
 				{
 					Spec: v1alpha1.RawFRRConfigSpec{
-						Priority:  5,
+						Priority:  ptr.To(int32(5)),
 						RawConfig: "low priority config",
 					},
 				},
 				{
 					Spec: v1alpha1.RawFRRConfigSpec{
-						Priority:  10,
+						Priority:  ptr.To(int32(10)),
 						RawConfig: "mid priority config",
 					},
 				},
 			},
 			wantSnippets: []frr.RawFRRSnippet{
-				{Priority: 5, Config: "low priority config"},
-				{Priority: 10, Config: "mid priority config"},
-				{Priority: 20, Config: "high priority config"},
+				{Priority: ptr.To(int32(5)), Config: "low priority config"},
+				{Priority: ptr.To(int32(10)), Config: "mid priority config"},
+				{Priority: ptr.To(int32(20)), Config: "high priority config"},
 			},
 		},
 	}
@@ -1319,13 +1319,13 @@ func TestAPItoFRRRawConfigWithoutUnderlay(t *testing.T) {
 	rawConfigs := []v1alpha1.RawFRRConfig{
 		{
 			Spec: v1alpha1.RawFRRConfigSpec{
-				Priority:  10,
+				Priority:  ptr.To(int32(10)),
 				RawConfig: "ip prefix-list test seq 10 permit 10.0.0.0/8",
 			},
 		},
 		{
 			Spec: v1alpha1.RawFRRConfigSpec{
-				Priority:  5,
+				Priority:  ptr.To(int32(5)),
 				RawConfig: "route-map test permit 10",
 			},
 		},
@@ -1334,8 +1334,8 @@ func TestAPItoFRRRawConfigWithoutUnderlay(t *testing.T) {
 	wantConfig := frr.Config{
 		Loglevel: "debug",
 		RawConfig: []frr.RawFRRSnippet{
-			{Priority: 5, Config: "route-map test permit 10"},
-			{Priority: 10, Config: "ip prefix-list test seq 10 permit 10.0.0.0/8"},
+			{Priority: ptr.To(int32(5)), Config: "route-map test permit 10"},
+			{Priority: ptr.To(int32(10)), Config: "ip prefix-list test seq 10 permit 10.0.0.0/8"},
 		},
 	}
 
@@ -1356,9 +1356,9 @@ func TestAPItoFRRRawConfigWithoutUnderlay(t *testing.T) {
 						HostSession: &v1alpha1.HostSession{
 							ASN: 65000,
 							LocalCIDR: v1alpha1.LocalCIDRConfig{
-								IPv4: "192.168.2.0/24",
+								IPv4: ptr.To("192.168.2.0/24"),
 							},
-							HostASN: 65001,
+							HostASN: ptr.To(int64(65001)),
 						},
 						VRF: "vrf1",
 						VNI: 200,
@@ -1372,10 +1372,10 @@ func TestAPItoFRRRawConfigWithoutUnderlay(t *testing.T) {
 				{
 					Spec: v1alpha1.L3PassthroughSpec{
 						HostSession: v1alpha1.HostSession{
-							HostASN: 65001,
+							HostASN: ptr.To(int64(65001)),
 							ASN:     65000,
 							LocalCIDR: v1alpha1.LocalCIDRConfig{
-								IPv4: "192.168.2.0/24",
+								IPv4: ptr.To("192.168.2.0/24"),
 							},
 						},
 					},
@@ -1391,9 +1391,9 @@ func TestAPItoFRRRawConfigWithoutUnderlay(t *testing.T) {
 						HostSession: &v1alpha1.HostSession{
 							ASN: 65000,
 							LocalCIDR: v1alpha1.LocalCIDRConfig{
-								IPv4: "192.168.2.0/24",
+								IPv4: ptr.To("192.168.2.0/24"),
 							},
-							HostASN: 65001,
+							HostASN: ptr.To(int64(65001)),
 						},
 						VRF: "vrf1",
 						VNI: 200,
@@ -1404,10 +1404,10 @@ func TestAPItoFRRRawConfigWithoutUnderlay(t *testing.T) {
 				{
 					Spec: v1alpha1.L3PassthroughSpec{
 						HostSession: v1alpha1.HostSession{
-							HostASN: 65001,
+							HostASN: ptr.To(int64(65001)),
 							ASN:     65000,
 							LocalCIDR: v1alpha1.LocalCIDRConfig{
-								IPv4: "192.168.2.0/24",
+								IPv4: ptr.To("192.168.2.0/24"),
 							},
 						},
 					},
@@ -1440,7 +1440,8 @@ func mustNewPeerASNFromNumber(number uint32) frr.PeerASN {
 	if number == 0 {
 		panic("number must be > 0")
 	}
-	asn, err := frr.NewPeerASN(number, "")
+	n := int64(number)
+	asn, err := frr.NewPeerASN(&n, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -1448,7 +1449,7 @@ func mustNewPeerASNFromNumber(number uint32) frr.PeerASN {
 }
 
 func mustNewPeerASNFromType(t string) frr.PeerASN {
-	asn, err := frr.NewPeerASN(0, t)
+	asn, err := frr.NewPeerASN(nil, &t)
 	if err != nil {
 		panic(err)
 	}

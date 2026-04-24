@@ -514,7 +514,7 @@ func TestBFDProfile(t *testing.T) {
 		BFDProfiles: []BFDProfile{
 			{
 				Name:            "foo",
-				ReceiveInterval: ptr.To(uint32(43)),
+				ReceiveInterval: ptr.To(int32(43)),
 			},
 		},
 	}
@@ -733,8 +733,8 @@ func TestRawConfig(t *testing.T) {
 			},
 		},
 		RawConfig: []RawFRRSnippet{
-			{Priority: 5, Config: "ip prefix-list raw-low seq 10 permit 10.0.0.0/8"},
-			{Priority: 20, Config: "ip prefix-list raw-high seq 10 permit 10.1.0.0/16"},
+			{Priority: ptr.To(int32(5)), Config: "ip prefix-list raw-low seq 10 permit 10.0.0.0/8"},
+			{Priority: ptr.To(int32(20)), Config: "ip prefix-list raw-high seq 10 permit 10.1.0.0/16"},
 		},
 	}
 	if err := ApplyConfig(context.Background(), &config, updater); err != nil {
@@ -818,11 +818,11 @@ func testUpdater(configFile string) func(context.Context, string) error {
 	}
 }
 
-func mustNewPeerASNFromNumber(number uint32) PeerASN {
+func mustNewPeerASNFromNumber(number int64) PeerASN {
 	if number == 0 {
 		panic("number must be > 0")
 	}
-	asn, err := NewPeerASN(number, "")
+	asn, err := NewPeerASN(&number, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -830,7 +830,7 @@ func mustNewPeerASNFromNumber(number uint32) PeerASN {
 }
 
 func mustNewPeerASNFromType(t string) PeerASN {
-	asn, err := NewPeerASN(0, t)
+	asn, err := NewPeerASN(nil, &t)
 	if err != nil {
 		panic(err)
 	}
