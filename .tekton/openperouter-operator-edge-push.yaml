@@ -16,7 +16,7 @@ metadata:
       !".konflux/catalog/bundle.builds.in.yaml".pathChanged()
   creationTimestamp:
   labels:
-    appstudio.openshift.io/application: openperouter-operator-edge-4-22
+    appstudio.openshift.io/application: openperouter-operator-4-22
     appstudio.openshift.io/component: openperouter-operator-edge-4-22
     pipelines.appstudio.openshift.io/type: build
   name: openperouter-operator-edge-4-22-on-push
