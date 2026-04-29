@@ -489,7 +489,7 @@ func vrfsWithL2Gateways(l2vnis []v1alpha1.L2VNI) map[string][]string {
 	res := make(map[string][]string)
 	for _, l2vni := range l2vnis {
 		if len(l2vni.Spec.L2GatewayIPs) > 0 {
-			res[l2vni.VRFName()] = l2vni.Spec.L2GatewayIPs
+			res[*l2vni.Spec.VRF] = l2vni.Spec.L2GatewayIPs
 		}
 	}
 	return res
