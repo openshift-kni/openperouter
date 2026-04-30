@@ -13,22 +13,9 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
-// BridgeOption is a function applied to a bridge after creation but before link-up.
-type BridgeOption func(*netlink.Bridge) error
-
-// WithAddrGenModeNone returns a BridgeOption that sets addr_gen_mode=1 (none)
-// on the bridge, suppressing automatic IPv6 link-local address generation.
-// L3VNI bridges need this; L2VNI bridges must NOT use it because the kernel's
-// NDP state machine requires a link-local address for unicast NS probes.
-func WithAddrGenModeNone() BridgeOption {
-	return func(bridge *netlink.Bridge) error {
-		return setAddrGenModeNone(bridge)
-	}
-}
-
 // setupBridge creates the bridge if not exists, enslaves it to the provided
 // vrf, and applies any bridge options before bringing the link up.
-func setupBridge(params VNIParams, vrf *netlink.Vrf, opts ...BridgeOption) (*netlink.Bridge, error) {
+func setupBridge(params VNIParams, vrf *netlink.Vrf, opts ...NetlinkOption) (*netlink.Bridge, error) {
 	name := BridgeName(params.VNI)
 	bridge, err := createBridge(name, vrf.Index)
 	if err != nil {
