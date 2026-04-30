@@ -391,9 +391,13 @@ kind-node-image-build: ## Build custom kind node image with OVS
 kind-node-image-push: ## Push custom kind node image to quay.io
 	cd hack/kind-node-image && ./push.sh
 
+.PHONY: golangci-lint
+golangci-lint:
+	hack/golangci-lint.sh build
+
 .PHONY: lint
-lint:
-	hack/lint.sh
+lint: golangci-lint
+	hack/golangci-lint.sh run
 
 .PHONY: bumplicense
 bumplicense:
