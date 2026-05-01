@@ -163,7 +163,7 @@ KIND_VERSION ?= v0.27.0
 KIND_CLUSTER_NAME ?= pe-kind
 HELM_VERSION ?= v3.12.3
 HELM_DOCS_VERSION ?= v1.10.0
-APIDOCSGEN_VERSION ?= v0.0.12
+APIDOCSGEN_VERSION ?= v0.3.0
 HUGO_VERSION ?= v0.147.8
 
 # Kind node image configuration
@@ -252,9 +252,9 @@ deploy-controller-cluster: kubectl kustomize ## Deploy controller to a specific 
 
 .PHONY: deploy-helm
 deploy-helm: helm kind deploy-cluster
-	$(KUBECTL) -n ${NAMESPACE} delete ds controller || true
-	$(KUBECTL) -n ${NAMESPACE} delete ds router || true
-	$(KUBECTL) -n ${NAMESPACE} delete deployment nodemarker || true
+	$(KUBECTL) -n ${NAMESPACE} delete ds openperouter-controller || true
+	$(KUBECTL) -n ${NAMESPACE} delete ds openperouter-router || true
+	$(KUBECTL) -n ${NAMESPACE} delete deployment openperouter-nodemarker || true
 	$(KUBECTL) create ns ${NAMESPACE} || true
 	$(KUBECTL) label ns ${NAMESPACE} pod-security.kubernetes.io/enforce=privileged
 	$(HELM) install openperouter charts/openperouter/ --set openperouter.image.tag=${IMG_TAG} \
@@ -377,8 +377,10 @@ bumplicense:
 	hack/bumplicense.sh
 
 .PHONY: checkuncommitted
+CSV_FILE = operator/bundle/manifests/openperouter-operator.clusterserviceversion.yaml
 checkuncommitted:
-	git diff --exit-code
+	git diff --exit-code -I'^    createdAt: ' -- $(CSV_FILE)
+	git diff --exit-code -- ':!$(CSV_FILE)'
 
 .PHONY: bumpall
 bumpall: bumplicense manifests
@@ -397,6 +399,12 @@ KIND_EXPORT_LOGS ?=/tmp/kind_logs
 .PHONY: kind-export-logs
 kind-export-logs: create-export-logs
 	$(LOCALBIN)/kind export logs --name ${KIND_CLUSTER_NAME} ${KIND_EXPORT_LOGS}
+
+.PHONY: generate-all
+generate-all: generate manifests generate-all-in-one helm-docs api-docs bundle ## Generate all code, manifests, and documentation.
+
+.PHONY: generate-all-ci
+generate-all-ci: generate manifests generate-all-in-one api-docs bundle ## Generate all code, manifests, and documentation (CI-friendly, excludes helm-docs).
 
 .PHONY: generate-all-in-one
 generate-all-in-one: manifests kustomize ## Create manifests
@@ -580,7 +588,7 @@ endif
 # Build a catalog image by adding bundle images to an empty catalog using the operator package manager tool, 'opm'.
 # This recipe invokes 'opm' in 'semver' bundle add mode. For more information on add modes, see:
 # https://github.com/operator-framework/community-operators/blob/7f1438c/docs/packaging-operator.md#updating-your-existing-operator
-USE_HTTP ?= ""
+USE_HTTP ?=
 .PHONY: catalog-build
 catalog-build: opm ## Build a catalog image.
 	$(OPM) index add --container-tool $(CONTAINER_ENGINE) --mode semver --tag $(CATALOG_IMG) --bundles $(BUNDLE_IMGS) $(FROM_INDEX_OPT) $(USE_HTTP)
