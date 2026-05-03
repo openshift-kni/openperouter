@@ -75,6 +75,8 @@ type requestKey string
 // +kubebuilder:rbac:groups=openpe.openperouter.github.io,resources=l3passthroughs/finalizers,verbs=update
 // +kubebuilder:rbac:groups=openpe.openperouter.github.io,resources=rawfrrconfigs,verbs=get;list;watch
 // +kubebuilder:rbac:groups=openpe.openperouter.github.io,resources=rawfrrconfigs/status,verbs=get
+// +kubebuilder:rbac:groups=openpe.openperouter.github.io,resources=routernodeconfigurationstatuses,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=openpe.openperouter.github.io,resources=routernodeconfigurationstatuses/status,verbs=get;update;patch
 
 func (r *PERouterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := r.Logger.With("controller", "RouterConfiguration", "request", req.String())
@@ -130,7 +132,17 @@ func (r *PERouterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 		return ctrl.Result{}, nil
 	}
+	var errs []error
 	if err != nil {
+		errs = append(errs, err)
+	}
+
+	if err := r.reconcileNodeStatus(ctx); err != nil {
+		errs = append(errs, err)
+	}
+
+	if len(errs) > 0 {
+		err := errors.Join(errs...)
 		slog.Error("failed to configure the host", "error", err)
 		return ctrl.Result{}, err
 	}
@@ -248,6 +260,13 @@ func (r *PERouterReconciler) getConfigFromAPI(ctx context.Context, logger *slog.
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *PERouterReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	filterLocalNodeStatus := predicate.NewPredicateFuncs(func(object client.Object) bool {
+		if o, ok := object.(*v1alpha1.RouterNodeConfigurationStatus); ok {
+			return o.Name == r.MyNode
+		}
+		return true
+	})
+
 	filterNonRouterPods := predicate.NewPredicateFuncs(func(object client.Object) bool {
 		switch o := object.(type) {
 		case *v1.Pod:
@@ -302,7 +321,9 @@ func (r *PERouterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(&v1alpha1.L2VNI{}, &handler.EnqueueRequestForObject{}).
 		Watches(&v1alpha1.L3Passthrough{}, &handler.EnqueueRequestForObject{}).
 		Watches(&v1alpha1.RawFRRConfig{}, &handler.EnqueueRequestForObject{}).
+		Watches(&v1alpha1.RouterNodeConfigurationStatus{}, &handler.EnqueueRequestForObject{}).
 		WithEventFilter(filterNonRouterPods).
+		WithEventFilter(filterLocalNodeStatus).
 		WithEventFilter(filterUpdates).
 		Named("routercontroller")
 
