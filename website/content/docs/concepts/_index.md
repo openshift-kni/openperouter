@@ -12,7 +12,7 @@ This section explains the core concepts behind OpenPERouter and how it integrate
 
 ## Overview
 
-OpenPERouter transforms Kubernetes nodes into Provider Edge (PE) routers by running [FRR](https://frrouting.org/) in a dedicated network namespace. This enables EVPN (Ethernet VPN) functionality directly on your Kubernetes nodes, eliminating the need for external PE routers.
+OpenPERouter transforms Kubernetes nodes into Provider Edge (PE) routers by running [FRR](https://frrouting.org/) in a persistent named network namespace. This enables EVPN (Ethernet VPN) functionality directly on your Kubernetes nodes, eliminating the need for external PE routers.
 
 ## Network Architecture
 
@@ -26,7 +26,7 @@ In traditional deployments, Kubernetes nodes connect to Top-of-Rack (ToR) switch
 
 OpenPERouter consists of three main components:
 
-1. **Router Pod**: Runs [FRR](https://frrouting.org/) in a dedicated network namespace
+1. **Router Pod**: Runs [FRR](https://frrouting.org/) in a persistent named network namespace
 2. **Controller Pod**: Manages network configuration and orchestrates the router setup
 3. **Node Labeler**: Assigns persistent node indices for resource allocation
 
