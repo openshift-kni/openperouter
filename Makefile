@@ -185,6 +185,17 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 .PHONY: deploy
 deploy: kind deploy-cluster deploy-controller ## Deploy cluster and controller.
 
+.PHONY: deploy-scale
+deploy-scale: export KUSTOMIZE_LAYER=scale
+deploy-scale: kind deploy-cluster deploy-controller deploy-metrics-server ## Deploy cluster and controller without resource limits for scale testing.
+
+.PHONY: deploy-metrics-server
+deploy-metrics-server: kubectl ## Install metrics-server for scale testing (requires --kubelet-insecure-tls for kind clusters).
+	$(KUBECTL) apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+	$(KUBECTL) patch -n kube-system deployment metrics-server --type=json \
+		-p='[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--kubelet-insecure-tls"}]'
+	$(KUBECTL) -n kube-system rollout status deployment/metrics-server --timeout=300s
+
 .PHONY: setup-hostmode
 setup-hostmode: ## Setup node configuration for hostmode.
 	./systemdmode/setup_node_config.sh $(KIND_CLUSTER_NAME)
@@ -319,7 +330,7 @@ $(APIDOCSGEN): $(LOCALBIN)
 
 .PHONY: e2etests
 e2etests: ginkgo kubectl build-validator create-export-logs
-	$(GINKGO) -v $(GINKGO_ARGS) --timeout=3h ./e2etests/suite -- --kubectl=$(KUBECTL) $(TEST_ARGS) --hostvalidator $(VALIDATOR_PATH) --reporterpath=${KIND_EXPORT_LOGS}
+	$(GINKGO) -v $(GINKGO_ARGS) --label-filter="!systemdmode" --timeout=3h ./e2etests/suite -- --kubectl=$(KUBECTL) $(TEST_ARGS) --hostvalidator $(VALIDATOR_PATH) --reporterpath=${KIND_EXPORT_LOGS}
 
 .PHONY: e2etests-hostmode-boot
 e2etests-hostmode-boot: ginkgo kubectl build-validator create-export-logs ## Run e2e tests for hostmode boot scenario (static config first, then K8s API).
@@ -328,8 +339,20 @@ e2etests-hostmode-boot: ginkgo kubectl build-validator create-export-logs ## Run
 	@echo "=== Deploying controller to enable K8s API ==="
 	$(MAKE) deploy-controller KUSTOMIZE_LAYER=hostmode
 	@echo "=== Running passthrough tests (with K8s API available) ==="
-	$(GINKGO) -v $(GINKGO_ARGS) --timeout=3h --label-filter='passthrough' ./e2etests/suite -- --kubectl=$(KUBECTL) $(TEST_ARGS) --skip-underlay-passthrough --systemdmode --hostvalidator $(VALIDATOR_PATH) --reporterpath=${KIND_EXPORT_LOGS} 
+	$(GINKGO) -v $(GINKGO_ARGS) --label-filter="passthrough" --timeout=3h ./e2etests/suite -- --kubectl=$(KUBECTL) $(TEST_ARGS) --skip-underlay-passthrough --systemdmode --hostvalidator $(VALIDATOR_PATH) --reporterpath=${KIND_EXPORT_LOGS}
 
+.PHONY: scale-tests
+scale-tests: ginkgo kubectl create-export-logs ## Run VNI scale tests
+	$(GINKGO) -v --timeout=3h \
+		--json-report=scale-report.json --output-dir=${KIND_EXPORT_LOGS} --keep-separate-reports \
+		./e2etests/scale_suite -- \
+		--kubectl=$(KUBECTL) $(TEST_ARGS)
+
+SCALE_REPORT ?= ${KIND_EXPORT_LOGS}/e2etests_scale_suite_scale-report.json
+
+.PHONY: parse-scale-report
+parse-scale-report: ## Parse scale test JSON report and print summary tables.
+	python3 hack/parse-scale-report.py $(SCALE_REPORT)
 
 .PHONY: clab-cluster
 clab-cluster: kind-node-image-build
