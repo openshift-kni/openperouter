@@ -183,7 +183,14 @@ deploy: kind deploy-cluster deploy-controller ## Deploy cluster and controller.
 
 .PHONY: deploy-scale
 deploy-scale: export KUSTOMIZE_LAYER=scale
-deploy-scale: kind deploy-cluster deploy-controller ## Deploy cluster and controller without resource limits for scale testing.
+deploy-scale: kind deploy-cluster deploy-controller deploy-metrics-server ## Deploy cluster and controller without resource limits for scale testing.
+
+.PHONY: deploy-metrics-server
+deploy-metrics-server: kubectl ## Install metrics-server for scale testing (requires --kubelet-insecure-tls for kind clusters).
+	$(KUBECTL) apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+	$(KUBECTL) patch -n kube-system deployment metrics-server --type=json \
+		-p='[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--kubelet-insecure-tls"}]'
+	$(KUBECTL) -n kube-system rollout status deployment/metrics-server --timeout=300s
 
 .PHONY: setup-hostmode
 setup-hostmode: ## Setup node configuration for hostmode.

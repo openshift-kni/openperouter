@@ -371,18 +371,8 @@ jobs:
         run: |
           make deploy-scale
 
-      - name: Install metrics-server
-        env:
-          KUBECONFIG: bin/kubeconfig
-        run: |
-          kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
-          kubectl patch -n kube-system deployment metrics-server --type=json \
-            -p='[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--kubelet-insecure-tls"}]'
-          # Wait for deployment rollout to complete (not just any pod ready)
-          # This ensures the patched pod is fully running, not the original pre-patch pod
-          kubectl -n kube-system rollout status deployment/metrics-server --timeout=300s
-          # Give metrics-server time to collect initial metrics
-          sleep 60
+      - name: Wait for metrics-server to collect initial metrics
+        run: sleep 60
 
       - name: Run scale tests
         run: |
