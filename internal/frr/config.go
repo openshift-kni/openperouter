@@ -140,6 +140,9 @@ func templateConfig(data any) (string, error) {
 				return peerASN.IsExternalTo(myASN)
 			},
 			"activateNeighborFor": func(ipFamily string, neighbourFamily ipfamily.Family) bool {
+				if neighbourFamily == ipfamily.DualStack {
+					return ipFamily != string(ipfamily.Unknown)
+				}
 				return string(neighbourFamily) == ipFamily
 			},
 		}).ParseFS(templates, "templates/*")

@@ -340,7 +340,6 @@ func neighborToFRR(n v1alpha1.Neighbor) (*frr.NeighborConfig, error) {
 		Addr:         ptr.Deref(n.Address, ""),
 		Interface:    ptr.Deref(n.Interface, ""),
 		Port:         n.Port,
-		IPFamily:     ipfamily.IPv4,
 		EBGPMultiHop: ptr.Deref(n.EBGPMultiHop, false),
 		Password:     ptr.Deref(n.Password, ""),
 	}
@@ -352,6 +351,10 @@ func neighborToFRR(n v1alpha1.Neighbor) (*frr.NeighborConfig, error) {
 	setIDForNeighbor(res)
 
 	if err := setExtendedNexthopForNeighbor(res); err != nil {
+		return nil, err
+	}
+
+	if err := setIPFamilyForNeighbor(res); err != nil {
 		return nil, err
 	}
 
@@ -403,6 +406,33 @@ func setExtendedNexthopForNeighbor(res *frr.NeighborConfig) error {
 	if neighborFamily != ipfamily.IPv4 {
 		res.ExtendedNexthop = true
 	}
+	return nil
+}
+
+// setIPFamilyForNeighbor sets the IP family for the neighbor. This follows
+// a simple heuristic:
+// We always want to announce at least IPv4 due to EVPN requirements.
+// But we also have to announce IPv6 when the underlay is IPv6, e.g. for passthrough.
+// Therefore announce as follows:
+// Unnumbered: IPv4.
+// IPv4 underlay: IPv4.
+// IPv6 underlay: Dualstack.
+func setIPFamilyForNeighbor(res *frr.NeighborConfig) error {
+	if res.Interface != "" {
+		res.IPFamily = ipfamily.IPv4
+		return nil
+	}
+
+	neighborFamily, err := ipfamily.ForAddresses(res.Addr)
+	if err != nil {
+		return fmt.Errorf("failed to find ipfamily for %s, %w", res.Addr, err)
+	}
+	if neighborFamily == ipfamily.IPv4 {
+		res.IPFamily = ipfamily.IPv4
+		return nil
+	}
+
+	res.IPFamily = ipfamily.DualStack
 	return nil
 }
 

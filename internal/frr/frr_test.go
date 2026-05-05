@@ -805,6 +805,12 @@ func TestPassthroughDual(t *testing.T) {
 					ID:       "192.168.1.2",
 					IPFamily: ipfamily.IPv4,
 				},
+				{
+					ASN:      mustNewPeerASNFromNumber(64513),
+					Addr:     "2001:db8::1",
+					ID:       "2001:db8::1",
+					IPFamily: ipfamily.DualStack,
+				},
 			},
 		},
 		Passthrough: &PassthroughConfig{

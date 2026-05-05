@@ -330,7 +330,7 @@ func TestAPItoFRR(t *testing.T) {
 							ASN:             mustNewPeerASNFromNumber(65001),
 							Addr:            "2001:db8::1:192:168:1:1",
 							ID:              "2001:db8::1:192:168:1:1",
-							IPFamily:        ipfamily.IPv4,
+							IPFamily:        ipfamily.DualStack,
 							EBGPMultiHop:    false,
 							ExtendedNexthop: true,
 						},
