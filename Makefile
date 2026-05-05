@@ -117,6 +117,8 @@ docker-build: ## Build docker image with the manager.
 	else \
 		$(CONTAINER_ENGINE) build -t ${IMG} .; \
 	fi
+
+
 TLS_VERIFY ?= "true"
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager.
@@ -131,6 +133,8 @@ docker-push: ## Push docker image with the manager.
 ifndef ignore-not-found
   ignore-not-found = false
 endif
+
+
 ## Location to install dependencies to
 LOCALBIN ?= $(shell pwd)/bin
 $(LOCALBIN):
@@ -343,6 +347,12 @@ scale-tests: ginkgo kubectl create-export-logs ## Run VNI scale tests
 		--json-report=scale-report.json --output-dir=${KIND_EXPORT_LOGS} --keep-separate-reports \
 		./e2etests/scale_suite -- \
 		--kubectl=$(KUBECTL) $(TEST_ARGS)
+
+SCALE_REPORT ?= ${KIND_EXPORT_LOGS}/e2etests_scale_suite_scale-report.json
+
+.PHONY: parse-scale-report
+parse-scale-report: ## Parse scale test JSON report and print summary tables.
+	python3 hack/parse-scale-report.py $(SCALE_REPORT)
 
 .PHONY: clab-cluster
 clab-cluster: kind-node-image-build
@@ -610,6 +620,8 @@ catalog-build: opm ## Build a catalog image.
 .PHONY: catalog-push
 catalog-push: ## Push a catalog image.
 	$(MAKE) docker-push IMG=$(CATALOG_IMG)
+
+
 deploy-operator-with-olm: export VERSION=dev
 deploy-operator-with-olm: export CSV_VERSION=0.0.0
 deploy-operator-with-olm: export KIND_WITH_REGISTRY=true

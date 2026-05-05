@@ -381,8 +381,7 @@ jobs:
       - name: Parse scale test report
         if: ${{ always() }}
         run: |
-          python3 hack/parse-scale-report.py /tmp/kind_logs/e2etests_scale_suite_scale-report.json \
-            | tee /tmp/kind_logs/scale-test-summary.txt
+          make parse-scale-report | tee /tmp/kind_logs/scale-test-summary.txt
 
       - name: Upload scale test report
         if: ${{ always() }}
