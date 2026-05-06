@@ -51,7 +51,7 @@ jobs:
           fi
 
       - name: Build image for platform
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: hack/kind-node-image
           file: hack/kind-node-image/Dockerfile
