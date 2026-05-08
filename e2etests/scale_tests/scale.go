@@ -236,7 +236,7 @@ func generateL2VNIs(count int, namespace, bridgeType string) []v1alpha1.L2VNI {
 			},
 			Spec: v1alpha1.L2VNISpec{
 				VRF:        ptr.To(vrfName),
-				VNI:        uint32(baseVNI + i + 1),
+				VNI:        int32(baseVNI + i + 1),
 				HostMaster: newHostMaster(bridgeType),
 			},
 		}
@@ -261,7 +261,7 @@ func generateL3VNIsWithL2VNIs(count int, namespace, bridgeType string) ([]v1alph
 			},
 			Spec: v1alpha1.L3VNISpec{
 				VRF: vrfName,
-				VNI: uint32(baseL3VNI + i + 1),
+				VNI: int32(baseL3VNI + i + 1),
 			},
 		}
 
@@ -272,7 +272,7 @@ func generateL3VNIsWithL2VNIs(count int, namespace, bridgeType string) ([]v1alph
 			},
 			Spec: v1alpha1.L2VNISpec{
 				VRF:        ptr.To(vrfName),
-				VNI:        uint32(baseL2VNI + i + 1),
+				VNI:        int32(baseL2VNI + i + 1),
 				HostMaster: newHostMaster(bridgeType),
 			},
 		}
@@ -285,12 +285,12 @@ func newHostMaster(bridgeType string) *v1alpha1.HostMaster {
 	case v1alpha1.LinuxBridge:
 		return &v1alpha1.HostMaster{
 			Type:        v1alpha1.LinuxBridge,
-			LinuxBridge: &v1alpha1.LinuxBridgeConfig{AutoCreate: true},
+			LinuxBridge: &v1alpha1.LinuxBridgeConfig{AutoCreate: ptr.To(true)},
 		}
 	case v1alpha1.OVSBridge:
 		return &v1alpha1.HostMaster{
 			Type:      v1alpha1.OVSBridge,
-			OVSBridge: &v1alpha1.OVSBridgeConfig{AutoCreate: true},
+			OVSBridge: &v1alpha1.OVSBridgeConfig{AutoCreate: ptr.To(true)},
 		}
 	default:
 		return nil

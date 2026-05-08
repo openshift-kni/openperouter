@@ -48,7 +48,7 @@ var _ = Describe("BridgeRefresher E2E - Type 2 Route Persistence", Ordered, func
 		},
 		Spec: v1alpha1.L3VNISpec{
 			VRF: "red",
-			VNI: l3VNI,
+			VNI: int32(l3VNI),
 		},
 	}
 
@@ -59,12 +59,12 @@ var _ = Describe("BridgeRefresher E2E - Type 2 Route Persistence", Ordered, func
 		},
 		Spec: v1alpha1.L2VNISpec{
 			VRF:          ptr.To("red"),
-			VNI:          l2VNI,
+			VNI:          int32(l2VNI),
 			L2GatewayIPs: []string{l2GatewayIP},
 			HostMaster: &v1alpha1.HostMaster{
 				Type: linuxBridgeHostAttachment,
 				LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-					AutoCreate: true,
+					AutoCreate: ptr.To(true),
 				},
 			},
 		},

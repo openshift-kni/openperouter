@@ -5,6 +5,8 @@ package ipam
 import (
 	"net"
 	"testing"
+
+	"k8s.io/utils/ptr"
 )
 
 func TestSliceCIDR(t *testing.T) {
@@ -65,8 +67,8 @@ func TestSliceCIDR(t *testing.T) {
 func TestVethIPsFromPool(t *testing.T) {
 	tests := []struct {
 		name             string
-		poolIPv4         string
-		poolIPv6         string
+		poolIPv4         *string
+		poolIPv6         *string
 		index            int
 		expectedPEIPv4   string
 		expectedHostIPv4 string
@@ -76,8 +78,8 @@ func TestVethIPsFromPool(t *testing.T) {
 	}{
 		{
 			"ipv4_only",
-			"192.168.1.0/24",
-			"",
+			ptr.To("192.168.1.0/24"),
+			ptr.To(""),
 			0,
 			"192.168.1.1/24",
 			"192.168.1.2/24",
@@ -87,8 +89,8 @@ func TestVethIPsFromPool(t *testing.T) {
 		},
 		{
 			"ipv6_only",
-			"",
-			"2001:db8::/64",
+			ptr.To(""),
+			ptr.To("2001:db8::/64"),
 			0,
 			"",
 			"",
@@ -98,8 +100,8 @@ func TestVethIPsFromPool(t *testing.T) {
 		},
 		{
 			"dual_stack",
-			"192.168.1.0/24",
-			"2001:db8::/64",
+			ptr.To("192.168.1.0/24"),
+			ptr.To("2001:db8::/64"),
 			0,
 			"192.168.1.1/24",
 			"192.168.1.2/24",
@@ -109,8 +111,8 @@ func TestVethIPsFromPool(t *testing.T) {
 		},
 		{
 			"ipv4_not_ending_in_zero",
-			"192.168.1.1/24",
-			"",
+			ptr.To("192.168.1.1/24"),
+			ptr.To(""),
 			0,
 			"192.168.1.1/24",
 			"192.168.1.2/24",
@@ -120,8 +122,8 @@ func TestVethIPsFromPool(t *testing.T) {
 		},
 		{
 			"ipv6_not_ending_in_zero",
-			"",
-			"2001:db8::1/64",
+			ptr.To(""),
+			ptr.To("2001:db8::1/64"),
 			0,
 			"",
 			"",
@@ -131,8 +133,8 @@ func TestVethIPsFromPool(t *testing.T) {
 		},
 		{
 			"no_pools",
-			"",
-			"",
+			ptr.To(""),
+			ptr.To(""),
 			0,
 			"",
 			"",
@@ -142,8 +144,8 @@ func TestVethIPsFromPool(t *testing.T) {
 		},
 		{
 			"invalid_ipv4",
-			"invalid",
-			"2001:db8::/64",
+			ptr.To("invalid"),
+			ptr.To("2001:db8::/64"),
 			0,
 			"",
 			"",
@@ -153,8 +155,8 @@ func TestVethIPsFromPool(t *testing.T) {
 		},
 		{
 			"invalid_ipv6",
-			"192.168.1.0/24",
-			"invalid",
+			ptr.To("192.168.1.0/24"),
+			ptr.To("invalid"),
 			0,
 			"",
 			"",
@@ -180,9 +182,9 @@ func TestVethIPsFromPool(t *testing.T) {
 	}
 }
 
-func assertVethIPs(t *testing.T, res VethIPs, poolIPv4, poolIPv6, expectedPE4, expectedHost4, expectedPE6, expectedHost6 string) {
+func assertVethIPs(t *testing.T, res VethIPs, poolIPv4, poolIPv6 *string, expectedPE4, expectedHost4, expectedPE6, expectedHost6 string) {
 	t.Helper()
-	if poolIPv4 != "" {
+	if ptr.Deref(poolIPv4, "") != "" {
 		if res.Ipv4.HostSide.String() != expectedHost4 {
 			t.Fatalf("was expecting %s, got %s on the host IPv4", expectedHost4, res.Ipv4.HostSide.String())
 		}
@@ -190,7 +192,7 @@ func assertVethIPs(t *testing.T, res VethIPs, poolIPv4, poolIPv6, expectedPE4, e
 			t.Fatalf("was expecting %s, got %s on the container IPv4", expectedPE4, res.Ipv4.PeSide.String())
 		}
 	}
-	if poolIPv6 != "" {
+	if ptr.Deref(poolIPv6, "") != "" {
 		if res.Ipv6.HostSide.String() != expectedHost6 {
 			t.Fatalf("was expecting %s, got %s on the host IPv6", expectedHost6, res.Ipv6.HostSide.String())
 		}

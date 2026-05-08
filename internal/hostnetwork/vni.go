@@ -16,6 +16,7 @@ import (
 	"github.com/ovn-kubernetes/libovsdb/ovsdb"
 	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netns"
+	"k8s.io/utils/ptr"
 )
 
 const (
@@ -29,12 +30,12 @@ const (
 )
 
 type VNIParams struct {
-	VRF           string `json:"vrf"`
-	TargetNS      string `json:"targetns"`
-	VTEPIP        string `json:"vtepip"`
-	VTEPInterface string `json:"vtepiface"`
-	VNI           int    `json:"vni"`
-	VXLanPort     int    `json:"vxlanport"`
+	VRF           string  `json:"vrf"`
+	TargetNS      string  `json:"targetns"`
+	VTEPIP        string  `json:"vtepip"`
+	VTEPInterface *string `json:"vtepiface,omitempty"`
+	VNI           int32   `json:"vni"`
+	VXLanPort     *int32  `json:"vxlanport,omitempty"`
 }
 
 type L3VNIParams struct {
@@ -61,9 +62,9 @@ type L2VNIParams struct {
 }
 
 type HostMaster struct {
-	Name       string `json:"name,omitempty"`
-	Type       string `json:"type,omitempty"`
-	AutoCreate bool   `json:"autocreate,omitempty"`
+	Name       *string `json:"name,omitempty"`
+	Type       string  `json:"type,omitempty"`
+	AutoCreate *bool   `json:"autocreate,omitempty"`
 }
 
 const (
@@ -262,8 +263,8 @@ func setupHostMaster(ctx context.Context, params L2VNIParams, hostVeth netlink.L
 	bridgeConfig := *params.HostMaster
 	switch bridgeConfig.Type {
 	case OVSBridgeLinkType:
-		lowerDeviceName := bridgeConfig.Name
-		if bridgeConfig.AutoCreate {
+		lowerDeviceName := ptr.Deref(bridgeConfig.Name, "")
+		if ptr.Deref(bridgeConfig.AutoCreate, false) {
 			lowerDeviceName = hostBridgeName(params.VNI)
 		}
 		if err := ensureOVSBridgeAndAttach(ctx, lowerDeviceName, hostVeth.Attrs().Name); err != nil {
@@ -342,7 +343,7 @@ func RemoveAllVNIs(targetNS string) error {
 // leftovers corresponding to VNIs that are not configured anymore.
 func RemoveNonConfiguredVNIs(targetNS string, params []VNIParams) error {
 	vrfs := map[string]bool{}
-	vnis := map[int]bool{}
+	vnis := map[int32]bool{}
 	for _, p := range params {
 		vrfs[p.VRF] = true
 		vnis[p.VNI] = true
@@ -371,7 +372,7 @@ func RemoveNonConfiguredVNIs(targetNS string, params []VNIParams) error {
 	return errors.Join(failedDeletes...)
 }
 
-func removeHostSideVNIs(vnis map[int]bool) []error {
+func removeHostSideVNIs(vnis map[int32]bool) []error {
 	var failedDeletes []error
 
 	hostLinks, err := netlink.LinkList()
@@ -407,7 +408,7 @@ func removeHostSideVNIs(vnis map[int]bool) []error {
 	return failedDeletes
 }
 
-func removeNamespaceSideVNIs(vnis map[int]bool, vrfs map[string]bool) []error {
+func removeNamespaceSideVNIs(vnis map[int32]bool, vrfs map[string]bool) []error {
 	var failedDeletes []error
 
 	links, err := netlink.LinkList()
@@ -437,7 +438,7 @@ func removeNamespaceSideVNIs(vnis map[int]bool, vrfs map[string]bool) []error {
 
 // deleteLinks deletes all the links of the given type that do not correspond to
 // any VNI.
-func deleteLinksForType(linkType string, vnis map[int]bool, links []netlink.Link, vniFromName func(string) (int, error)) error {
+func deleteLinksForType(linkType string, vnis map[int32]bool, links []netlink.Link, vniFromName func(string) (int32, error)) error {
 	deleteErrors := []error{}
 	for _, l := range links {
 		if l.Type() != netlinkTypeFor(linkType) {
@@ -474,7 +475,7 @@ func netlinkTypeFor(linkType string) string {
 
 // removeOVSBridgesForVNIs removes auto-created OVS bridges that are not in the configured VNIs list.
 // Only deletes bridges with external_id "created-by: openperouter" (auto-created bridges).
-func removeOVSBridgesForVNIs(ctx context.Context, vnis map[int]bool) error {
+func removeOVSBridgesForVNIs(ctx context.Context, vnis map[int32]bool) error {
 	ovs, err := NewOVSClient(ctx)
 	if err != nil {
 		// OVS not available, skip cleanup gracefully
@@ -628,7 +629,7 @@ func removePortsFromBridge(ctx context.Context, ovs libovsclient.Client, bridge 
 
 // detachOurPortsFromBridge removes openperouter-managed veth ports from a
 // non-managed OVS bridge for VNIs that are no longer configured.
-func detachOurPortsFromBridge(ctx context.Context, ovs libovsclient.Client, bridge ovsmodel.Bridge, configuredVNIs map[int]bool) error {
+func detachOurPortsFromBridge(ctx context.Context, ovs libovsclient.Client, bridge ovsmodel.Bridge, configuredVNIs map[int32]bool) error {
 	filter := func(port *ovsmodel.Port) bool {
 		if !strings.HasPrefix(port.Name, HostVethPrefix) {
 			return false
@@ -654,11 +655,12 @@ func detachOurPortsFromBridge(ctx context.Context, ovs libovsclient.Client, brid
 	return nil
 }
 
-func hostMaster(vni int, m HostMaster) (netlink.Link, error) {
-	if !m.AutoCreate {
-		hostMaster, err := netlink.LinkByName(m.Name)
+func hostMaster(vni int32, m HostMaster) (netlink.Link, error) {
+	if !ptr.Deref(m.AutoCreate, false) {
+		name := ptr.Deref(m.Name, "")
+		hostMaster, err := netlink.LinkByName(name)
 		if err != nil {
-			return nil, fmt.Errorf("could not find host master %s: %w", m.Name, err)
+			return nil, fmt.Errorf("could not find host master %s: %w", name, err)
 		}
 		return hostMaster, nil
 	}

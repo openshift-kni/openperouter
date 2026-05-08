@@ -16,6 +16,7 @@ import (
 	"github.com/openperouter/openperouter/internal/netnamespace"
 	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netns"
+	"k8s.io/utils/ptr"
 )
 
 const testNSName = "vnitestns"
@@ -43,7 +44,7 @@ var _ = Describe("L3 VNI configuration", func() {
 				TargetNS:  testNSPath(),
 				VTEPIP:    "192.170.0.9/32",
 				VNI:       100,
-				VXLanPort: 4789,
+				VXLanPort: ptr.To(int32(4789)),
 			},
 			HostVeth: &Veth{
 				HostIPv4: "192.168.9.1/32",
@@ -71,7 +72,7 @@ var _ = Describe("L3 VNI configuration", func() {
 				TargetNS:  testNSPath(),
 				VTEPIP:    "192.170.0.9/32",
 				VNI:       100,
-				VXLanPort: 4789,
+				VXLanPort: ptr.To(int32(4789)),
 			},
 			HostVeth: &Veth{
 				HostIPv6: "2001:db8::1/128",
@@ -99,7 +100,7 @@ var _ = Describe("L3 VNI configuration", func() {
 				TargetNS:  testNSPath(),
 				VTEPIP:    "192.170.0.9/32",
 				VNI:       100,
-				VXLanPort: 4789,
+				VXLanPort: ptr.To(int32(4789)),
 			},
 			HostVeth: &Veth{
 				HostIPv4: "192.168.9.1/32",
@@ -130,7 +131,7 @@ var _ = Describe("L3 VNI configuration", func() {
 					TargetNS:  testNSPath(),
 					VTEPIP:    "192.170.0.9/32",
 					VNI:       100,
-					VXLanPort: 4789,
+					VXLanPort: ptr.To(int32(4789)),
 				},
 				HostVeth: &Veth{
 					HostIPv4: "192.168.9.1/32",
@@ -143,7 +144,7 @@ var _ = Describe("L3 VNI configuration", func() {
 					TargetNS:  testNSPath(),
 					VTEPIP:    "192.170.0.10/32",
 					VNI:       101,
-					VXLanPort: 4789,
+					VXLanPort: ptr.To(int32(4789)),
 				},
 				HostVeth: &Veth{
 					HostIPv4: "192.168.9.2/32",
@@ -198,7 +199,7 @@ var _ = Describe("L3 VNI configuration", func() {
 				TargetNS:  testNSPath(),
 				VTEPIP:    "192.170.0.9/32",
 				VNI:       100,
-				VXLanPort: 4789,
+				VXLanPort: ptr.To(int32(4789)),
 			},
 			HostVeth: &Veth{
 				HostIPv4: "192.168.9.1/32",
@@ -229,7 +230,7 @@ var _ = Describe("L3 VNI configuration", func() {
 				TargetNS:  testNSPath(),
 				VTEPIP:    "192.170.0.9/32",
 				VNI:       100,
-				VXLanPort: 4789,
+				VXLanPort: ptr.To(int32(4789)),
 			},
 			HostVeth: nil,
 		}
@@ -260,7 +261,7 @@ var _ = Describe("L3 VNI configuration", func() {
 				TargetNS:  testNSPath(),
 				VTEPIP:    "192.170.0.9/32",
 				VNI:       100,
-				VXLanPort: 4789,
+				VXLanPort: ptr.To(int32(4789)),
 			},
 			HostVeth: &Veth{
 				HostIPv4: "192.168.9.1/32",
@@ -293,7 +294,7 @@ var _ = Describe("L3 VNI configuration", func() {
 				TargetNS:  testNSPath(),
 				VTEPIP:    "192.170.0.9/32",
 				VNI:       100,
-				VXLanPort: 4789,
+				VXLanPort: ptr.To(int32(4789)),
 			},
 			HostVeth: &Veth{
 				HostIPv4: "192.168.9.1/32",
@@ -335,11 +336,11 @@ var _ = Describe("L2 VNI configuration", func() {
 				TargetNS:  testNSPath(),
 				VTEPIP:    "192.170.0.9/32",
 				VNI:       100,
-				VXLanPort: 4789,
+				VXLanPort: ptr.To(int32(4789)),
 			},
 			L2GatewayIPs: []string{"192.168.1.0/24"},
 			HostMaster: &HostMaster{
-				Name: bridgeName,
+				Name: ptr.To(bridgeName),
 				Type: BridgeLinkType,
 			},
 		}
@@ -381,11 +382,11 @@ var _ = Describe("L2 VNI configuration", func() {
 					TargetNS:  testNSPath(),
 					VTEPIP:    "192.170.0.9/32",
 					VNI:       100,
-					VXLanPort: 4789,
+					VXLanPort: ptr.To(int32(4789)),
 				},
 				L2GatewayIPs: []string{"192.168.1.0/24"},
 				HostMaster: &HostMaster{
-					Name: bridgeName,
+					Name: ptr.To(bridgeName),
 					Type: BridgeLinkType,
 				},
 			},
@@ -395,11 +396,11 @@ var _ = Describe("L2 VNI configuration", func() {
 					TargetNS:  testNSPath(),
 					VTEPIP:    "192.170.0.10/32",
 					VNI:       101,
-					VXLanPort: 4789,
+					VXLanPort: ptr.To(int32(4789)),
 				},
 				L2GatewayIPs: []string{"192.168.1.0/24"},
 				HostMaster: &HostMaster{
-					AutoCreate: true,
+					AutoCreate: ptr.To(true),
 					Type:       BridgeLinkType,
 				},
 			},
@@ -470,11 +471,11 @@ var _ = Describe("L2 VNI configuration", func() {
 				TargetNS:  testNSPath(),
 				VTEPIP:    "192.170.0.9/32",
 				VNI:       100,
-				VXLanPort: 4789,
+				VXLanPort: ptr.To(int32(4789)),
 			},
 			L2GatewayIPs: []string{"192.168.1.0/24"},
 			HostMaster: &HostMaster{
-				Name: bridgeName,
+				Name: ptr.To(bridgeName),
 				Type: BridgeLinkType,
 			},
 		}),
@@ -484,11 +485,11 @@ var _ = Describe("L2 VNI configuration", func() {
 				TargetNS:  testNSPath(),
 				VTEPIP:    "192.170.0.11/32",
 				VNI:       300,
-				VXLanPort: 4789,
+				VXLanPort: ptr.To(int32(4789)),
 			},
 			L2GatewayIPs: []string{"192.168.2.0/24", "2001:db8::1/64"},
 			HostMaster: &HostMaster{
-				Name: bridgeName,
+				Name: ptr.To(bridgeName),
 				Type: BridgeLinkType,
 			},
 		}),
@@ -498,11 +499,11 @@ var _ = Describe("L2 VNI configuration", func() {
 				TargetNS:  testNSPath(),
 				VTEPIP:    "192.170.0.12/32",
 				VNI:       400,
-				VXLanPort: 4789,
+				VXLanPort: ptr.To(int32(4789)),
 			},
 			L2GatewayIPs: []string{"2001:db8::1/64"},
 			HostMaster: &HostMaster{
-				Name: bridgeName,
+				Name: ptr.To(bridgeName),
 				Type: BridgeLinkType,
 			},
 		}),
@@ -518,11 +519,11 @@ var _ = Describe("L2 VNI configuration", func() {
 				TargetNS:  testNSPath(),
 				VTEPIP:    "192.170.0.9/32",
 				VNI:       100,
-				VXLanPort: 4789,
+				VXLanPort: ptr.To(int32(4789)),
 			},
 			L2GatewayIPs: []string{"192.168.1.0/24"},
 			HostMaster: &HostMaster{
-				Name: bridgeName,
+				Name: ptr.To(bridgeName),
 				Type: BridgeLinkType,
 			},
 		}
@@ -553,7 +554,7 @@ var _ = Describe("L2 VNI configuration", func() {
 				TargetNS:  testNSPath(),
 				VTEPIP:    "192.170.0.9/32",
 				VNI:       100,
-				VXLanPort: 4789,
+				VXLanPort: ptr.To(int32(4789)),
 			},
 			L2GatewayIPs: []string{"192.168.1.0/24"},
 		}
@@ -607,8 +608,8 @@ func validateL2HostLeg(g Gomega, params L2VNIParams) {
 		return
 	}
 
-	hostMasterName := params.HostMaster.Name
-	if params.HostMaster.AutoCreate {
+	hostMasterName := ptr.Deref(params.HostMaster.Name, "")
+	if ptr.Deref(params.HostMaster.AutoCreate, false) {
 		hostMasterName = hostBridgeName(params.VNI)
 	}
 
@@ -700,8 +701,8 @@ func validateL2VNI(g Gomega, params L2VNIParams) {
 
 func validateVNI(g Gomega, params VNIParams) {
 	vtepDevName := UnderlayLoopback
-	if params.VTEPInterface != "" {
-		vtepDevName = params.VTEPInterface
+	if ptr.Deref(params.VTEPInterface, "") != "" {
+		vtepDevName = ptr.Deref(params.VTEPInterface, "")
 	}
 	vtepDev, err := netlink.LinkByName(vtepDevName)
 	g.Expect(err).NotTo(HaveOccurred(), "vtep device not found %q", vtepDevName)
@@ -742,7 +743,7 @@ func validateVethForVNI(g Gomega, params VNIParams) {
 
 func checkHostBridgedeleted(g Gomega, params L2VNIParams) {
 	g.Expect(params.HostMaster).ToNot(BeNil())
-	g.Expect(params.HostMaster.AutoCreate).To(BeTrue())
+	g.Expect(ptr.Deref(params.HostMaster.AutoCreate, false)).To(BeTrue())
 
 	hostBridge := hostBridgeName(params.VNI)
 	_, err := netlink.LinkByName(hostBridge)
@@ -799,8 +800,8 @@ func createLinuxBridge(name string) {
 	Expect(err).NotTo(HaveOccurred(), "failed to get bridge", name)
 }
 
-func validateBridgeMacAddress(g Gomega, bridge netlink.Link, vni int) {
-	expectedMacs := map[int]net.HardwareAddr{
+func validateBridgeMacAddress(g Gomega, bridge netlink.Link, vni int32) {
+	expectedMacs := map[int32]net.HardwareAddr{
 		100: {0x00, 0xF3, 0x00, 0x00, 0x00, 0x65}, // VNI+1 = 101 as big-endian int32
 		101: {0x00, 0xF3, 0x00, 0x00, 0x00, 0x66}, // VNI+1 = 102 as big-endian int32
 		300: {0x00, 0xF3, 0x00, 0x00, 0x01, 0x2D}, // VNI+1 = 301 as big-endian int32
