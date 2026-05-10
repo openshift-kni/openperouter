@@ -11,7 +11,7 @@ ENV="${ENV:-container}"
 function _run() {
 	if [ "$ENV" == "container" ]; then
 	     $CONTAINER_ENGINE run --rm \
-			-v "$(git rev-parse --show-toplevel)":/app \
+			-v "$(git rev-parse --show-toplevel)":/app:Z \
 			-w /app \
 			docker.io/golangci/golangci-lint:v"$GOLANGCI_LINT_VERSION" \
 			"$@"
