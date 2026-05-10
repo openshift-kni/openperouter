@@ -8,12 +8,15 @@ ENV="${ENV:-container}"
 
 function _run() {
 	if [ "$ENV" == "container" ]; then
-	     docker run --rm -v $(git rev-parse --show-toplevel):/app -w /app golangci/golangci-lint:v$GOLANGCI_LINT_VERSION $@
+		docker run --rm \
+			-v "$(git rev-parse --show-toplevel)":/app \
+			-w /app \
+			golangci/golangci-lint:v"$GOLANGCI_LINT_VERSION" \
+			"$@"
 	else
-	   curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v"$GOLANGCI_LINT_VERSION"
-	   $@
+		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v"$GOLANGCI_LINT_VERSION"
+		$@
 	fi
-
 }
 
 function build() {
