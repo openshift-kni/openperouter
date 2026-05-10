@@ -391,17 +391,20 @@ kind-node-image-build: ## Build custom kind node image with OVS
 kind-node-image-push: ## Push custom kind node image to quay.io
 	cd hack/kind-node-image && ./push.sh
 
+GOLANGCI_LINT_VERSION ?= 2.9.0
 GOLANGCI_LINT_CACHE ?= $(HOME)/.cache/golangci-lint
 
 .PHONY: golangci-lint
 golangci-lint:
 	CONTAINER_ENGINE=$(CONTAINER_ENGINE) \
+	GOLANGCI_LINT_VERSION=$(GOLANGCI_LINT_VERSION) \
 	GOLANGCI_LINT_CACHE=$(GOLANGCI_LINT_CACHE) \
 	hack/golangci-lint.sh build
 
 .PHONY: lint
 lint: golangci-lint
 	CONTAINER_ENGINE=$(CONTAINER_ENGINE) \
+	GOLANGCI_LINT_VERSION=$(GOLANGCI_LINT_VERSION) \
 	GOLANGCI_LINT_CACHE=$(GOLANGCI_LINT_CACHE) \
 	hack/golangci-lint.sh run
 
