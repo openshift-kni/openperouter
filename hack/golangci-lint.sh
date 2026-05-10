@@ -2,13 +2,15 @@
 set -o errexit
 set -x
 
+CONTAINER_ENGINE=${CONTAINER_ENGINE:-docker}
+
 GOLANGCI_LINT_VERSION="${GOLANGCI_LINT_VERSION:-2.9.0}"
 TIMEOUT="10m0s"
 ENV="${ENV:-container}"
 
 function _run() {
 	if [ "$ENV" == "container" ]; then
-		docker run --rm \
+		$CONTAINER_ENGINE run --rm \
 			-v "$(git rev-parse --show-toplevel)":/app \
 			-w /app \
 			golangci/golangci-lint:v"$GOLANGCI_LINT_VERSION" \

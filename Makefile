@@ -393,11 +393,11 @@ kind-node-image-push: ## Push custom kind node image to quay.io
 
 .PHONY: golangci-lint
 golangci-lint:
-	hack/golangci-lint.sh build
+	CONTAINER_ENGINE=$(CONTAINER_ENGINE) hack/golangci-lint.sh build
 
 .PHONY: lint
 lint: golangci-lint
-	hack/golangci-lint.sh run
+	CONTAINER_ENGINE=$(CONTAINER_ENGINE) hack/golangci-lint.sh run
 
 .PHONY: bumplicense
 bumplicense:
