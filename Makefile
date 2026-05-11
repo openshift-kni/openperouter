@@ -355,14 +355,14 @@ parse-scale-report: ## Parse scale test JSON report and print summary tables.
 	python3 hack/parse-scale-report.py $(SCALE_REPORT)
 
 .PHONY: clab-cluster
-clab-cluster: kind-node-image-build
-	KUBECONFIG_PATH=$(KUBECONFIG_PATH) KIND=$(KIND) CLAB_TOPOLOGY=$(CLAB_TOPOLOGY_FILE) clab/setup.sh
+clab-cluster: kind-node-image-build kubectl
+	KUBECONFIG_PATH=$(KUBECONFIG_PATH) KIND=$(KIND) KUBECTL=$(KUBECTL) CLAB_TOPOLOGY=$(CLAB_TOPOLOGY_FILE) clab/setup.sh
 	@echo 'kind cluster created, to use it please'
 	@echo 'export KUBECONFIG=${KUBECONFIG_PATH}'
 
 .PHONY: clab-multi-cluster
-clab-multi-cluster: kind-node-image-build ## Deploy multi-cluster setup with 2 kindleafs, 2 kind switches, and 2 kind clusters (control plane + worker each)
-	KUBECONFIG_PATH=$(KUBECONFIG_PATH) KIND=$(KIND) CLAB_TOPOLOGY=multicluster/kind.clab.yml clab/setup.sh pe-kind-a pe-kind-b
+clab-multi-cluster: kind-node-image-build kubectl ## Deploy multi-cluster setup with 2 kindleafs, 2 kind switches, and 2 kind clusters (control plane + worker each)
+	KUBECONFIG_PATH=$(KUBECONFIG_PATH) KIND=$(KIND) KUBECTL=$(KUBECTL) CLAB_TOPOLOGY=multicluster/kind.clab.yml clab/setup.sh pe-kind-a pe-kind-b
 	@echo 'Multi-cluster deployment created:'
 	@echo '  - Cluster A: export KUBECONFIG=${KUBECONFIG_PATH}-pe-kind-a'
 	@echo '  - Cluster B: export KUBECONFIG=${KUBECONFIG_PATH}-pe-kind-b'
@@ -374,12 +374,12 @@ clean: kind ## Shutdown and clean up kind cluster(s) and containerlab topology.
 
 .PHONY: load-on-kind
 load-on-kind: ## Load the docker image into the kind cluster.
-	KIND=$(KIND) bash -c 'source clab/common.sh && load_local_image_to_kind ${IMG} router'
+	KIND=$(KIND) KUBECTL=$(KUBECTL) bash -c 'source clab/common.sh && load_local_image_to_kind ${IMG} router'
 
 .PHONY: load-on-multi-cluster
 load-on-multi-cluster: ## Load the docker image into both kind clusters.
-	KIND=$(KIND) bash -c 'export KIND_CLUSTER_NAME=pe-kind-a && source clab/common.sh && load_local_image_to_kind ${IMG} router-a'
-	KIND=$(KIND) bash -c 'export KIND_CLUSTER_NAME=pe-kind-b && source clab/common.sh && load_local_image_to_kind ${IMG} router-b'
+	KIND=$(KIND) KUBECTL=$(KUBECTL) bash -c 'export KIND_CLUSTER_NAME=pe-kind-a && source clab/common.sh && load_local_image_to_kind ${IMG} router-a'
+	KIND=$(KIND) KUBECTL=$(KUBECTL) bash -c 'export KIND_CLUSTER_NAME=pe-kind-b && source clab/common.sh && load_local_image_to_kind ${IMG} router-b'
 
 ##@ Kind Node Image
 
