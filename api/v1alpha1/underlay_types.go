@@ -112,7 +112,3 @@ type UnderlayList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Underlay `json:"items"`
 }
-
-func init() {
-	SchemeBuilder.Register(&Underlay{}, &UnderlayList{})
-}

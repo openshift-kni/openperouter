@@ -75,7 +75,3 @@ type RawFRRConfigList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []RawFRRConfig `json:"items"`
 }
-
-func init() {
-	SchemeBuilder.Register(&RawFRRConfig{}, &RawFRRConfigList{})
-}

@@ -15,7 +15,6 @@ import (
 
 	"github.com/openperouter/openperouter/internal/ipfamily"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/utils/ptr"
 )
 
 const testData = "testdata/"
@@ -514,7 +513,7 @@ func TestBFDProfile(t *testing.T) {
 		BFDProfiles: []BFDProfile{
 			{
 				Name:            "foo",
-				ReceiveInterval: ptr.To(int32(43)),
+				ReceiveInterval: new(int32(43)),
 			},
 		},
 	}
@@ -733,8 +732,8 @@ func TestRawConfig(t *testing.T) {
 			},
 		},
 		RawConfig: []RawFRRSnippet{
-			{Priority: ptr.To(int32(5)), Config: "ip prefix-list raw-low seq 10 permit 10.0.0.0/8"},
-			{Priority: ptr.To(int32(20)), Config: "ip prefix-list raw-high seq 10 permit 10.1.0.0/16"},
+			{Priority: new(int32(5)), Config: "ip prefix-list raw-low seq 10 permit 10.0.0.0/8"},
+			{Priority: new(int32(20)), Config: "ip prefix-list raw-high seq 10 permit 10.1.0.0/16"},
 		},
 	}
 	if err := ApplyConfig(context.Background(), &config, updater); err != nil {
