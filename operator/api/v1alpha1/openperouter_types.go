@@ -90,7 +90,3 @@ type OpenPERouterList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []OpenPERouter `json:"items"`
 }
-
-func init() {
-	SchemeBuilder.Register(&OpenPERouter{}, &OpenPERouterList{})
-}

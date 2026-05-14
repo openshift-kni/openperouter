@@ -66,7 +66,3 @@ type L3PassthroughList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []L3Passthrough `json:"items"`
 }
-
-func init() {
-	SchemeBuilder.Register(&L3Passthrough{}, &L3PassthroughList{})
-}

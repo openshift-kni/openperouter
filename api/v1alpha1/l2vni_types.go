@@ -160,7 +160,3 @@ type L2VNIList struct {
 	metav1.ListMeta `json:"metadata"`
 	Items           []L2VNI `json:"items"`
 }
-
-func init() {
-	SchemeBuilder.Register(&L2VNI{}, &L2VNIList{})
-}

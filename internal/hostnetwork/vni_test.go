@@ -44,7 +44,7 @@ var _ = Describe("L3 VNI configuration", func() {
 				TargetNS:  testNSPath(),
 				VTEPIP:    "192.170.0.9/32",
 				VNI:       100,
-				VXLanPort: ptr.To(int32(4789)),
+				VXLanPort: new(int32(4789)),
 			},
 			HostVeth: &Veth{
 				HostIPv4: "192.168.9.1/32",
@@ -72,7 +72,7 @@ var _ = Describe("L3 VNI configuration", func() {
 				TargetNS:  testNSPath(),
 				VTEPIP:    "192.170.0.9/32",
 				VNI:       100,
-				VXLanPort: ptr.To(int32(4789)),
+				VXLanPort: new(int32(4789)),
 			},
 			HostVeth: &Veth{
 				HostIPv6: "2001:db8::1/128",
@@ -100,7 +100,7 @@ var _ = Describe("L3 VNI configuration", func() {
 				TargetNS:  testNSPath(),
 				VTEPIP:    "192.170.0.9/32",
 				VNI:       100,
-				VXLanPort: ptr.To(int32(4789)),
+				VXLanPort: new(int32(4789)),
 			},
 			HostVeth: &Veth{
 				HostIPv4: "192.168.9.1/32",
@@ -131,7 +131,7 @@ var _ = Describe("L3 VNI configuration", func() {
 					TargetNS:  testNSPath(),
 					VTEPIP:    "192.170.0.9/32",
 					VNI:       100,
-					VXLanPort: ptr.To(int32(4789)),
+					VXLanPort: new(int32(4789)),
 				},
 				HostVeth: &Veth{
 					HostIPv4: "192.168.9.1/32",
@@ -144,7 +144,7 @@ var _ = Describe("L3 VNI configuration", func() {
 					TargetNS:  testNSPath(),
 					VTEPIP:    "192.170.0.10/32",
 					VNI:       101,
-					VXLanPort: ptr.To(int32(4789)),
+					VXLanPort: new(int32(4789)),
 				},
 				HostVeth: &Veth{
 					HostIPv4: "192.168.9.2/32",
@@ -199,7 +199,7 @@ var _ = Describe("L3 VNI configuration", func() {
 				TargetNS:  testNSPath(),
 				VTEPIP:    "192.170.0.9/32",
 				VNI:       100,
-				VXLanPort: ptr.To(int32(4789)),
+				VXLanPort: new(int32(4789)),
 			},
 			HostVeth: &Veth{
 				HostIPv4: "192.168.9.1/32",
@@ -230,7 +230,7 @@ var _ = Describe("L3 VNI configuration", func() {
 				TargetNS:  testNSPath(),
 				VTEPIP:    "192.170.0.9/32",
 				VNI:       100,
-				VXLanPort: ptr.To(int32(4789)),
+				VXLanPort: new(int32(4789)),
 			},
 			HostVeth: nil,
 		}
@@ -261,7 +261,7 @@ var _ = Describe("L3 VNI configuration", func() {
 				TargetNS:  testNSPath(),
 				VTEPIP:    "192.170.0.9/32",
 				VNI:       100,
-				VXLanPort: ptr.To(int32(4789)),
+				VXLanPort: new(int32(4789)),
 			},
 			HostVeth: &Veth{
 				HostIPv4: "192.168.9.1/32",
@@ -294,7 +294,7 @@ var _ = Describe("L3 VNI configuration", func() {
 				TargetNS:  testNSPath(),
 				VTEPIP:    "192.170.0.9/32",
 				VNI:       100,
-				VXLanPort: ptr.To(int32(4789)),
+				VXLanPort: new(int32(4789)),
 			},
 			HostVeth: &Veth{
 				HostIPv4: "192.168.9.1/32",
@@ -336,7 +336,7 @@ var _ = Describe("L2 VNI configuration", func() {
 				TargetNS:  testNSPath(),
 				VTEPIP:    "192.170.0.9/32",
 				VNI:       100,
-				VXLanPort: ptr.To(int32(4789)),
+				VXLanPort: new(int32(4789)),
 			},
 			L2GatewayIPs: []string{"192.168.1.0/24"},
 			HostMaster: &HostMaster{
@@ -382,7 +382,7 @@ var _ = Describe("L2 VNI configuration", func() {
 					TargetNS:  testNSPath(),
 					VTEPIP:    "192.170.0.9/32",
 					VNI:       100,
-					VXLanPort: ptr.To(int32(4789)),
+					VXLanPort: new(int32(4789)),
 				},
 				L2GatewayIPs: []string{"192.168.1.0/24"},
 				HostMaster: &HostMaster{
@@ -396,11 +396,11 @@ var _ = Describe("L2 VNI configuration", func() {
 					TargetNS:  testNSPath(),
 					VTEPIP:    "192.170.0.10/32",
 					VNI:       101,
-					VXLanPort: ptr.To(int32(4789)),
+					VXLanPort: new(int32(4789)),
 				},
 				L2GatewayIPs: []string{"192.168.1.0/24"},
 				HostMaster: &HostMaster{
-					AutoCreate: ptr.To(true),
+					AutoCreate: new(true),
 					Type:       BridgeLinkType,
 				},
 			},
@@ -471,7 +471,7 @@ var _ = Describe("L2 VNI configuration", func() {
 				TargetNS:  testNSPath(),
 				VTEPIP:    "192.170.0.9/32",
 				VNI:       100,
-				VXLanPort: ptr.To(int32(4789)),
+				VXLanPort: new(int32(4789)),
 			},
 			L2GatewayIPs: []string{"192.168.1.0/24"},
 			HostMaster: &HostMaster{
@@ -485,7 +485,7 @@ var _ = Describe("L2 VNI configuration", func() {
 				TargetNS:  testNSPath(),
 				VTEPIP:    "192.170.0.11/32",
 				VNI:       300,
-				VXLanPort: ptr.To(int32(4789)),
+				VXLanPort: new(int32(4789)),
 			},
 			L2GatewayIPs: []string{"192.168.2.0/24", "2001:db8::1/64"},
 			HostMaster: &HostMaster{
@@ -499,7 +499,7 @@ var _ = Describe("L2 VNI configuration", func() {
 				TargetNS:  testNSPath(),
 				VTEPIP:    "192.170.0.12/32",
 				VNI:       400,
-				VXLanPort: ptr.To(int32(4789)),
+				VXLanPort: new(int32(4789)),
 			},
 			L2GatewayIPs: []string{"2001:db8::1/64"},
 			HostMaster: &HostMaster{
@@ -519,7 +519,7 @@ var _ = Describe("L2 VNI configuration", func() {
 				TargetNS:  testNSPath(),
 				VTEPIP:    "192.170.0.9/32",
 				VNI:       100,
-				VXLanPort: ptr.To(int32(4789)),
+				VXLanPort: new(int32(4789)),
 			},
 			L2GatewayIPs: []string{"192.168.1.0/24"},
 			HostMaster: &HostMaster{
@@ -554,7 +554,7 @@ var _ = Describe("L2 VNI configuration", func() {
 				TargetNS:  testNSPath(),
 				VTEPIP:    "192.170.0.9/32",
 				VNI:       100,
-				VXLanPort: ptr.To(int32(4789)),
+				VXLanPort: new(int32(4789)),
 			},
 			L2GatewayIPs: []string{"192.168.1.0/24"},
 		}

@@ -37,9 +37,9 @@ var _ = Describe("L2 VNI configuration with OVS bridges", func() {
 		params := L2VNIParams{
 			VNIParams: VNIParams{
 				VRF: "testred", TargetNS: testNSPath(),
-				VTEPIP: "192.170.0.9/32", VNI: 100, VXLanPort: ptr.To(int32(4789)),
+				VTEPIP: "192.170.0.9/32", VNI: 100, VXLanPort: new(int32(4789)),
 			},
-			HostMaster: &HostMaster{Type: OVSBridgeLinkType, AutoCreate: ptr.To(true)},
+			HostMaster: &HostMaster{Type: OVSBridgeLinkType, AutoCreate: new(true)},
 		}
 
 		err := SetupL2VNI(context.Background(), params)
@@ -76,7 +76,7 @@ var _ = Describe("L2 VNI configuration with OVS bridges", func() {
 		params := L2VNIParams{
 			VNIParams: VNIParams{
 				VRF: "testred", TargetNS: testNSPath(),
-				VTEPIP: "192.170.0.9/32", VNI: 100, VXLanPort: ptr.To(int32(4789)),
+				VTEPIP: "192.170.0.9/32", VNI: 100, VXLanPort: new(int32(4789)),
 			},
 			HostMaster: &HostMaster{Type: OVSBridgeLinkType, Name: ptr.To(bridgeName)},
 		}
@@ -111,17 +111,17 @@ var _ = Describe("L2 VNI configuration with OVS bridges", func() {
 		params1 := L2VNIParams{
 			VNIParams: VNIParams{
 				VRF: "testred", TargetNS: testNSPath(),
-				VTEPIP: "192.170.0.9/32", VNI: 100, VXLanPort: ptr.To(int32(4789)),
+				VTEPIP: "192.170.0.9/32", VNI: 100, VXLanPort: new(int32(4789)),
 			},
-			HostMaster: &HostMaster{Type: OVSBridgeLinkType, AutoCreate: ptr.To(true)},
+			HostMaster: &HostMaster{Type: OVSBridgeLinkType, AutoCreate: new(true)},
 		}
 
 		params2 := L2VNIParams{
 			VNIParams: VNIParams{
 				VRF: "testgreen", TargetNS: testNSPath(),
-				VTEPIP: "192.170.0.9/32", VNI: 101, VXLanPort: ptr.To(int32(4789)),
+				VTEPIP: "192.170.0.9/32", VNI: 101, VXLanPort: new(int32(4789)),
 			},
-			HostMaster: &HostMaster{Type: OVSBridgeLinkType, AutoCreate: ptr.To(true)},
+			HostMaster: &HostMaster{Type: OVSBridgeLinkType, AutoCreate: new(true)},
 		}
 
 		err := SetupL2VNI(context.Background(), params1)
@@ -149,9 +149,9 @@ var _ = Describe("L2 VNI configuration with OVS bridges", func() {
 		params := L2VNIParams{
 			VNIParams: VNIParams{
 				VRF: "testred", TargetNS: testNSPath(),
-				VTEPIP: "192.170.0.9/32", VNI: 100, VXLanPort: ptr.To(int32(4789)),
+				VTEPIP: "192.170.0.9/32", VNI: 100, VXLanPort: new(int32(4789)),
 			},
-			HostMaster: &HostMaster{Type: OVSBridgeLinkType, AutoCreate: ptr.To(true)},
+			HostMaster: &HostMaster{Type: OVSBridgeLinkType, AutoCreate: new(true)},
 		}
 
 		err := SetupL2VNI(context.Background(), params)
@@ -171,10 +171,10 @@ var _ = Describe("L2 VNI configuration with OVS bridges", func() {
 		params := L2VNIParams{
 			VNIParams: VNIParams{
 				VRF: "testred", TargetNS: testNSPath(),
-				VTEPIP: "192.170.0.9/32", VNI: 100, VXLanPort: ptr.To(int32(4789)),
+				VTEPIP: "192.170.0.9/32", VNI: 100, VXLanPort: new(int32(4789)),
 			},
 			L2GatewayIPs: []string{gwIP},
-			HostMaster:   &HostMaster{Type: OVSBridgeLinkType, AutoCreate: ptr.To(true)},
+			HostMaster:   &HostMaster{Type: OVSBridgeLinkType, AutoCreate: new(true)},
 		}
 
 		err := SetupL2VNI(context.Background(), params)

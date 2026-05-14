@@ -98,7 +98,3 @@ type L3VNIList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []L3VNI `json:"items"`
 }
-
-func init() {
-	SchemeBuilder.Register(&L3VNI{}, &L3VNIList{})
-}

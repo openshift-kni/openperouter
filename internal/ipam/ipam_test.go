@@ -78,8 +78,8 @@ func TestVethIPsFromPool(t *testing.T) {
 	}{
 		{
 			"ipv4_only",
-			ptr.To("192.168.1.0/24"),
-			ptr.To(""),
+			new("192.168.1.0/24"),
+			new(""),
 			0,
 			"192.168.1.1/24",
 			"192.168.1.2/24",
@@ -89,8 +89,8 @@ func TestVethIPsFromPool(t *testing.T) {
 		},
 		{
 			"ipv6_only",
-			ptr.To(""),
-			ptr.To("2001:db8::/64"),
+			new(""),
+			new("2001:db8::/64"),
 			0,
 			"",
 			"",
@@ -100,8 +100,8 @@ func TestVethIPsFromPool(t *testing.T) {
 		},
 		{
 			"dual_stack",
-			ptr.To("192.168.1.0/24"),
-			ptr.To("2001:db8::/64"),
+			new("192.168.1.0/24"),
+			new("2001:db8::/64"),
 			0,
 			"192.168.1.1/24",
 			"192.168.1.2/24",
@@ -111,8 +111,8 @@ func TestVethIPsFromPool(t *testing.T) {
 		},
 		{
 			"ipv4_not_ending_in_zero",
-			ptr.To("192.168.1.1/24"),
-			ptr.To(""),
+			new("192.168.1.1/24"),
+			new(""),
 			0,
 			"192.168.1.1/24",
 			"192.168.1.2/24",
@@ -122,8 +122,8 @@ func TestVethIPsFromPool(t *testing.T) {
 		},
 		{
 			"ipv6_not_ending_in_zero",
-			ptr.To(""),
-			ptr.To("2001:db8::1/64"),
+			new(""),
+			new("2001:db8::1/64"),
 			0,
 			"",
 			"",
@@ -133,8 +133,8 @@ func TestVethIPsFromPool(t *testing.T) {
 		},
 		{
 			"no_pools",
-			ptr.To(""),
-			ptr.To(""),
+			new(""),
+			new(""),
 			0,
 			"",
 			"",
@@ -144,8 +144,8 @@ func TestVethIPsFromPool(t *testing.T) {
 		},
 		{
 			"invalid_ipv4",
-			ptr.To("invalid"),
-			ptr.To("2001:db8::/64"),
+			new("invalid"),
+			new("2001:db8::/64"),
 			0,
 			"",
 			"",
@@ -155,8 +155,8 @@ func TestVethIPsFromPool(t *testing.T) {
 		},
 		{
 			"invalid_ipv6",
-			ptr.To("192.168.1.0/24"),
-			ptr.To("invalid"),
+			new("192.168.1.0/24"),
+			new("invalid"),
 			0,
 			"",
 			"",
