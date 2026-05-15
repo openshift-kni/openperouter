@@ -36,8 +36,9 @@ type BridgeRefresher struct {
 	vni           int32
 	bridgeIndex   int // cached link index for filtering netlink events
 
-	cancel context.CancelFunc
-	wg     sync.WaitGroup
+	cancel   context.CancelFunc
+	wg       sync.WaitGroup
+	stopOnce sync.Once
 }
 
 // New creates a new BridgeRefresher for an L2VNI.
@@ -70,10 +71,13 @@ func (r *BridgeRefresher) Start(ctx context.Context) {
 }
 
 // Stop gracefully stops the refresher and waits for it to finish.
+// It is safe to call multiple times.
 func (r *BridgeRefresher) Stop() {
-	r.cancel()
-	r.wg.Wait()
-	slog.Info("stopped bridge refresher", "bridge", r.bridgeName)
+	r.stopOnce.Do(func() {
+		r.cancel()
+		r.wg.Wait()
+		slog.Info("stopped bridge refresher", "bridge", r.bridgeName)
+	})
 }
 
 // run is the main refresh loop. It subscribes to netlink neighbor
