@@ -67,4 +67,3 @@ func UnderlayVethExists(nodeName string) bool {
 	}
 	return false
 }
-
