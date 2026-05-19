@@ -76,6 +76,7 @@ When `vtepInterface` is set, OpenPERouter uses the specified interface's IP as t
 | `nics` | array | List of network interface names to move to router namespace | Yes |
 | `neighbors` | array | List of BGP neighbors to peer with | Yes |
 | `nodeSelector` | object | Label selector to target specific nodes (applies to all nodes if omitted) | No |
+| `gracefulRestart` | object | Enables BGP Graceful Restart when present. See [Graceful Restart]({{< ref "graceful-restart" >}}). | No |
 
 ## L3 VNI Configuration
 

@@ -121,20 +121,19 @@ func createVeth(ctx context.Context, logger *slog.Logger, vethNames VethNames) (
 	}
 
 	vethHost, ok := link.(*netlink.Veth)
-	if ok {
-		return vethHost, nil
-	}
-	logger.DebugContext(ctx, "link exists, but not a veth, deleting and creating")
-	if err := netlink.LinkDel(link); err != nil {
-		return nil, fmt.Errorf("failed to delete link %v: %w", link, err)
+	if !ok {
+		logger.DebugContext(ctx, "link exists, but not a veth, deleting and creating")
+		if err := netlink.LinkDel(link); err != nil {
+			return nil, fmt.Errorf("failed to delete link %v: %w", link, err)
+		}
+		if err := netlink.LinkAdd(toCreate); err != nil {
+			return nil, fmt.Errorf("failed to add veth for vrf %s/%s: %w", vethNames.HostSide, vethNames.NamespaceSide, err)
+		}
+		slog.DebugContext(ctx, "veth recreated", "veth", vethNames.HostSide)
+		return toCreate, nil
 	}
 
-	if err := netlink.LinkAdd(toCreate); err != nil {
-		return nil, fmt.Errorf("failed to add veth for vrf %s/%s: %w", vethNames.HostSide, vethNames.NamespaceSide, err)
-	}
-
-	slog.DebugContext(ctx, "veth recreated", "veth", vethNames.HostSide)
-	return toCreate, nil
+	return vethHost, nil
 }
 
 const HostVethPrefix = "host-"

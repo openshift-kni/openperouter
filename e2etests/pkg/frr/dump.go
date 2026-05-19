@@ -34,6 +34,8 @@ func RawDump(exec executor.Executor) (string, error) {
 		{"Detailed interface statistics", []string{"bash", "-c", "ip -s -s link ls"}},
 		{"ip vrf", []string{"bash", "-c", "ip vrf"}},
 		{"ip route table all", []string{"bash", "-c", "ip route show table all"}},
+		{"bridge fdb (vni110)", []string{"bash", "-c", "bridge fdb show dev vni110"}},
+		{"bridge fdb (br-pe-110)", []string{"bash", "-c", "bridge fdb show dev br-pe-110"}},
 	}
 
 	for _, c := range commands {

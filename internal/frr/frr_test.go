@@ -559,6 +559,49 @@ func TestL3VNIWithoutLocalNeighborAndAdvertise(t *testing.T) {
 	testCheckConfigFile(t)
 }
 
+func TestL3VNIWithLocalNeighborAndRedistributeConnected(t *testing.T) {
+	configFile := testSetup(t)
+	updater := testUpdater(configFile)
+
+	config := Config{
+		Underlay: UnderlayConfig{
+			MyASN:    64512,
+			RouterID: "10.0.0.1",
+			EVPN: &UnderlayEvpn{
+				VTEP: "100.64.0.1/32",
+			},
+			Neighbors: []NeighborConfig{
+				{
+					ASN:      mustNewPeerASNFromNumber(64513),
+					Addr:     "192.168.1.2",
+					IPFamily: ipfamily.IPv4,
+				},
+			},
+		},
+		VNIs: []L3VNIConfig{
+			{
+				VRF:      "red",
+				ASN:      64512,
+				VNI:      100,
+				RouterID: "10.0.0.1",
+				LocalNeighbor: &NeighborConfig{
+					ASN:      mustNewPeerASNFromNumber(64513),
+					Addr:     "192.168.1.2",
+					IPFamily: ipfamily.IPv4,
+				},
+				ToAdvertiseIPv4: []string{
+					"192.169.10.2/24",
+				},
+			},
+		},
+	}
+	if err := ApplyConfig(context.Background(), &config, updater); err != nil {
+		t.Fatalf("Failed to apply config: %s", err)
+	}
+
+	testCheckConfigFile(t)
+}
+
 func TestPassthroughNoEVPN(t *testing.T) {
 	configFile := testSetup(t)
 	updater := testUpdater(configFile)
@@ -805,6 +848,68 @@ func testCheckConfigFile(t *testing.T) {
 			t.Fatalf("Failed to verify the file %s", err)
 		}
 	}
+}
+
+func TestGracefulRestart(t *testing.T) {
+	configFile := testSetup(t)
+	updater := testUpdater(configFile)
+
+	config := Config{
+		Underlay: UnderlayConfig{
+			MyASN: 64512,
+			EVPN: &UnderlayEvpn{
+				VTEP: "100.64.0.1/32",
+			},
+			RouterID: "10.0.0.1",
+			Neighbors: []NeighborConfig{
+				{
+					ASN:      mustNewPeerASNFromNumber(64512),
+					Addr:     "192.168.1.2",
+					IPFamily: ipfamily.IPv4,
+				},
+			},
+			GracefulRestart: &GracefulRestart{
+				RestartTime:   120,
+				StalePathTime: 360,
+			},
+		},
+	}
+	if err := ApplyConfig(context.Background(), &config, updater); err != nil {
+		t.Fatalf("Failed to apply config: %s", err)
+	}
+
+	testCheckConfigFile(t)
+}
+
+func TestGracefulRestartCustomTimers(t *testing.T) {
+	configFile := testSetup(t)
+	updater := testUpdater(configFile)
+
+	config := Config{
+		Underlay: UnderlayConfig{
+			MyASN: 64512,
+			EVPN: &UnderlayEvpn{
+				VTEP: "100.64.0.1/32",
+			},
+			RouterID: "10.0.0.1",
+			Neighbors: []NeighborConfig{
+				{
+					ASN:      mustNewPeerASNFromNumber(64512),
+					Addr:     "192.168.1.2",
+					IPFamily: ipfamily.IPv4,
+				},
+			},
+			GracefulRestart: &GracefulRestart{
+				RestartTime:   90,
+				StalePathTime: 180,
+			},
+		},
+	}
+	if err := ApplyConfig(context.Background(), &config, updater); err != nil {
+		t.Fatalf("Failed to apply config: %s", err)
+	}
+
+	testCheckConfigFile(t)
 }
 
 func testUpdater(configFile string) func(context.Context, string) error {

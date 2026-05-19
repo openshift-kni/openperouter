@@ -66,16 +66,34 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 
 	ginkgo.BeforeEach(func() {
 		cs = k8sclient.New()
-		ginkgo.By("ensuring the validator is in all the pods")
-		var err error
-		routerPods, err = openperouter.RouterPods(cs)
+
+		err := Updater.CleanAll()
 		Expect(err).NotTo(HaveOccurred())
+
+		ginkgo.By("waiting for all router pods to be ready")
+		Eventually(func(g Gomega) {
+			pods, err := openperouter.RouterPods(cs)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(pods).NotTo(BeEmpty(), "no router pods found")
+			for _, p := range pods {
+				g.Expect(p.DeletionTimestamp).To(BeNil(), "pod %s is being deleted", p.Name)
+				g.Expect(k8s.PodIsReady(p)).To(BeTrue(), "pod %s must be ready", p.Name)
+			}
+			routerPods = pods
+		}).WithTimeout(2 * time.Minute).WithPolling(time.Second).Should(Succeed())
+
+		ginkgo.By("waiting for underlay veth to be recreated on each node")
+		for _, pod := range routerPods {
+			nodeName := pod.Spec.NodeName
+			Eventually(func() bool {
+				return openperouter.UnderlayVethExists(nodeName)
+			}).WithTimeout(30*time.Second).WithPolling(2*time.Second).Should(BeTrue(),
+				"toswitch not found on %s", nodeName)
+		}
+
 		for _, pod := range routerPods {
 			ensureValidator(cs, pod)
 		}
-
-		err = Updater.CleanAll()
-		Expect(err).NotTo(HaveOccurred())
 
 		cs = k8sclient.New()
 	})
@@ -83,14 +101,6 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 	ginkgo.AfterEach(func() {
 		dumpIfFails(cs)
 		Expect(Updater.CleanAll()).To(Succeed())
-		ginkgo.By("waiting for the router pod to rollout after removing the underlay")
-		Eventually(func() error {
-			newRouterPods, err := openperouter.RouterPods(cs)
-			if err != nil {
-				return err
-			}
-			return podsRolled(cs, routerPods, newRouterPods)
-		}, time.Minute, time.Second).ShouldNot(HaveOccurred())
 	})
 
 	ginkgo.Context("L3", func() {
@@ -1128,36 +1138,18 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 			}
 
 			ginkgo.By(fmt.Sprintf("Unlabel the node %q", nodes[1].Name))
-			routerPodsToRollout := []*corev1.Pod{}
-			for _, p := range routerPods {
-				if p.Spec.NodeName == nodes[1].Name {
-					routerPodsToRollout = append(routerPodsToRollout, p)
-				}
-			}
-
 			Expect(
 				k8s.UnlabelNodes(cs, nodes[1]),
 			).To(Succeed())
 
-			ginkgo.By("waiting for the routers with deleted underlay to rollout")
-			Eventually(func() error {
-				newRouterPods, err := openperouter.RouterPods(cs)
-				if err != nil {
-					return err
+			ginkgo.By("waiting for the underlay to be cleaned up on the unlabeled node")
+			for _, p := range routerPods {
+				if p.Spec.NodeName == nodes[1].Name {
+					validateConfig(underlayParams{
+						UnderlayInterface: "toswitch",
+					}, underlayNotConfiguredTestSelector, p)
 				}
-				newRouterPodsToRollout := []*corev1.Pod{}
-				for _, p := range newRouterPods {
-					if p.Spec.NodeName == nodes[1].Name {
-						newRouterPodsToRollout = append(newRouterPodsToRollout, p)
-					}
-				}
-				return podsRolled(cs, routerPodsToRollout, newRouterPodsToRollout)
-			}).
-				WithTimeout(time.Minute).
-				WithPolling(time.Second).
-				ShouldNot(HaveOccurred())
-			routerPods, err = routerPodsWithValidator(cs)
-			Expect(err).ToNot(HaveOccurred())
+			}
 
 			ginkgo.By(fmt.Sprintf("Check that only node %q has the underlay configured", nodes[0].Name))
 			for _, p := range routerPods {
@@ -1406,17 +1398,18 @@ type evpnParams struct {
 func validateConfig[T any](config T, test string, pod *corev1.Pod) {
 	fileToValidate := sendConfigToValidate(pod, config)
 	Eventually(func() error {
-		exec := executor.ForPod(pod.Namespace, pod.Name, "frr")
+		exec := openperouter.ExecutorForPod(pod)
 		res, err := exec.Exec("/validatehost", "--ginkgo.focus", test, "--paramsfile", fileToValidate)
 		if err != nil {
 			return fmt.Errorf("failed to validate test %s : %s %w", test, res, err)
 		}
 		return nil
 	}).
-		WithTimeout(6 * time.Second).
+		WithTimeout(2 * time.Minute).
 		WithPolling(time.Second).
 		ShouldNot(HaveOccurred())
 }
+
 
 func ensureValidator(cs clientset.Interface, pod *corev1.Pod) {
 	if pod.Annotations != nil && pod.Annotations["validator"] == "true" {
