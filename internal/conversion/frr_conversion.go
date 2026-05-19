@@ -16,10 +16,6 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-const (
-	defaultRouterIDCidr = "10.0.0.0/24"
-)
-
 type FRREmptyConfigError string
 
 func (e FRREmptyConfigError) Error() string {
@@ -397,11 +393,8 @@ func neighborName(asn frr.PeerASN, address string) string {
 }
 
 func routerIDFromUnderlay(underlay v1alpha1.Underlay, nodeIndex int) (string, error) {
-	routerIDCidr := ptr.Deref(underlay.Spec.RouterIDCIDR, "")
-	if routerIDCidr == "" {
-		slog.Info("empty routerid cidr, using the default one", "underlay", underlay.Name, "default cidr", defaultRouterIDCidr)
-		routerIDCidr = defaultRouterIDCidr
-	}
+	// RouterIDCIDR defaults are applied via CRD schema, so it should always be set
+	routerIDCidr := ptr.Deref(underlay.Spec.RouterIDCIDR, "10.0.0.0/24")
 	routerID, err := ipam.RouterID(routerIDCidr, nodeIndex)
 	if err != nil {
 		return "", fmt.Errorf("failed to get router id, cidr %s, nodeIndex %d: %w", routerIDCidr, nodeIndex, err)
