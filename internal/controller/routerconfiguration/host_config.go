@@ -122,4 +122,3 @@ func nonRecoverableHostError(e error) bool {
 	underlayExistsError := hostnetwork.UnderlayExistsError("")
 	return errors.As(e, &underlayExistsError)
 }
-

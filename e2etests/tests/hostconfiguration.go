@@ -1410,7 +1410,6 @@ func validateConfig[T any](config T, test string, pod *corev1.Pod) {
 		ShouldNot(HaveOccurred())
 }
 
-
 func ensureValidator(cs clientset.Interface, pod *corev1.Pod) {
 	if pod.Annotations != nil && pod.Annotations["validator"] == "true" {
 		return

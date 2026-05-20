@@ -76,8 +76,8 @@ func TestParseMetricsAPIResponse(t *testing.T) {
 			wantMemMB: []float64{0},
 		},
 		{
-			name: "empty items",
-			input: `{"items": []}`,
+			name:     "empty items",
+			input:    `{"items": []}`,
 			wantPods: 0,
 		},
 		{

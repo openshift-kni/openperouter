@@ -114,8 +114,8 @@ type podMetricsList struct {
 }
 
 type podMetricsItem struct {
-	Metadata   podMetricsMetadata   `json:"metadata"`
-	Containers []containerMetrics   `json:"containers"`
+	Metadata   podMetricsMetadata `json:"metadata"`
+	Containers []containerMetrics `json:"containers"`
 }
 
 type podMetricsMetadata struct {
