@@ -26,7 +26,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/utils/ptr"
 )
 
 const resiliencyNetnsPath = "/var/run/netns/perouter"
@@ -52,12 +51,12 @@ var _ = Describe("Alpha: Named netns and kernel objects survive FRR crash", Orde
 			Namespace: openperouter.Namespace,
 		},
 		Spec: v1alpha1.L2VNISpec{
-			VRF: ptr.To("red"),
+			VRF: new("red"),
 			VNI: 110,
 			HostMaster: &v1alpha1.HostMaster{
 				Type: "linux-bridge",
 				LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-					AutoCreate: ptr.To(true),
+					AutoCreate: new(true),
 				},
 			},
 		},
@@ -238,12 +237,12 @@ var _ = Describe("Beta: Named netns auto-rebuilds after deletion", Ordered, func
 			Namespace: openperouter.Namespace,
 		},
 		Spec: v1alpha1.L2VNISpec{
-			VRF: ptr.To("red"),
+			VRF: new("red"),
 			VNI: 110,
 			HostMaster: &v1alpha1.HostMaster{
 				Type: "linux-bridge",
 				LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-					AutoCreate: ptr.To(true),
+					AutoCreate: new(true),
 				},
 			},
 		},

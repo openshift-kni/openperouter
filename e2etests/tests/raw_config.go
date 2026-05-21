@@ -19,7 +19,6 @@ import (
 	"github.com/openperouter/openperouter/e2etests/pkg/openperouter"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/utils/ptr"
 )
 
 var _ = Describe("RawFRRConfig", Ordered, func() {
@@ -122,7 +121,7 @@ var _ = Describe("RawFRRConfig", Ordered, func() {
 				Namespace: openperouter.Namespace,
 			},
 			Spec: v1alpha1.RawFRRConfigSpec{
-				Priority:  ptr.To(int32(20)),
+				Priority:  new(int32(20)),
 				RawConfig: "ip prefix-list raw-high seq 10 permit 10.222.0.0/16",
 			},
 		}
@@ -133,7 +132,7 @@ var _ = Describe("RawFRRConfig", Ordered, func() {
 				Namespace: openperouter.Namespace,
 			},
 			Spec: v1alpha1.RawFRRConfigSpec{
-				Priority:  ptr.To(int32(5)),
+				Priority:  new(int32(5)),
 				RawConfig: "ip prefix-list raw-low seq 10 permit 10.33.0.0/16",
 			},
 		}

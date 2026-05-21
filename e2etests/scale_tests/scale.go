@@ -17,7 +17,6 @@ import (
 	"github.com/openperouter/openperouter/e2etests/pkg/metrics"
 	"github.com/openperouter/openperouter/e2etests/pkg/openperouter"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -235,7 +234,7 @@ func generateL2VNIs(count int, namespace, bridgeType string) []v1alpha1.L2VNI {
 				Namespace: namespace,
 			},
 			Spec: v1alpha1.L2VNISpec{
-				VRF:        ptr.To(vrfName),
+				VRF:        new(vrfName),
 				VNI:        int32(baseVNI + i + 1),
 				HostMaster: newHostMaster(bridgeType),
 			},
@@ -271,7 +270,7 @@ func generateL3VNIsWithL2VNIs(count int, namespace, bridgeType string) ([]v1alph
 				Namespace: namespace,
 			},
 			Spec: v1alpha1.L2VNISpec{
-				VRF:        ptr.To(vrfName),
+				VRF:        new(vrfName),
 				VNI:        int32(baseL2VNI + i + 1),
 				HostMaster: newHostMaster(bridgeType),
 			},
@@ -285,12 +284,12 @@ func newHostMaster(bridgeType string) *v1alpha1.HostMaster {
 	case v1alpha1.LinuxBridge:
 		return &v1alpha1.HostMaster{
 			Type:        v1alpha1.LinuxBridge,
-			LinuxBridge: &v1alpha1.LinuxBridgeConfig{AutoCreate: ptr.To(true)},
+			LinuxBridge: &v1alpha1.LinuxBridgeConfig{AutoCreate: new(true)},
 		}
 	case v1alpha1.OVSBridge:
 		return &v1alpha1.HostMaster{
 			Type:      v1alpha1.OVSBridge,
-			OVSBridge: &v1alpha1.OVSBridgeConfig{AutoCreate: ptr.To(true)},
+			OVSBridge: &v1alpha1.OVSBridgeConfig{AutoCreate: new(true)},
 		}
 	default:
 		return nil
