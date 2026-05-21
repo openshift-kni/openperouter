@@ -432,12 +432,12 @@ var _ = Describe("Beta: Named netns auto-rebuilds after deletion", Ordered, func
 
 		By("waiting for the old router pod to be fully terminated")
 		Eventually(func() error {
-			_, getErr := cs.CoreV1().Pods(openperouter.Namespace).Get(context.Background(), routerPod.Name, metav1.GetOptions{})
-			if getErr != nil {
-				return nil
-			}
-			return fmt.Errorf("old pod %s still exists", routerPod.Name)
-		}).WithTimeout(2 * time.Minute).WithPolling(2 * time.Second).Should(Succeed())
+			_, err := cs.CoreV1().Pods(openperouter.Namespace).Get(context.Background(), routerPod.Name, metav1.GetOptions{})
+			return err
+		}).WithTimeout(2*time.Minute).WithPolling(2*time.Second).Should(
+			MatchError(apierrors.IsNotFound, "NOT FOUND"),
+			"the router pod must be gone from the API",
+		)
 
 		By("waiting for check_veths to recreate the underlay veth destroyed by netns deletion")
 		Eventually(func() bool {
