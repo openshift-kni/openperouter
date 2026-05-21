@@ -22,7 +22,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/utils/ptr"
 )
 
 var _ = Describe("Router Host configuration", Ordered, func() {
@@ -95,9 +94,9 @@ var _ = Describe("Router Host configuration", Ordered, func() {
 				VRF: "red",
 				HostSession: &v1alpha1.HostSession{
 					ASN:     64514,
-					HostASN: ptr.To(int64(64515)),
+					HostASN: new(int64(64515)),
 					LocalCIDR: v1alpha1.LocalCIDRConfig{
-						IPv4: ptr.To("192.169.10.0/24"),
+						IPv4: new("192.169.10.0/24"),
 					},
 				},
 				VNI: 100,
@@ -140,9 +139,9 @@ var _ = Describe("Router Host configuration", Ordered, func() {
 				VRF: "red",
 				HostSession: &v1alpha1.HostSession{
 					ASN:      64514,
-					HostType: ptr.To("external"),
+					HostType: new("external"),
 					LocalCIDR: v1alpha1.LocalCIDRConfig{
-						IPv4: ptr.To("192.169.10.0/24"),
+						IPv4: new("192.169.10.0/24"),
 					},
 				},
 				VNI: 100,
@@ -189,9 +188,9 @@ var _ = Describe("Router Host configuration", Ordered, func() {
 				VRF: "red",
 				HostSession: &v1alpha1.HostSession{
 					ASN:      64514,
-					HostType: ptr.To("internal"),
+					HostType: new("internal"),
 					LocalCIDR: v1alpha1.LocalCIDRConfig{
-						IPv4: ptr.To("192.169.10.0/24"),
+						IPv4: new("192.169.10.0/24"),
 					},
 				},
 				VNI: 100,
@@ -238,9 +237,9 @@ var _ = Describe("Router Host configuration", Ordered, func() {
 				VRF: "red",
 				HostSession: &v1alpha1.HostSession{
 					ASN:      64514,
-					HostType: ptr.To("internal"),
+					HostType: new("internal"),
 					LocalCIDR: v1alpha1.LocalCIDRConfig{
-						IPv4: ptr.To("192.169.10.0/24"),
+						IPv4: new("192.169.10.0/24"),
 					},
 				},
 				VNI: 100,
@@ -289,7 +288,7 @@ var _ = Describe("Router Host configuration", Ordered, func() {
 					HostSession: &v1alpha1.HostSession{
 						ASN: 64514,
 						LocalCIDR: v1alpha1.LocalCIDRConfig{
-							IPv4: ptr.To("192.169.10.0/24"),
+							IPv4: new("192.169.10.0/24"),
 						},
 					},
 					VNI: 100,
@@ -315,10 +314,10 @@ var _ = Describe("Router Host configuration", Ordered, func() {
 					VRF: "red",
 					HostSession: &v1alpha1.HostSession{
 						ASN:      64514,
-						HostASN:  ptr.To(int64(100)),
-						HostType: ptr.To("internal"),
+						HostASN:  new(int64(100)),
+						HostType: new("internal"),
 						LocalCIDR: v1alpha1.LocalCIDRConfig{
-							IPv4: ptr.To("192.169.10.0/24"),
+							IPv4: new("192.169.10.0/24"),
 						},
 					},
 					VNI: 100,
@@ -342,9 +341,9 @@ var _ = Describe("Router Host configuration", Ordered, func() {
 			Spec: v1alpha1.L3PassthroughSpec{
 				HostSession: v1alpha1.HostSession{
 					ASN:     64514,
-					HostASN: ptr.To(int64(64515)),
+					HostASN: new(int64(64515)),
 					LocalCIDR: v1alpha1.LocalCIDRConfig{
-						IPv4: ptr.To("192.169.10.0/24"),
+						IPv4: new("192.169.10.0/24"),
 					},
 				},
 			},
@@ -385,9 +384,9 @@ var _ = Describe("Router Host configuration", Ordered, func() {
 			Spec: v1alpha1.L3PassthroughSpec{
 				HostSession: v1alpha1.HostSession{
 					ASN:      64514,
-					HostType: ptr.To("external"),
+					HostType: new("external"),
 					LocalCIDR: v1alpha1.LocalCIDRConfig{
-						IPv4: ptr.To("192.169.10.0/24"),
+						IPv4: new("192.169.10.0/24"),
 					},
 				},
 			},
@@ -433,9 +432,9 @@ var _ = Describe("Router Host configuration", Ordered, func() {
 			Spec: v1alpha1.L3PassthroughSpec{
 				HostSession: v1alpha1.HostSession{
 					ASN:      64514,
-					HostType: ptr.To("internal"),
+					HostType: new("internal"),
 					LocalCIDR: v1alpha1.LocalCIDRConfig{
-						IPv4: ptr.To("192.169.10.0/24"),
+						IPv4: new("192.169.10.0/24"),
 					},
 				},
 			},
@@ -481,9 +480,9 @@ var _ = Describe("Router Host configuration", Ordered, func() {
 			Spec: v1alpha1.L3PassthroughSpec{
 				HostSession: v1alpha1.HostSession{
 					ASN:     64514,
-					HostASN: ptr.To(int64(64514)),
+					HostASN: new(int64(64514)),
 					LocalCIDR: v1alpha1.LocalCIDRConfig{
-						IPv4: ptr.To("192.169.10.0/24"),
+						IPv4: new("192.169.10.0/24"),
 					},
 				},
 			},
@@ -590,7 +589,7 @@ var _ = Describe("Underlay external and internal configuration", Ordered, func()
 
 		underlay := *infra.Underlay.DeepCopy()
 		underlay.Spec.Neighbors[0].ASN = nil
-		underlay.Spec.Neighbors[0].Type = ptr.To("external")
+		underlay.Spec.Neighbors[0].Type = new("external")
 		err := Updater.Update(config.Resources{
 			Underlays: []v1alpha1.Underlay{
 				underlay,
@@ -607,7 +606,7 @@ var _ = Describe("Underlay external and internal configuration", Ordered, func()
 		underlay := *infra.Underlay.DeepCopy()
 		underlay.Spec.ASN = 64512
 		underlay.Spec.Neighbors[0].ASN = nil
-		underlay.Spec.Neighbors[0].Type = ptr.To("internal")
+		underlay.Spec.Neighbors[0].Type = new("internal")
 		err := Updater.Update(config.Resources{
 			Underlays: []v1alpha1.Underlay{
 				underlay,
@@ -646,8 +645,8 @@ var _ = Describe("Underlay external and internal configuration", Ordered, func()
 
 	It("rejects resource when both neighbor ASN and Type are specified", func() {
 		underlay := *infra.Underlay.DeepCopy()
-		underlay.Spec.Neighbors[0].ASN = ptr.To(int64(100))
-		underlay.Spec.Neighbors[0].Type = ptr.To("external")
+		underlay.Spec.Neighbors[0].ASN = new(int64(100))
+		underlay.Spec.Neighbors[0].Type = new("external")
 		err := Updater.Update(config.Resources{
 			Underlays: []v1alpha1.Underlay{
 				underlay,
@@ -785,11 +784,11 @@ var _ = Describe("Underlay BFD Configuration", Ordered, func() {
 					ASN:  64514,
 					Nics: []string{"toswitch"},
 					EVPN: &v1alpha1.EVPNConfig{
-						VTEPCIDR: ptr.To("100.65.0.0/24"),
+						VTEPCIDR: new("100.65.0.0/24"),
 					},
 					Neighbors: []v1alpha1.Neighbor{
 						{
-							ASN:     ptr.To(int64(64512)),
+							ASN:     new(int64(64512)),
 							Address: "192.168.11.2",
 							BFD:     &v1alpha1.BFDSettings{},
 						},
@@ -806,16 +805,16 @@ var _ = Describe("Underlay BFD Configuration", Ordered, func() {
 					ASN:  64514,
 					Nics: []string{"toswitch"},
 					EVPN: &v1alpha1.EVPNConfig{
-						VTEPCIDR: ptr.To("100.65.0.0/24"),
+						VTEPCIDR: new("100.65.0.0/24"),
 					},
 					Neighbors: []v1alpha1.Neighbor{
 						{
-							ASN:     ptr.To(int64(64512)),
+							ASN:     new(int64(64512)),
 							Address: "192.168.11.2",
 							BFD: &v1alpha1.BFDSettings{
-								TransmitInterval: ptr.To(int32(90)),
-								ReceiveInterval:  ptr.To(int32(80)),
-								DetectMultiplier: ptr.To(int32(5)),
+								TransmitInterval: new(int32(90)),
+								ReceiveInterval:  new(int32(80)),
+								DetectMultiplier: new(int32(5)),
 							},
 						},
 					},

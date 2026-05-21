@@ -4,7 +4,6 @@ package systemd_static
 
 import (
 	"fmt"
-	"k8s.io/utils/ptr"
 	"os"
 	"path/filepath"
 
@@ -36,10 +35,10 @@ var _ = Describe("Static configuration", Ordered, func() {
 			VRF: "red",
 			HostSession: &v1alpha1.HostSession{
 				ASN:     64514,
-				HostASN: ptr.To(int64(64515)),
+				HostASN: new(int64(64515)),
 				LocalCIDR: v1alpha1.LocalCIDRConfig{
-					IPv4: ptr.To("192.170.10.0/24"),
-					IPv6: ptr.To("2001:db9:1::/64"),
+					IPv4: new("192.170.10.0/24"),
+					IPv6: new("2001:db9:1::/64"),
 				},
 			},
 			VNI: 100,
@@ -84,10 +83,10 @@ var _ = Describe("Static configuration", Ordered, func() {
 					VRF: "blue",
 					HostSession: &v1alpha1.HostSession{
 						ASN:     64514,
-						HostASN: ptr.To(int64(64515)),
+						HostASN: new(int64(64515)),
 						LocalCIDR: v1alpha1.LocalCIDRConfig{
-							IPv4: ptr.To("192.169.11.0/24"),
-							IPv6: ptr.To("2001:db8:2::/64"),
+							IPv4: new("192.169.11.0/24"),
+							IPv6: new("2001:db8:2::/64"),
 						},
 					},
 					VNI: 200,

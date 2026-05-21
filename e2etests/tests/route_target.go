@@ -20,7 +20,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/utils/ptr"
 )
 
 var (
@@ -48,10 +47,10 @@ var _ = Describe("Routes with RT between bgp and the fabric", Ordered, func() {
 			VRF: "red",
 			HostSession: &v1alpha1.HostSession{
 				ASN:     64514,
-				HostASN: ptr.To(int64(64515)),
+				HostASN: new(int64(64515)),
 				LocalCIDR: v1alpha1.LocalCIDRConfig{
-					IPv4: ptr.To("192.169.10.0/24"),
-					IPv6: ptr.To("2001:db8:1::/64"),
+					IPv4: new("192.169.10.0/24"),
+					IPv6: new("2001:db8:1::/64"),
 				},
 			},
 			VNI:       100,
@@ -69,10 +68,10 @@ var _ = Describe("Routes with RT between bgp and the fabric", Ordered, func() {
 			VRF: "blue",
 			HostSession: &v1alpha1.HostSession{
 				ASN:     64514,
-				HostASN: ptr.To(int64(64515)),
+				HostASN: new(int64(64515)),
 				LocalCIDR: v1alpha1.LocalCIDRConfig{
-					IPv4: ptr.To("192.169.11.0/24"),
-					IPv6: ptr.To("2001:db8:2::/64"),
+					IPv4: new("192.169.11.0/24"),
+					IPv6: new("2001:db8:2::/64"),
 				},
 			},
 			VNI:       200,

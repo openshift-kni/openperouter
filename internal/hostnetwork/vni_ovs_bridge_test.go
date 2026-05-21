@@ -78,7 +78,7 @@ var _ = Describe("L2 VNI configuration with OVS bridges", func() {
 				VRF: "testred", TargetNS: testNSPath(),
 				VTEPIP: "192.170.0.9/32", VNI: 100, VXLanPort: new(int32(4789)),
 			},
-			HostMaster: &HostMaster{Type: OVSBridgeLinkType, Name: ptr.To(bridgeName)},
+			HostMaster: &HostMaster{Type: OVSBridgeLinkType, Name: new(bridgeName)},
 		}
 
 		err := SetupL2VNI(context.Background(), params)

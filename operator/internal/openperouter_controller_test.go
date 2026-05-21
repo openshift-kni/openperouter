@@ -28,7 +28,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	operatorapi "github.com/openperouter/openperouter/operator/api/v1alpha1"
@@ -64,7 +63,7 @@ var _ = Describe("OpenPERouter Controller", func() {
 					Namespace: openperouterTestNamespace,
 				},
 				Spec: operatorapi.OpenPERouterSpec{
-					LogLevel: ptr.To(operatorapi.LogLevelDebug),
+					LogLevel: new(operatorapi.LogLevelDebug),
 				},
 			}
 
@@ -129,7 +128,7 @@ var _ = Describe("OpenPERouter Controller", func() {
 			By("Updating the OpenPERouter resource")
 			err = k8sClient.Get(context.TODO(), types.NamespacedName{Name: "openperouter", Namespace: openperouterTestNamespace}, openperouter)
 			Expect(err).ToNot(HaveOccurred())
-			openperouter.Spec.LogLevel = ptr.To(operatorapi.LogLevelInfo)
+			openperouter.Spec.LogLevel = new(operatorapi.LogLevelInfo)
 			err = k8sClient.Update(context.Background(), openperouter)
 			Expect(err).ToNot(HaveOccurred())
 
