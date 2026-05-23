@@ -1787,6 +1787,14 @@ spec:
           value: "true"
         image: quay.io/openperouter/router:main
         imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz
+            port: 9080
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          timeoutSeconds: 10
         name: frr
         securityContext:
           capabilities:
@@ -1818,7 +1826,7 @@ spec:
             port: 9080
           initialDelaySeconds: 15
           periodSeconds: 20
-          timeoutSeconds: 1
+          timeoutSeconds: 10
         name: reloader
         ports:
         - containerPort: 9080
@@ -1831,7 +1839,7 @@ spec:
             port: 9080
           initialDelaySeconds: 5
           periodSeconds: 10
-          timeoutSeconds: 1
+          timeoutSeconds: 10
         securityContext:
           seLinuxOptions:
             type: spc_t
