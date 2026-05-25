@@ -427,6 +427,26 @@ spec:
     containerPort: 443
     deploymentName: webhook
     failurePolicy: Fail
+    generateName: rawfrrconfigvalidationwebhook.openperouter.io
+    rules:
+    - apiGroups:
+      - openpe.openperouter.github.io
+      apiVersions:
+      - v1alpha1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - rawfrrconfigs
+    sideEffects: None
+    targetPort: 9443
+    type: ValidatingAdmissionWebhook
+    webhookPath: /validate-openperouter-io-v1alpha1-rawfrrconfig
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: webhook
+    failurePolicy: Fail
     generateName: underlayvalidationwebhook.openperouter.io
     rules:
     - apiGroups:
