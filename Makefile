@@ -30,6 +30,12 @@ SHELL = /usr/bin/env bash -o pipefail
 # file to deploy. It defauls to the single cluster variant
 CLAB_TOPOLOGY_FILE ?= singlecluster/kind.clab.yml
 
+# COREDUMP determines if we want to setup the coredump via our scripts. We
+# do not want to do this in local setups, but this is needed for CI environments.
+COREDUMP ?= false
+
+KIND_EXPORT_LOGS ?=/tmp/kind_logs
+
 .PHONY: all
 all: build
 
@@ -77,6 +83,7 @@ fix: ## Run go fix against code.
 .PHONY: fmt
 fmt: ## Run go fmt against code.
 	go fmt ./...
+	cd e2etests && go fmt ./...
 
 .PHONY: vet
 vet: ## Run go vet against code.
@@ -86,7 +93,7 @@ vet: ## Run go vet against code.
 test: fmt vet envtest $(LOCALBIN) ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $$(go list ./... | grep -v e2etest) -coverprofile cover.out
 	@RUNASROOT_TESTS=""; \
-	for pkg in $$(grep -rl "//go:build runasroot" --include="*_test.go" . | xargs -I{} dirname {} | sort -u); do \
+	for pkg in $$(grep -rl "//go:build runasroot" --include="*_test.go" $$(go list -f '{{.Dir}}' ./...) | xargs -I{} dirname {} | sort -u); do \
 		name=$$(basename $$pkg); \
 		go test -tags=runasroot -c -race -o $(LOCALBIN)/$$name.test $$pkg; \
 		RUNASROOT_TESTS="$$RUNASROOT_TESTS /src/bin/$$name.test"; \
@@ -358,13 +365,15 @@ parse-scale-report: ## Parse scale test JSON report and print summary tables.
 
 .PHONY: clab-cluster
 clab-cluster: kind-node-image-build kubectl
-	KUBECONFIG_PATH=$(KUBECONFIG_PATH) KIND=$(KIND) KUBECTL=$(KUBECTL) CLAB_TOPOLOGY=$(CLAB_TOPOLOGY_FILE) clab/setup.sh
+	KUBECONFIG_PATH=$(KUBECONFIG_PATH) KIND=$(KIND) KUBECTL=$(KUBECTL) CLAB_TOPOLOGY=$(CLAB_TOPOLOGY_FILE) \
+	  KIND_EXPORT_LOGS=$(KIND_EXPORT_LOGS) COREDUMP=$(COREDUMP) clab/setup.sh
 	@echo 'kind cluster created, to use it please'
 	@echo 'export KUBECONFIG=${KUBECONFIG_PATH}'
 
 .PHONY: clab-multi-cluster
 clab-multi-cluster: kind-node-image-build kubectl ## Deploy multi-cluster setup with 2 kindleafs, 2 kind switches, and 2 kind clusters (control plane + worker each)
-	KUBECONFIG_PATH=$(KUBECONFIG_PATH) KIND=$(KIND) KUBECTL=$(KUBECTL) CLAB_TOPOLOGY=multicluster/kind.clab.yml clab/setup.sh pe-kind-a pe-kind-b
+	KUBECONFIG_PATH=$(KUBECONFIG_PATH) KIND=$(KIND) KUBECTL=$(KUBECTL) CLAB_TOPOLOGY=multicluster/kind.clab.yml \
+	  KIND_EXPORT_LOGS=$(KIND_EXPORT_LOGS) COREDUMP=$(COREDUMP) clab/setup.sh pe-kind-a pe-kind-b
 	@echo 'Multi-cluster deployment created:'
 	@echo '  - Cluster A: export KUBECONFIG=${KUBECONFIG_PATH}-pe-kind-a'
 	@echo '  - Cluster B: export KUBECONFIG=${KUBECONFIG_PATH}-pe-kind-b'
@@ -431,8 +440,6 @@ bump-k8s-deps: ## Bump all k8s.io and sigs.k8s.io dependencies (K8S_VERSION=v0.3
 .PHONY: bump-go-version
 bump-go-version: ## Bump Go version across the project (GO_VERSION=1.25.7 or omit for latest)
 	hack/bump_go_version.sh $(GO_VERSION)
-
-KIND_EXPORT_LOGS ?=/tmp/kind_logs
 
 .PHONY: kind-export-logs
 kind-export-logs: create-export-logs

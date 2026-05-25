@@ -26,7 +26,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/utils/ptr"
 )
 
 const resiliencyNetnsPath = "/var/run/netns/perouter"
@@ -52,12 +51,12 @@ var _ = Describe("Alpha: Named netns and kernel objects survive FRR crash", Orde
 			Namespace: openperouter.Namespace,
 		},
 		Spec: v1alpha1.L2VNISpec{
-			VRF: ptr.To("red"),
+			VRF: new("red"),
 			VNI: 110,
 			HostMaster: &v1alpha1.HostMaster{
 				Type: "linux-bridge",
 				LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-					AutoCreate: ptr.To(true),
+					AutoCreate: new(true),
 				},
 			},
 		},
@@ -238,12 +237,12 @@ var _ = Describe("Beta: Named netns auto-rebuilds after deletion", Ordered, func
 			Namespace: openperouter.Namespace,
 		},
 		Spec: v1alpha1.L2VNISpec{
-			VRF: ptr.To("red"),
+			VRF: new("red"),
 			VNI: 110,
 			HostMaster: &v1alpha1.HostMaster{
 				Type: "linux-bridge",
 				LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-					AutoCreate: ptr.To(true),
+					AutoCreate: new(true),
 				},
 			},
 		},
@@ -343,7 +342,7 @@ var _ = Describe("Beta: Named netns auto-rebuilds after deletion", Ordered, func
 	const testNamespace = "test-namespace-rebuild"
 
 	AfterEach(func() {
-		dumpIfFails(cs)
+		dumpIfFails(cs, testNamespace)
 		dumpUnderlayVeths(cs, "Beta AfterEach before cleanup")
 		err := Updater.CleanButUnderlay()
 		Expect(err).NotTo(HaveOccurred())
@@ -432,12 +431,12 @@ var _ = Describe("Beta: Named netns auto-rebuilds after deletion", Ordered, func
 
 		By("waiting for the old router pod to be fully terminated")
 		Eventually(func() error {
-			_, getErr := cs.CoreV1().Pods(openperouter.Namespace).Get(context.Background(), routerPod.Name, metav1.GetOptions{})
-			if getErr != nil {
-				return nil
-			}
-			return fmt.Errorf("old pod %s still exists", routerPod.Name)
-		}).WithTimeout(2 * time.Minute).WithPolling(2 * time.Second).Should(Succeed())
+			_, err := cs.CoreV1().Pods(openperouter.Namespace).Get(context.Background(), routerPod.Name, metav1.GetOptions{})
+			return err
+		}).WithTimeout(2*time.Minute).WithPolling(2*time.Second).Should(
+			MatchError(apierrors.IsNotFound, "NOT FOUND"),
+			"the router pod must be gone from the API",
+		)
 
 		By("waiting for check_veths to recreate the underlay veth destroyed by netns deletion")
 		Eventually(func() bool {

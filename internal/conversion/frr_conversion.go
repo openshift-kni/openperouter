@@ -146,7 +146,7 @@ func applyGracefulRestart(config *frr.UnderlayConfig, gr *v1alpha1.GracefulResta
 	const grConnectRetrySeconds = int64(5)
 	for i := range config.Neighbors {
 		if config.Neighbors[i].ConnectTime == nil {
-			config.Neighbors[i].ConnectTime = ptr.To(grConnectRetrySeconds)
+			config.Neighbors[i].ConnectTime = new(grConnectRetrySeconds)
 		}
 	}
 }

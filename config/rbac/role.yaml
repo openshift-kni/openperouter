@@ -45,6 +45,7 @@ rules:
   - l2vnis
   - l3passthroughs
   - l3vnis
+  - routernodeconfigurationstatuses
   - underlays
   verbs:
   - create
@@ -69,6 +70,7 @@ rules:
   - l2vnis/status
   - l3passthroughs/status
   - l3vnis/status
+  - routernodeconfigurationstatuses/status
   - underlays/status
   verbs:
   - get

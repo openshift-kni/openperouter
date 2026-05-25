@@ -21,6 +21,7 @@ Package v1alpha1 contains API Schema definitions for the openpe v1alpha1 API gro
 - [L3Passthrough](#l3passthrough)
 - [L3VNI](#l3vni)
 - [RawFRRConfig](#rawfrrconfig)
+- [RouterNodeConfigurationStatus](#routernodeconfigurationstatus)
 - [Underlay](#underlay)
 
 
@@ -62,6 +63,61 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `vtepCIDR` _string_ | vtepCIDR is the CIDR to be used to assign IPs to the local VTEP on each node.<br />A loopback interface will be created with an IP derived from this CIDR.<br />Mutually exclusive with vtepInterface. |  | Optional: \{\} <br /> |
 | `vtepInterface` _string_ | vtepInterface is the name of an existing interface to use as the VTEP source.<br />The interface must already have an IP address configured that will be used<br />as the VTEP IP. Mutually exclusive with vtepCIDR.<br />The ToR must advertise the interface IP into the fabric underlay<br />(e.g. via redistribute connected) so that the VTEP address is reachable<br />from other leaves. |  | MaxLength: 15 <br />Pattern: `^[a-zA-Z][a-zA-Z0-9._-]*$` <br />Optional: \{\} <br /> |
+
+
+#### FailedResource
+
+
+
+FailedResource describe failing router API resource
+
+
+
+_Appears in:_
+- [RouterNodeConfigurationStatusStatus](#routernodeconfigurationstatusstatus)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `kind` _[FailedResourceKind](#failedresourcekind)_ | kind resource type name (e.g.: L3VNI, L2VNI). |  | Enum: [Underlay L2VNI L3VNI FrrConfiguration L3Passthrough] <br />Required: \{\} <br /> |
+| `name` _string_ | name failed API resource metadata.name. |  | MaxLength: 253 <br />MinLength: 1 <br />Required: \{\} <br /> |
+| `reason` _[FailedResourceReason](#failedresourcereason)_ | reason failure reason. |  | Enum: [ValidationFailed DependencyFailed OverlayAttachmentFailed FrrConfigurationFailed] <br />MaxLength: 100 <br />MinLength: 1 <br />Required: \{\} <br /> |
+| `message` _string_ | message human-readable failure description. |  | MaxLength: 500 <br />MinLength: 1 <br />Required: \{\} <br /> |
+
+
+#### FailedResourceKind
+
+_Underlying type:_ _string_
+
+
+
+_Validation:_
+- Enum: [Underlay L2VNI L3VNI FrrConfiguration L3Passthrough]
+
+_Appears in:_
+- [FailedResource](#failedresource)
+
+
+
+#### FailedResourceReason
+
+_Underlying type:_ _string_
+
+FailedResourceReason machine-readable reason for a failure.
+
+_Validation:_
+- Enum: [ValidationFailed DependencyFailed OverlayAttachmentFailed FrrConfigurationFailed]
+- MaxLength: 100
+- MinLength: 1
+
+_Appears in:_
+- [FailedResource](#failedresource)
+
+| Field | Description |
+| --- | --- |
+| `ValidationFailed` | FailedResourceReasonValidationFailed indicates failed pre-emptive semantic validation<br />(e.g., interface not found, VNI conflict).<br /> |
+| `DependencyFailed` | FailedResourceReasonDependencyFailed dependent-on resource is not ready<br />(e.g., L2VNI specify an interface managed by failing Underlay resource).<br /> |
+| `OverlayAttachmentFailed` | FailedResourceReasonOverlayAttachmentFailed provisioning failure at the logical network layer of the router<br />(e.g.: failed to create VRF, move interface to router namespace).<br /> |
+| `FrrConfigurationFailed` | FailedResourceReasonFrrConfigurationFailed applying FRR configuration failed.<br /> |
 
 
 #### GracefulRestartConfig
@@ -405,6 +461,41 @@ RawFRRConfigStatus defines the observed state of RawFRRConfig.
 _Appears in:_
 - [RawFRRConfig](#rawfrrconfig)
 
+
+
+#### RouterNodeConfigurationStatus
+
+
+
+RouterNodeConfigurationStatus describes a node router state.
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiVersion` _string_ | `openpe.openperouter.github.io/v1alpha1` | | |
+| `kind` _string_ | `RouterNodeConfigurationStatus` | | |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `status` _[RouterNodeConfigurationStatusStatus](#routernodeconfigurationstatusstatus)_ | status node router configuration status. |  | Optional: \{\} <br /> |
+
+
+#### RouterNodeConfigurationStatusStatus
+
+
+
+
+
+
+
+_Appears in:_
+- [RouterNodeConfigurationStatus](#routernodeconfigurationstatus)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `failedResources` _[FailedResource](#failedresource) array_ | failedResources list of failed configuration resources on the node. |  | Optional: \{\} <br /> |
+| `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v/#condition-v1-meta) array_ | conditions list of conditions. |  | Optional: \{\} <br /> |
 
 
 #### Underlay

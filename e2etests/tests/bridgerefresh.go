@@ -24,7 +24,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/utils/ptr"
 )
 
 var _ = Describe("BridgeRefresher E2E - Type 2 Route Persistence", Ordered, func() {
@@ -58,13 +57,13 @@ var _ = Describe("BridgeRefresher E2E - Type 2 Route Persistence", Ordered, func
 			Namespace: openperouter.Namespace,
 		},
 		Spec: v1alpha1.L2VNISpec{
-			VRF:          ptr.To("red"),
+			VRF:          new("red"),
 			VNI:          int32(l2VNI),
 			L2GatewayIPs: []string{l2GatewayIP},
 			HostMaster: &v1alpha1.HostMaster{
 				Type: linuxBridgeHostAttachment,
 				LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-					AutoCreate: ptr.To(true),
+					AutoCreate: new(true),
 				},
 			},
 		},
@@ -161,7 +160,7 @@ var _ = Describe("BridgeRefresher E2E - Type 2 Route Persistence", Ordered, func
 		})
 
 		AfterEach(func() {
-			dumpIfFails(cs)
+			dumpIfFails(cs, testNamespace)
 
 			By("Deleting test namespace")
 			Expect(k8s.DeleteNamespace(cs, testNamespace)).To(Succeed())
@@ -248,7 +247,7 @@ var _ = Describe("BridgeRefresher E2E - Type 2 Route Persistence", Ordered, func
 				Expect(len(nodes)).To(BeNumerically(">=", 2), "Expected at least 2 nodes")
 
 				DeferCleanup(func() {
-					dumpIfFails(cs)
+					dumpIfFails(cs, testNamespace)
 
 					By("Deleting test namespace")
 					Expect(k8s.DeleteNamespace(cs, testNamespace)).To(Succeed())

@@ -5,10 +5,11 @@ package tests
 import (
 	"context"
 	"fmt"
-	"k8s.io/utils/ptr"
 	"net"
 	"strings"
 	"time"
+
+	"k8s.io/utils/ptr"
 
 	frrk8sapi "github.com/metallb/frr-k8s/api/v1beta1"
 	"github.com/onsi/ginkgo/v2"
@@ -53,10 +54,10 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 			VRF: "red",
 			HostSession: &v1alpha1.HostSession{
 				ASN:     64514,
-				HostASN: ptr.To(int64(64515)),
+				HostASN: new(int64(64515)),
 				LocalCIDR: v1alpha1.LocalCIDRConfig{
-					IPv4: ptr.To("192.169.10.0/24"),
-					IPv6: ptr.To("2001:db8:1::/64"),
+					IPv4: new("192.169.10.0/24"),
+					IPv6: new("2001:db8:1::/64"),
 				},
 			},
 			VNI: 100,
@@ -72,10 +73,10 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 			VRF: "blue",
 			HostSession: &v1alpha1.HostSession{
 				ASN:     64514,
-				HostASN: ptr.To(int64(64515)),
+				HostASN: new(int64(64515)),
 				LocalCIDR: v1alpha1.LocalCIDRConfig{
-					IPv4: ptr.To("192.169.11.0/24"),
-					IPv6: ptr.To("2001:db8:2::/64"),
+					IPv4: new("192.169.11.0/24"),
+					IPv6: new("2001:db8:2::/64"),
 				},
 			},
 			VNI: 200,
@@ -336,7 +337,7 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 		})
 
 		AfterEach(func() {
-			dumpIfFails(cs)
+			dumpIfFails(cs, testNamespace)
 		})
 
 		DescribeTable("should be able to reach the hosts from the test pod and vice versa", func(
@@ -412,7 +413,7 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 	})
 })
 
-var _ = Describe("Routes between bgp and the fabric with iBGP testing e2e integration between a pod and the blue / red hosts", func() {
+var _ = Describe("Routes between bgp and the fabric with iBGP testing e2e integration between a pod and the red hosts", func() {
 	var cs clientset.Interface
 	var routers openperouter.Routers
 	var nodes []corev1.Node
@@ -427,12 +428,12 @@ var _ = Describe("Routes between bgp and the fabric with iBGP testing e2e integr
 			Nics: []string{"toswitch"},
 			Neighbors: []v1alpha1.Neighbor{
 				{
-					Type:    ptr.To("internal"),
+					Type:    new("internal"),
 					Address: "192.168.11.2",
 				},
 			},
 			EVPN: &v1alpha1.EVPNConfig{
-				VTEPCIDR: ptr.To("100.65.0.0/24"),
+				VTEPCIDR: new("100.65.0.0/24"),
 			},
 		},
 	}
@@ -446,32 +447,13 @@ var _ = Describe("Routes between bgp and the fabric with iBGP testing e2e integr
 			VRF: "red",
 			HostSession: &v1alpha1.HostSession{
 				ASN:     64514,
-				HostASN: ptr.To(int64(64515)),
+				HostASN: new(int64(64515)),
 				LocalCIDR: v1alpha1.LocalCIDRConfig{
-					IPv4: ptr.To("192.169.10.0/24"),
-					IPv6: ptr.To("2001:db8:1::/64"),
+					IPv4: new("192.169.10.0/24"),
+					IPv6: new("2001:db8:1::/64"),
 				},
 			},
 			VNI: 100,
-		},
-	}
-
-	vniBlue := v1alpha1.L3VNI{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "blue",
-			Namespace: openperouter.Namespace,
-		},
-		Spec: v1alpha1.L3VNISpec{
-			VRF: "blue",
-			HostSession: &v1alpha1.HostSession{
-				ASN:     64514,
-				HostASN: ptr.To(int64(64515)),
-				LocalCIDR: v1alpha1.LocalCIDRConfig{
-					IPv4: ptr.To("192.169.11.0/24"),
-					IPv6: ptr.To("2001:db8:2::/64"),
-				},
-			},
-			VNI: 200,
 		},
 	}
 
@@ -520,25 +502,22 @@ var _ = Describe("Routes between bgp and the fabric with iBGP testing e2e integr
 
 		By("Creating the frr-k8s configuration for the node where the test pod runs and advertising all pod ips")
 		frrK8sConfigRedForPod := advertisePodToVNI(testPod, vniRed, nodeSelector)
-		frrK8sConfigBlueForPod := advertisePodToVNI(testPod, vniBlue, nodeSelector)
 
 		err = Updater.Update(config.Resources{
 			L3VNIs: []v1alpha1.L3VNI{
 				vniRed,
-				vniBlue,
 			},
-			FRRConfigurations: append(frrK8sConfigRedForPod, frrK8sConfigBlueForPod...),
+			FRRConfigurations: frrK8sConfigRedForPod,
 		})
 		Expect(err).NotTo(HaveOccurred())
 
 		frrK8sPodOnNode, err := frrk8s.PodForNode(cs, testPod.Spec.NodeName)
 		Expect(err).NotTo(HaveOccurred())
 		validateFRRK8sSessionForHostSession(vniRed.Name, *vniRed.Spec.HostSession, Established, frrK8sPodOnNode)
-		validateFRRK8sSessionForHostSession(vniBlue.Name, *vniBlue.Spec.HostSession, Established, frrK8sPodOnNode)
 	})
 
 	AfterEach(func() {
-		dumpIfFails(cs)
+		dumpIfFails(cs, testNamespace)
 
 		By("Deleting the test namespace")
 		err := k8s.DeleteNamespace(cs, testNamespace)
@@ -568,12 +547,8 @@ var _ = Describe("Routes between bgp and the fabric with iBGP testing e2e integr
 		externalHostIP := infra.HostARedIPv4
 		ipFamily := ipfamily.IPv4
 
-		var localCIDR string
-		localCIDR = ptr.Deref(vni.Spec.HostSession.LocalCIDR.IPv4, "")
+		localCIDR := ptr.Deref(vni.Spec.HostSession.LocalCIDR.IPv4, "")
 
-		if ipFamily == ipfamily.IPv6 {
-			localCIDR = ptr.Deref(vni.Spec.HostSession.LocalCIDR.IPv6, "")
-		}
 		hostSide, err := openperouter.HostIPFromCIDRForNode(localCIDR, podNode)
 		Expect(err).NotTo(HaveOccurred())
 

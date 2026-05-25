@@ -25,7 +25,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/utils/ptr"
 )
 
 var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
@@ -53,12 +52,12 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 			Namespace: openperouter.Namespace,
 		},
 		Spec: v1alpha1.L2VNISpec{
-			VRF: ptr.To("red"),
+			VRF: new("red"),
 			VNI: 110,
 			HostMaster: &v1alpha1.HostMaster{
 				Type: linuxBridgeHostAttachment,
 				LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-					AutoCreate: ptr.To(true),
+					AutoCreate: new(true),
 				},
 			},
 		},
@@ -125,9 +124,9 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 		nadMaster                                                         string              // Bridge name for NAD (defaults to "br-hs-110")
 	}
 	AfterEach(func() {
+		dumpIfFails(cs, testNamespace)
 		Expect(infra.LeafAConfig.Reset()).To(Succeed())
 		Expect(infra.LeafBConfig.Reset()).To(Succeed())
-		dumpIfFails(cs)
 		err := Updater.CleanButUnderlay()
 		Expect(err).NotTo(HaveOccurred())
 		err = k8s.DeleteNamespace(cs, testNamespace)
@@ -230,7 +229,7 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 			hostMaster: v1alpha1.HostMaster{
 				Type: linuxBridgeHostAttachment,
 				LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-					AutoCreate: ptr.To(true),
+					AutoCreate: new(true),
 				},
 			},
 		}),
@@ -244,7 +243,7 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 			hostMaster: v1alpha1.HostMaster{
 				Type: linuxBridgeHostAttachment,
 				LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-					AutoCreate: ptr.To(true),
+					AutoCreate: new(true),
 				},
 			},
 		}),
@@ -258,7 +257,7 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 			hostMaster: v1alpha1.HostMaster{
 				Type: linuxBridgeHostAttachment,
 				LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-					AutoCreate: ptr.To(true),
+					AutoCreate: new(true),
 				},
 			},
 		}),
@@ -272,7 +271,7 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 			hostMaster: v1alpha1.HostMaster{
 				Type: ovsBridgeHostAttachment,
 				OVSBridge: &v1alpha1.OVSBridgeConfig{
-					AutoCreate: ptr.To(true),
+					AutoCreate: new(true),
 				},
 			},
 		}),
@@ -286,7 +285,7 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 			hostMaster: v1alpha1.HostMaster{
 				Type: ovsBridgeHostAttachment,
 				OVSBridge: &v1alpha1.OVSBridgeConfig{
-					AutoCreate: ptr.To(true),
+					AutoCreate: new(true),
 				},
 			},
 		}),
@@ -300,7 +299,7 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 			hostMaster: v1alpha1.HostMaster{
 				Type: ovsBridgeHostAttachment,
 				OVSBridge: &v1alpha1.OVSBridgeConfig{
-					AutoCreate: ptr.To(true),
+					AutoCreate: new(true),
 				},
 			},
 		}),
@@ -314,8 +313,8 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 			hostMaster: v1alpha1.HostMaster{
 				Type: ovsBridgeHostAttachment,
 				OVSBridge: &v1alpha1.OVSBridgeConfig{
-					Name:       ptr.To(preExistingOVSBridge),
-					AutoCreate: ptr.To(false),
+					Name:       new(preExistingOVSBridge),
+					AutoCreate: new(false),
 				},
 			},
 		}),
@@ -329,8 +328,8 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 			hostMaster: v1alpha1.HostMaster{
 				Type: ovsBridgeHostAttachment,
 				OVSBridge: &v1alpha1.OVSBridgeConfig{
-					Name:       ptr.To(preExistingOVSBridge),
-					AutoCreate: ptr.To(false),
+					Name:       new(preExistingOVSBridge),
+					AutoCreate: new(false),
 				},
 			},
 		}),
@@ -344,8 +343,8 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 			hostMaster: v1alpha1.HostMaster{
 				Type: ovsBridgeHostAttachment,
 				OVSBridge: &v1alpha1.OVSBridgeConfig{
-					Name:       ptr.To(preExistingOVSBridge),
-					AutoCreate: ptr.To(false),
+					Name:       new(preExistingOVSBridge),
+					AutoCreate: new(false),
 				},
 			},
 		}),
@@ -395,18 +394,18 @@ var _ = Describe("Routes between bgp and the fabric - vtepInterface", func() {
 		redistributeConnectedForLeafKind(nodes)
 
 		l2VniRedWithGateway := l2VniRed.DeepCopy()
-		l2VniRedWithGateway.Spec.VRF = ptr.To("red")
+		l2VniRedWithGateway.Spec.VRF = new("red")
 		l2VniRedWithGateway.Spec.L2GatewayIPs = []string{"192.171.24.1/24"}
 		l2VniRedWithGateway.Spec.HostMaster = &v1alpha1.HostMaster{
 			Type: linuxBridgeHostAttachment,
 			LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-				AutoCreate: ptr.To(true),
+				AutoCreate: new(true),
 			},
 		}
 
 		underlay := infra.Underlay
 		underlay.Spec.EVPN = &v1alpha1.EVPNConfig{
-			VTEPInterface: ptr.To("toswitch"),
+			VTEPInterface: new("toswitch"),
 		}
 
 		_, err = openperouter.Get(cs, HostMode)
@@ -428,8 +427,8 @@ var _ = Describe("Routes between bgp and the fabric - vtepInterface", func() {
 	})
 
 	AfterEach(func() {
+		dumpIfFails(cs, testNamespace)
 		resetLeafKindConfig(nodes)
-		dumpIfFails(cs)
 		err := Updater.CleanAll()
 		Expect(err).NotTo(HaveOccurred())
 

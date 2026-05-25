@@ -45,10 +45,10 @@ var _ = Describe("Routes between bgp and the fabric", Label("passthrough"), Orde
 		Spec: v1alpha1.L3PassthroughSpec{
 			HostSession: v1alpha1.HostSession{
 				ASN:     64514,
-				HostASN: ptr.To(int64(64515)),
+				HostASN: new(int64(64515)),
 				LocalCIDR: v1alpha1.LocalCIDRConfig{
-					IPv4: ptr.To("192.169.10.0/24"),
-					IPv6: ptr.To("2001:db8:1::/64"),
+					IPv4: new("192.169.10.0/24"),
+					IPv6: new("2001:db8:1::/64"),
 				},
 			},
 		},
@@ -221,7 +221,7 @@ var _ = Describe("Routes between bgp and the fabric", Label("passthrough"), Orde
 		})
 
 		AfterEach(func() {
-			dumpIfFails(cs)
+			dumpIfFails(cs, testNamespace)
 		})
 
 		It("host and the pod from each other with the expected ips", func() {

@@ -340,7 +340,7 @@ var _ = Describe("L2 VNI configuration", func() {
 			},
 			L2GatewayIPs: []string{"192.168.1.0/24"},
 			HostMaster: &HostMaster{
-				Name: ptr.To(bridgeName),
+				Name: new(bridgeName),
 				Type: BridgeLinkType,
 			},
 		}
@@ -386,7 +386,7 @@ var _ = Describe("L2 VNI configuration", func() {
 				},
 				L2GatewayIPs: []string{"192.168.1.0/24"},
 				HostMaster: &HostMaster{
-					Name: ptr.To(bridgeName),
+					Name: new(bridgeName),
 					Type: BridgeLinkType,
 				},
 			},
@@ -475,7 +475,7 @@ var _ = Describe("L2 VNI configuration", func() {
 			},
 			L2GatewayIPs: []string{"192.168.1.0/24"},
 			HostMaster: &HostMaster{
-				Name: ptr.To(bridgeName),
+				Name: new(bridgeName),
 				Type: BridgeLinkType,
 			},
 		}),
@@ -489,7 +489,7 @@ var _ = Describe("L2 VNI configuration", func() {
 			},
 			L2GatewayIPs: []string{"192.168.2.0/24", "2001:db8::1/64"},
 			HostMaster: &HostMaster{
-				Name: ptr.To(bridgeName),
+				Name: new(bridgeName),
 				Type: BridgeLinkType,
 			},
 		}),
@@ -503,7 +503,7 @@ var _ = Describe("L2 VNI configuration", func() {
 			},
 			L2GatewayIPs: []string{"2001:db8::1/64"},
 			HostMaster: &HostMaster{
-				Name: ptr.To(bridgeName),
+				Name: new(bridgeName),
 				Type: BridgeLinkType,
 			},
 		}),
@@ -523,7 +523,7 @@ var _ = Describe("L2 VNI configuration", func() {
 			},
 			L2GatewayIPs: []string{"192.168.1.0/24"},
 			HostMaster: &HostMaster{
-				Name: ptr.To(bridgeName),
+				Name: new(bridgeName),
 				Type: BridgeLinkType,
 			},
 		}
