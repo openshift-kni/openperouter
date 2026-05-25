@@ -48,6 +48,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&RawFRRConfigList{},
 		&Underlay{},
 		&UnderlayList{},
+		&RouterNodeConfigurationStatus{},
+		&RouterNodeConfigurationStatusList{},
 	)
 	metav1.AddToGroupVersion(scheme, GroupVersion)
 	return nil

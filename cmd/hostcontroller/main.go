@@ -273,6 +273,7 @@ func runK8sConfigReconcilerHostMode(ctx context.Context,
 		LogLevel:        args.logLevel,
 		Logger:          logger,
 		MyNode:          args.nodeName,
+		MyNamespace:     args.namespace,
 		FRRReloadSocket: args.reloaderSocket,
 		FRRConfigPath:   args.frrConfigPath,
 		RouterProvider:  routerProvider,
@@ -432,6 +433,12 @@ func createK8sManager(
 					Label: labels.SelectorFromSet(labels.Set{"app": "router"}),
 					Field: fields.Set{
 						"spec.nodeName":      nodeName,
+						"metadata.namespace": namespace,
+					}.AsSelector(),
+				},
+				&periov1alpha1.RouterNodeConfigurationStatus{}: {
+					Field: fields.Set{
+						"metadata.name":      nodeName,
 						"metadata.namespace": namespace,
 					}.AsSelector(),
 				},
