@@ -202,28 +202,6 @@ func TestParityValidation(t *testing.T) {
 		wantMessage string
 	}{
 		{
-			name: "EVPN with both VTEPs",
-			kind: "Underlay",
-			input: &v1alpha1.Underlay{
-				TypeMeta: metav1.TypeMeta{Kind: "Underlay", APIVersion: group + "/" + version},
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "invalid-underlay",
-				},
-				Spec: v1alpha1.UnderlaySpec{
-					ASN:          65000,
-					RouterIDCIDR: new("10.0.0.0/24"),
-					Neighbors: []v1alpha1.Neighbor{
-						{ASN: new(int64(65001)), Address: new("192.168.1.1")},
-					},
-					EVPN: &v1alpha1.EVPNConfig{
-						VTEPCIDR:      new("10.200.0.0/24"),
-						VTEPInterface: new("eth1"),
-					},
-				},
-			},
-			wantMessage: "exactly one of vtepCIDR or vtepInterface must be specified",
-		},
-		{
 			name: "L2VNI linuxBridge with name and autoCreate=true",
 			kind: "L2VNI",
 			input: &v1alpha1.L2VNI{

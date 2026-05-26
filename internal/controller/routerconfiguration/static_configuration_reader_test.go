@@ -335,29 +335,6 @@ func TestReadStaticConfigs_ExistingTestdata(t *testing.T) {
 	}
 }
 
-func TestReadStaticConfigs_CELValidation_EVPNBothVTEPs(t *testing.T) {
-	dir := t.TempDir()
-	writeYAMLFile(t, dir, "openpe_invalid.yaml", `
-underlays:
-  - asn: 64515
-    routeridcidr: "10.0.0.0/24"
-    neighbors:
-      - asn: 64512
-        address: "192.168.11.2"
-    evpn:
-      vtepcidr: "100.65.0.0/24"
-      vtepInterface: "eth0"
-`)
-
-	_, err := readStaticConfigs(dir)
-	if err == nil {
-		t.Fatal("expected validation error for EVPN with both vtepCIDR and vtepInterface, got nil")
-	}
-	if !strings.Contains(err.Error(), "exactly one of vtepCIDR or vtepInterface must be specified") {
-		t.Errorf("expected error containing 'exactly one of vtepCIDR or vtepInterface must be specified', got: %v", err)
-	}
-}
-
 func TestReadStaticConfigs_CELValidation_L2VNIBridgeNameAndAutoCreate(t *testing.T) {
 	dir := t.TempDir()
 	writeYAMLFile(t, dir, "openpe_invalid.yaml", `
@@ -394,20 +371,6 @@ func TestReadStaticConfigs_ErrorMessageQuality(t *testing.T) {
 		wantContains string
 	}{
 		{
-			name: "EVPN CEL message is exact",
-			yaml: `
-underlays:
-  - asn: 64515
-    neighbors:
-      - asn: 64512
-        address: "192.168.11.2"
-    evpn:
-      vtepcidr: "100.65.0.0/24"
-      vtepInterface: "eth0"
-`,
-			wantContains: "exactly one of vtepCIDR or vtepInterface must be specified",
-		},
-		{
 			name: "LinuxBridge CEL message is exact",
 			yaml: `
 underlays:
@@ -442,41 +405,6 @@ l2vnis:
 				t.Errorf("expected error to contain exact CEL message %q, got: %v", tc.wantContains, err)
 			}
 		})
-	}
-}
-
-func TestReadStaticConfigs_MultipleErrors(t *testing.T) {
-	dir := t.TempDir()
-	writeYAMLFile(t, dir, "openpe_multi_invalid.yaml", `
-underlays:
-  - asn: 64515
-    routeridcidr: "10.0.0.0/24"
-    neighbors:
-      - asn: 64512
-        address: "192.168.11.2"
-    evpn:
-      vtepcidr: "100.65.0.0/24"
-      vtepInterface: "eth0"
-l2vnis:
-  - vni: 300
-    hostmaster:
-      type: linux-bridge
-      linuxBridge:
-        name: "mybr"
-        autoCreate: true
-`)
-
-	_, err := readStaticConfigs(dir)
-	if err == nil {
-		t.Fatal("expected validation errors for invalid underlay AND invalid L2VNI, got nil")
-	}
-
-	errMsg := err.Error()
-	if !strings.Contains(errMsg, "exactly one of vtepCIDR or vtepInterface must be specified") {
-		t.Errorf("expected error from underlay EVPN validation, got: %v", err)
-	}
-	if !strings.Contains(errMsg, "either name must be set or autoCreate must be true, but not both") {
-		t.Errorf("expected error from L2VNI bridge validation, got: %v", err)
 	}
 }
 

@@ -80,12 +80,11 @@ func APItoHostConfig(nodeIndex int, targetNS string, apiConfig APIConfigData) (H
 	for _, vni := range apiConfig.L3VNIs {
 		v := hostnetwork.L3VNIParams{
 			VNIParams: hostnetwork.VNIParams{
-				VRF:           vni.Spec.VRF,
-				TargetNS:      targetNS,
-				VTEPIP:        res.Underlay.EVPN.VtepIP,
-				VTEPInterface: underlay.Spec.EVPN.VTEPInterface,
-				VNI:           vni.Spec.VNI,
-				VXLanPort:     vni.Spec.VXLanPort,
+				VRF:       vni.Spec.VRF,
+				TargetNS:  targetNS,
+				VTEPIP:    res.Underlay.EVPN.VtepIP,
+				VNI:       vni.Spec.VNI,
+				VXLanPort: vni.Spec.VXLanPort,
 			},
 		}
 		if vni.Spec.HostSession == nil {
@@ -112,12 +111,11 @@ func APItoHostConfig(nodeIndex int, targetNS string, apiConfig APIConfigData) (H
 	for _, l2vni := range apiConfig.L2VNIs {
 		vni := hostnetwork.L2VNIParams{
 			VNIParams: hostnetwork.VNIParams{
-				VRF:           l2vni.VRFName(),
-				TargetNS:      targetNS,
-				VTEPIP:        res.Underlay.EVPN.VtepIP,
-				VTEPInterface: underlay.Spec.EVPN.VTEPInterface,
-				VNI:           l2vni.Spec.VNI,
-				VXLanPort:     l2vni.Spec.VXLanPort,
+				VRF:       l2vni.VRFName(),
+				TargetNS:  targetNS,
+				VTEPIP:    res.Underlay.EVPN.VtepIP,
+				VNI:       l2vni.Spec.VNI,
+				VXLanPort: l2vni.Spec.VXLanPort,
 			},
 		}
 		if len(l2vni.Spec.L2GatewayIPs) > 0 {

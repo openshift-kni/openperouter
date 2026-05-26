@@ -187,50 +187,10 @@ func TestValidateUnderlay(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "both vtepCIDR and vtepInterface specified",
-			underlay: v1alpha1.Underlay{
-				Spec: v1alpha1.UnderlaySpec{
-					EVPN: &v1alpha1.EVPNConfig{
-						VTEPCIDR:      new("192.168.1.0/24"),
-						VTEPInterface: new("eth0"),
-					},
-					Nics: []string{"eth0"},
-					ASN:  65001,
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "neither vtepCIDR nor vtepInterface specified",
+			name: "empty vtepCIDR specified",
 			underlay: v1alpha1.Underlay{
 				Spec: v1alpha1.UnderlaySpec{
 					EVPN: &v1alpha1.EVPNConfig{},
-					Nics: []string{"eth0"},
-					ASN:  65001,
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "only vtepInterface specified",
-			underlay: v1alpha1.Underlay{
-				Spec: v1alpha1.UnderlaySpec{
-					EVPN: &v1alpha1.EVPNConfig{
-						VTEPInterface: new("eth0"),
-					},
-					Nics: []string{"eth1"},
-					ASN:  65001,
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "invalid vtepInterface name",
-			underlay: v1alpha1.Underlay{
-				Spec: v1alpha1.UnderlaySpec{
-					EVPN: &v1alpha1.EVPNConfig{
-						VTEPInterface: new("1invalid"),
-					},
 					Nics: []string{"eth0"},
 					ASN:  65001,
 				},
