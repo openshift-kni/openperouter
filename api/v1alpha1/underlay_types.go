@@ -39,11 +39,16 @@ type UnderlaySpec struct {
 	// +optional
 	RouterIDCIDR *string `json:"routeridcidr,omitempty"`
 
+	// Note: MaxItems=128 is arbitrarily chosen to keep total CEL cost low
+	// Note: kubeapilinter complained about 'the struct has no required fields', but CEL enforces either/or choices
+	// for Address and Interface.
+
 	// neighbors is the list of external neighbors to peer with.
 	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=128
 	// +optional
 	// +listType=atomic
-	Neighbors []Neighbor `json:"neighbors,omitempty"`
+	Neighbors []Neighbor `json:"neighbors,omitempty"` //nolint:kubeapilinter
 
 	// nics is the list of physical nics to move under the PERouter namespace to connect
 	// to external routers. This field is optional when using Multus networks for TOR connectivity.

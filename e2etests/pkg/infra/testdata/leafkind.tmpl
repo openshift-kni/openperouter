@@ -32,10 +32,14 @@ router bgp 64512
  neighbor 192.168.1.4 remote-as 64612
 
 {{- range .Neighbors }}
- neighbor {{ . }} remote-as {{ $.PERouterASN }}
- neighbor {{ . }} timers connect 5
+{{- if .IsInterface }}
+ neighbor {{ .ID }} interface remote-as {{ $.PERouterASN }}
+{{- else }}
+ neighbor {{ .ID }} remote-as {{ $.PERouterASN }}
+{{- end }}
+ neighbor {{ .ID }} timers connect 5
 {{- if $.EnableBFD }}
- neighbor {{ . }} bfd
+ neighbor {{ .ID }} bfd
 {{- end }}
 {{- end }}
 
@@ -46,9 +50,9 @@ router bgp 64512
 {{- end }}
   neighbor 192.168.1.4 activate
 {{- range .Neighbors }}
-  neighbor {{ . }} activate
+  neighbor {{ .ID }} activate
 {{- if $.NextHopSelf }}
-  neighbor {{ . }} next-hop-self force 
+  neighbor {{ .ID }} next-hop-self force 
 {{- end }}
 {{- end }}
  exit-address-family
@@ -56,7 +60,7 @@ router bgp 64512
  address-family l2vpn evpn
   neighbor 192.168.1.4 activate
 {{- range .Neighbors }}
-  neighbor {{ . }} activate
+  neighbor {{ .ID }} activate
 {{- end }}
   advertise-all-vni
   advertise-svi-ip

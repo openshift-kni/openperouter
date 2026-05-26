@@ -12,6 +12,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/openperouter/openperouter/api/static"
 	"github.com/openperouter/openperouter/api/v1alpha1"
+	"k8s.io/utils/ptr"
 )
 
 func TestReadNodeConfig(t *testing.T) {
@@ -208,11 +209,11 @@ func TestReadRouterConfigsFromFiles(t *testing.T) {
 		Neighbors: []v1alpha1.Neighbor{
 			{
 				ASN:     new(int64(64512)),
-				Address: "192.168.11.2",
+				Address: new("192.168.11.2"),
 			},
 			{
 				ASN:     new(int64(64512)),
-				Address: "192.168.11.3",
+				Address: new("192.168.11.3"),
 				BFD: &v1alpha1.BFDSettings{
 					ReceiveInterval:  new(int32(300)),
 					TransmitInterval: new(int32(300)),
@@ -292,7 +293,7 @@ func TestReadRouterConfigsFromFiles(t *testing.T) {
 	}
 
 	sortNeighbors := cmpopts.SortSlices(func(a, b v1alpha1.Neighbor) bool {
-		return a.Address < b.Address
+		return ptr.Deref(a.Address, "") < ptr.Deref(b.Address, "")
 	})
 	sortL3VNIs := cmpopts.SortSlices(func(a, b v1alpha1.L3VNISpec) bool {
 		return a.VRF < b.VRF

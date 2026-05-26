@@ -105,10 +105,15 @@ spec:
                     to.
                   properties:
                     address:
-                      description: address is the IP address to establish the session
-                        with.
+                      description: |-
+                        address is the IP address to establish the session with. The IP address
+                        can be either IPv4 or IPv6.
+                      maxLength: 39
                       minLength: 1
                       type: string
+                      x-kubernetes-validations:
+                      - message: Address must be a valid IPv4 or IPv6 address
+                        rule: isIP(self)
                     asn:
                       description: asn is the AS number of the neighbor. Either ASN
                         or Type must be set.
@@ -193,6 +198,17 @@ spec:
                         Defaults to 180.
                       format: int64
                       type: integer
+                    interface:
+                      description: interface is the interface name for BGP unnumbered
+                        sessions. The session will be established via IPv6 link locals.
+                      maxLength: 15
+                      minLength: 1
+                      type: string
+                      x-kubernetes-validations:
+                      - message: Interface must not contain /, :, or whitespace
+                        rule: self.matches('^[^\\/:\\s]+$')
+                      - message: Interface cannot be . or ..
+                        rule: self != '.' && self != '..'
                     keepaliveTimeSeconds:
                       description: |-
                         keepaliveTimeSeconds is the requested BGP keepalive time in seconds, per RFC4271.
@@ -227,8 +243,6 @@ spec:
                       - external
                       - internal
                       type: string
-                  required:
-                  - address
                   type: object
                   x-kubernetes-validations:
                   - message: either ASN or Type must be set
@@ -244,6 +258,12 @@ spec:
                   - message: keepaliveTimeSeconds must be lower than or equal to holdTimeSeconds
                     rule: '!has(self.holdTimeSeconds) || !has(self.keepaliveTimeSeconds)
                       || self.keepaliveTimeSeconds <= self.holdTimeSeconds'
+                  - message: Either a valid Address or Interface name must be provided
+                      for Neighbor
+                    rule: has(self.address) || has(self.interface)
+                  - message: Address and Interface cannot be set together for Neighbor
+                    rule: '!has(self.address) || !has(self.interface)'
+                maxItems: 128
                 minItems: 1
                 type: array
                 x-kubernetes-list-type: atomic

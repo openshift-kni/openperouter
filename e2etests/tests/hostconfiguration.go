@@ -51,7 +51,7 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 			Neighbors: []v1alpha1.Neighbor{
 				{
 					ASN:     new(int64(64517)),
-					Address: "192.168.11.2",
+					Address: new("192.168.11.2"),
 				},
 			},
 			EVPN: &v1alpha1.EVPNConfig{
@@ -1203,7 +1203,7 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 				Neighbors: []v1alpha1.Neighbor{
 					{
 						ASN:     new(int64(64517)),
-						Address: "192.168.11.2",
+						Address: new("192.168.11.2"),
 					},
 				},
 				EVPN: &v1alpha1.EVPNConfig{

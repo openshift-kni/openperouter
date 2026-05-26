@@ -41,7 +41,7 @@ var (
 	emptyPrefixes        = []string{}
 )
 
-var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
+var _ = Describe("Routes between bgp and the fabric with Underlay in ipv4", Ordered, func() {
 	var cs clientset.Interface
 	var routers openperouter.Routers
 
@@ -429,7 +429,7 @@ var _ = Describe("Routes between bgp and the fabric with iBGP testing e2e integr
 			Neighbors: []v1alpha1.Neighbor{
 				{
 					Type:    new("internal"),
-					Address: "192.168.11.2",
+					Address: new("192.168.11.2"),
 				},
 			},
 			EVPN: &v1alpha1.EVPNConfig{
@@ -474,7 +474,7 @@ var _ = Describe("Routes between bgp and the fabric with iBGP testing e2e integr
 		By("setting iBGP next-hop-self force on leaf kind")
 		nodes, err = k8s.GetNodes(cs)
 		Expect(err).NotTo(HaveOccurred())
-		ibgpForLeafKind(nodes)
+		Expect(infra.UpdateLeafKindConfig(nodes, infra.LeafKindConfiguration{PERouterASN: 64512, NextHopSelf: true})).To(Succeed())
 
 		err = Updater.Update(config.Resources{
 			Underlays: []v1alpha1.Underlay{
@@ -527,7 +527,7 @@ var _ = Describe("Routes between bgp and the fabric with iBGP testing e2e integr
 		Expect(infra.LeafAConfig.Reset()).To(Succeed())
 		Expect(infra.LeafBConfig.Reset()).To(Succeed())
 
-		resetLeafKindConfig(nodes)
+		Expect(infra.UpdateLeafKindConfig(nodes, infra.LeafKindConfiguration{})).To(Succeed())
 
 		err = Updater.CleanAll()
 		Expect(err).NotTo(HaveOccurred())
