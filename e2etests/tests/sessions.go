@@ -59,9 +59,11 @@ var _ = Describe("Router Host configuration", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 		By("waiting for the underlay to be removed from all nodes")
 		for _, node := range nodes {
-			Eventually(func() bool {
-				return openperouter.UnderlayConfigured(node.Name)
-			}, 2*time.Minute, time.Second).Should(BeFalse())
+			Eventually(func(g Gomega) {
+				isConfigured, err := openperouter.UnderlayConfigured(node.Name)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(isConfigured).To(BeFalse())
+			}, 2*time.Minute, time.Second).Should(Succeed())
 		}
 	})
 
@@ -570,9 +572,11 @@ var _ = Describe("Underlay external and internal configuration", Ordered, func()
 
 		By("waiting for the underlay to be removed from all nodes")
 		for _, node := range nodes {
-			Eventually(func() bool {
-				return openperouter.UnderlayConfigured(node.Name)
-			}, 2*time.Minute, time.Second).Should(BeFalse())
+			Eventually(func(g Gomega) {
+				isConfigured, err := openperouter.UnderlayConfigured(node.Name)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(isConfigured).To(BeFalse())
+			}, 2*time.Minute, time.Second).Should(Succeed())
 		}
 	})
 
@@ -706,9 +710,11 @@ var _ = Describe("Underlay BFD Configuration", Ordered, func() {
 
 		By("waiting for the underlay to be removed from all nodes")
 		for _, node := range nodes {
-			Eventually(func() bool {
-				return openperouter.UnderlayConfigured(node.Name)
-			}, 2*time.Minute, time.Second).Should(BeFalse())
+			Eventually(func(g Gomega) {
+				isConfigured, err := openperouter.UnderlayConfigured(node.Name)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(isConfigured).To(BeFalse())
+			}, 2*time.Minute, time.Second).Should(Succeed())
 		}
 
 		Expect(infra.LeafKind1Config.UpdateConfig(nodes, infra.LeafKindConfiguration{})).NotTo(HaveOccurred())
@@ -861,9 +867,11 @@ var _ = Describe("Add extra neighbor", Ordered, func() {
 
 		By("waiting for the underlay to be removed from all nodes")
 		for _, node := range nodes {
-			Eventually(func() bool {
-				return openperouter.UnderlayConfigured(node.Name)
-			}, 2*time.Minute, time.Second).Should(BeFalse())
+			Eventually(func(g Gomega) {
+				isConfigured, err := openperouter.UnderlayConfigured(node.Name)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(isConfigured).To(BeFalse())
+			}, 2*time.Minute, time.Second).Should(Succeed())
 		}
 	})
 

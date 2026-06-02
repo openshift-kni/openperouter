@@ -171,13 +171,13 @@ func validateUnderlayInNS(g Gomega, ns netns.NsHandle, params UnderlayParams) {
 func validateUnderlay(g Gomega, params UnderlayParams, interfaceIPs ...string) {
 	links, err := netlink.LinkList()
 	g.Expect(err).NotTo(HaveOccurred())
-	loopbackFound := false
 	foundInterfaces := map[string]bool{}
 	for _, l := range links {
-		if l.Attrs().Name == UnderlayLoopback {
-			loopbackFound = true
+		if l.Attrs().Name == loopbackName {
 			if params.EVPN != nil && params.EVPN.VtepIP != "" {
 				validateIP(g, l, params.EVPN.VtepIP)
+			} else {
+				checkInterfaceHasNoNonLoopbackIPs(g, loopbackName)
 			}
 		}
 		for _, underlayIface := range params.UnderlayInterfaces {
@@ -190,11 +190,7 @@ func validateUnderlay(g Gomega, params UnderlayParams, interfaceIPs ...string) {
 			}
 		}
 	}
-	if params.EVPN != nil && params.EVPN.VtepIP == "" {
-		g.Expect(loopbackFound).To(BeFalse(), fmt.Sprintf("loopback should not exist when vtepIP is empty, links %v", links))
-	} else if params.EVPN != nil {
-		g.Expect(loopbackFound).To(BeTrue(), fmt.Sprintf("failed to find loopback in ns, links %v", links))
-	}
+
 	for _, underlayIface := range params.UnderlayInterfaces {
 		g.Expect(foundInterfaces).To(HaveKey(underlayIface),
 			fmt.Sprintf("underlay interface %s not found in ns, links %v", underlayIface, links))
@@ -246,7 +242,7 @@ func cleanTest(namespace string) {
 	err = removeLinkByName(PassthroughNames.HostSide)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = removeLinkByName(UnderlayLoopback)
+	err = clearNonDefaultLoopbackIPs(loopbackName)
 	Expect(err).NotTo(HaveOccurred())
 }
 
