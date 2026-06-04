@@ -713,8 +713,8 @@ func validateL2VNI(g Gomega, params L2VNIParams) {
 }
 
 func validateVNI(g Gomega, params VNIParams) {
-	vtepDev, err := netlink.LinkByName(UnderlayLoopback)
-	g.Expect(err).NotTo(HaveOccurred(), "vtep device not found %q", UnderlayLoopback)
+	vtepDev, err := netlink.LinkByName(loopbackName)
+	g.Expect(err).NotTo(HaveOccurred(), "vtep device not found %q", loopbackName)
 
 	vxlanLink, err := netlink.LinkByName(vxLanNameFromVNI(params.VNI))
 	g.Expect(err).NotTo(HaveOccurred(), "vxlan link not found %q", vxLanNameFromVNI(params.VNI))
@@ -773,6 +773,23 @@ func checkLinkdeleted(g Gomega, name string) {
 	g.Expect(errors.As(err, &netlink.LinkNotFoundError{})).To(BeTrue(), "link not deleted", name, err)
 }
 
+func checkInterfaceHasNoNonLoopbackIPs(g Gomega, intf string) {
+	lo, err := netlink.LinkByName(intf)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	addresses, err := netlink.AddrList(lo, netlink.FAMILY_ALL)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	numAddresses := 0
+	for _, address := range addresses {
+		if address.IP.IsLoopback() {
+			continue
+		}
+		numAddresses++
+	}
+	g.Expect(numAddresses).To(Equal(0))
+}
+
 func checkLinkExists(g Gomega, name string) {
 	_, err := netlink.LinkByName(name)
 	g.Expect(err).NotTo(HaveOccurred(), "link not found %q", name)
@@ -798,15 +815,13 @@ func checkAddrGenModeNone(l netlink.Link) bool {
 }
 
 func setupLoopback(ns netns.NsHandle) {
-	_ = netnamespace.In(ns, func() error {
-		_, err := netlink.LinkByName(UnderlayLoopback)
-		if errors.As(err, &netlink.LinkNotFoundError{}) {
-			loopback := &netlink.Dummy{LinkAttrs: netlink.LinkAttrs{Name: UnderlayLoopback}}
-			err = netlink.LinkAdd(loopback)
-			Expect(err).NotTo(HaveOccurred(), "failed to create loopback", UnderlayLoopback)
-		}
-		return nil
-	})
+	handle, err := netlink.NewHandleAt(ns)
+	Expect(err).NotTo(HaveOccurred())
+	defer handle.Close()
+
+	lo, err := handle.LinkByName(loopbackName)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(handle.LinkSetUp(lo)).To(Succeed())
 }
 
 func createLinuxBridge(name string) {
