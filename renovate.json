@@ -15,7 +15,7 @@
     "jsonnet-bundler": {
         "enabled": false
     },
-    "tekton" {
+    "tekton": {
         "enabled": true,
         "includePaths": [
             ".tekton/**"
