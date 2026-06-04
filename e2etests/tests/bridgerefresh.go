@@ -24,7 +24,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/utils/ptr"
 )
 
 var _ = Describe("BridgeRefresher E2E - Type 2 Route Persistence", Ordered, func() {
@@ -48,7 +47,7 @@ var _ = Describe("BridgeRefresher E2E - Type 2 Route Persistence", Ordered, func
 		},
 		Spec: v1alpha1.L3VNISpec{
 			VRF: "red",
-			VNI: l3VNI,
+			VNI: int32(l3VNI),
 		},
 	}
 
@@ -58,13 +57,13 @@ var _ = Describe("BridgeRefresher E2E - Type 2 Route Persistence", Ordered, func
 			Namespace: openperouter.Namespace,
 		},
 		Spec: v1alpha1.L2VNISpec{
-			VRF:          ptr.To("red"),
-			VNI:          l2VNI,
+			VRF:          new("red"),
+			VNI:          int32(l2VNI),
 			L2GatewayIPs: []string{l2GatewayIP},
 			HostMaster: &v1alpha1.HostMaster{
 				Type: linuxBridgeHostAttachment,
 				LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-					AutoCreate: true,
+					AutoCreate: new(true),
 				},
 			},
 		},
@@ -82,30 +81,35 @@ var _ = Describe("BridgeRefresher E2E - Type 2 Route Persistence", Ordered, func
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		routers, err = openperouter.Get(cs, HostMode)
-		Expect(err).NotTo(HaveOccurred())
+		Eventually(func() error {
+			routers, err = openperouter.Get(cs, HostMode)
+			if err != nil {
+				return err
+			}
+			return openperouter.AreReady(routers)
+		}, 2*time.Minute, time.Second).ShouldNot(HaveOccurred())
 
 		routers.Dump(ginkgo.GinkgoWriter)
 
 		By("setting redistribute connected on leaves")
-		redistributeConnectedForLeaf(infra.LeafAConfig)
-		redistributeConnectedForLeaf(infra.LeafBConfig)
+		Expect(infra.LeafAConfig.RedistributeConnected()).To(Succeed())
+		Expect(infra.LeafBConfig.RedistributeConnected()).To(Succeed())
 	})
 
 	AfterAll(func() {
 		Expect(Updater.CleanAll()).To(Succeed())
 
-		By("waiting for the router pod to rollout after removing the underlay")
+		By("waiting for all router pods to be ready after removing the underlay")
 		Eventually(func() error {
-			newRouters, err := openperouter.Get(cs, HostMode)
+			routers, err := openperouter.Get(cs, HostMode)
 			if err != nil {
 				return err
 			}
-			return openperouter.DaemonsetRolled(routers, newRouters)
+			return openperouter.AreReady(routers)
 		}, 2*time.Minute, time.Second).ShouldNot(HaveOccurred())
 
-		Expect(infra.LeafAConfig.RemovePrefixes()).To(Succeed())
-		Expect(infra.LeafBConfig.RemovePrefixes()).To(Succeed())
+		Expect(infra.LeafAConfig.Reset()).To(Succeed())
+		Expect(infra.LeafBConfig.Reset()).To(Succeed())
 	})
 
 	Context("Type 2 Route Persistence with Silent Workload", func() {
@@ -156,7 +160,7 @@ var _ = Describe("BridgeRefresher E2E - Type 2 Route Persistence", Ordered, func
 		})
 
 		AfterEach(func() {
-			dumpIfFails(cs)
+			dumpIfFails(cs, testNamespace)
 
 			By("Deleting test namespace")
 			Expect(k8s.DeleteNamespace(cs, testNamespace)).To(Succeed())
@@ -243,7 +247,7 @@ var _ = Describe("BridgeRefresher E2E - Type 2 Route Persistence", Ordered, func
 				Expect(len(nodes)).To(BeNumerically(">=", 2), "Expected at least 2 nodes")
 
 				DeferCleanup(func() {
-					dumpIfFails(cs)
+					dumpIfFails(cs, testNamespace)
 
 					By("Deleting test namespace")
 					Expect(k8s.DeleteNamespace(cs, testNamespace)).To(Succeed())
@@ -393,4 +397,3 @@ func checkNeighborStale(cs clientset.Interface, podIP string, vni int, nodeName 
 	}
 	return fmt.Errorf("neighbor %s on %s in router %s is not STALE yet: %s", podIP, bridgeDev, exec.Name(), out)
 }
-

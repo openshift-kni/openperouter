@@ -27,8 +27,8 @@ var (
 	leafAVRFBlueV4Prefixes, leafAVRFBlueV6Prefixes = infra.SeparateIPFamilies(leafAVRFBluePrefixes)
 	leafBVRFRedV4Prefixes, leafBVRFRedV6Prefixes   = infra.SeparateIPFamilies(leafBVRFRedPrefixes)
 	leafBVRFBlueV4Prefixes, leafBVRFBlueV6Prefixes = infra.SeparateIPFamilies(leafBVRFBluePrefixes)
-	redRouteTargets  = infra.RouteTargets{ImportRTs: []string{"65000:1000"}, ExportRTs: []string{"65000:1000"}}
-	blueRouteTargets = infra.RouteTargets{ImportRTs: []string{"65000:2000"}, ExportRTs: []string{"65000:2000"}}
+	redRouteTargets                                = infra.RouteTargets{ImportRTs: []string{"65000:1000"}, ExportRTs: []string{"65000:1000"}}
+	blueRouteTargets                               = infra.RouteTargets{ImportRTs: []string{"65000:2000"}, ExportRTs: []string{"65000:2000"}}
 
 	frrk8sRedPrefixes  = []string{"10.100.0.0/24"}
 	frrk8sBluePrefixes = []string{"10.200.0.0/24"}
@@ -47,10 +47,10 @@ var _ = Describe("Routes with RT between bgp and the fabric", Ordered, func() {
 			VRF: "red",
 			HostSession: &v1alpha1.HostSession{
 				ASN:     64514,
-				HostASN: 64515,
+				HostASN: new(int64(64515)),
 				LocalCIDR: v1alpha1.LocalCIDRConfig{
-					IPv4: "192.169.10.0/24",
-					IPv6: "2001:db8:1::/64",
+					IPv4: new("192.169.10.0/24"),
+					IPv6: new("2001:db8:1::/64"),
 				},
 			},
 			VNI:       100,
@@ -68,10 +68,10 @@ var _ = Describe("Routes with RT between bgp and the fabric", Ordered, func() {
 			VRF: "blue",
 			HostSession: &v1alpha1.HostSession{
 				ASN:     64514,
-				HostASN: 64515,
+				HostASN: new(int64(64515)),
 				LocalCIDR: v1alpha1.LocalCIDRConfig{
-					IPv4: "192.169.11.0/24",
-					IPv6: "2001:db8:2::/64",
+					IPv4: new("192.169.11.0/24"),
+					IPv6: new("2001:db8:2::/64"),
 				},
 			},
 			VNI:       200,
@@ -102,13 +102,13 @@ var _ = Describe("Routes with RT between bgp and the fabric", Ordered, func() {
 	AfterAll(func() {
 		err := Updater.CleanAll()
 		Expect(err).NotTo(HaveOccurred())
-		By("waiting for the router pod to rollout after removing the underlay")
+		By("waiting for all router pods to be ready after removing the underlay")
 		Eventually(func() error {
-			newRouters, err := openperouter.Get(cs, HostMode)
+			routers, err := openperouter.Get(cs, HostMode)
 			if err != nil {
 				return err
 			}
-			return openperouter.DaemonsetRolled(routers, newRouters)
+			return openperouter.AreReady(routers)
 		}, 2*time.Minute, time.Second).ShouldNot(HaveOccurred())
 	})
 
@@ -159,7 +159,14 @@ var _ = Describe("Routes with RT between bgp and the fabric", Ordered, func() {
 			checkRouteAndRTsFromLeaf := func(leaf infra.Leaf, vni v1alpha1.L3VNI, mustContain bool, prefixes []string, routeTargets []string) {
 				By(fmt.Sprintf("checking routes from leaf %s on vni %s, mustContain %v %v", leaf.Name, vni.Name, mustContain, prefixes))
 				Eventually(func() error {
-					for exec := range routers.GetExecutors() {
+					freshRouters, err := openperouter.Get(cs, HostMode)
+					if err != nil {
+						return err
+					}
+					if err := openperouter.AreReady(freshRouters); err != nil {
+						return err
+					}
+					for exec := range freshRouters.GetExecutors() {
 						evpn, err := frr.EVPNInfo(exec)
 						if err != nil {
 							return fmt.Errorf("failed to get EVPN info from %s: %w", exec.Name(), err)

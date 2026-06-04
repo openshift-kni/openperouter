@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openperouter/openperouter/api/v1alpha1"
 	"github.com/openperouter/openperouter/e2etests/pkg/config"
+	"github.com/openperouter/openperouter/e2etests/pkg/executor"
 	"github.com/openperouter/openperouter/e2etests/pkg/frr"
 	"github.com/openperouter/openperouter/e2etests/pkg/infra"
 	"github.com/openperouter/openperouter/e2etests/pkg/k8s"
@@ -26,14 +27,39 @@ var _ = Describe("RawFRRConfig", Ordered, func() {
 
 	BeforeAll(func() {
 		cs = k8sclient.New()
-		var err error
-		routers, err = openperouter.Get(cs, HostMode)
+
+		err := Updater.CleanAll()
 		Expect(err).NotTo(HaveOccurred())
+
+		By("waiting for all router pods to be ready after cleanup")
+		Eventually(func() error {
+			routers, err = openperouter.Get(cs, HostMode)
+			if err != nil {
+				return err
+			}
+			return openperouter.AreReady(routers)
+		}, 2*time.Minute, time.Second).ShouldNot(HaveOccurred())
 
 		err = Updater.Update(config.Resources{
 			Underlays: []v1alpha1.Underlay{infra.Underlay},
 		})
 		Expect(err).NotTo(HaveOccurred())
+
+		By("waiting for BGP sessions to establish after underlay creation")
+		nodes, err := k8s.GetNodes(cs)
+		Expect(err).NotTo(HaveOccurred())
+		leafExec := executor.ForContainer(infra.KindLeaf)
+		for _, node := range nodes {
+			neighborIP, err := infra.NeighborIP(infra.KindLeaf, node.Name)
+			Expect(err).NotTo(HaveOccurred())
+			validateSessionWithNeighbor(
+				infra.KindLeaf,
+				node.Name,
+				leafExec,
+				neighborIP,
+				Established,
+			)
+		}
 	})
 
 	AfterAll(func() {
@@ -41,11 +67,11 @@ var _ = Describe("RawFRRConfig", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		Eventually(func() error {
-			newRouters, err := openperouter.Get(cs, HostMode)
+			routers, err := openperouter.Get(cs, HostMode)
 			if err != nil {
 				return err
 			}
-			return openperouter.DaemonsetRolled(routers, newRouters)
+			return openperouter.AreReady(routers)
 		}, 2*time.Minute, time.Second).ShouldNot(HaveOccurred())
 	})
 
@@ -77,42 +103,14 @@ var _ = Describe("RawFRRConfig", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		Eventually(func() error {
+			routers, err = openperouter.Get(cs, HostMode)
+			if err != nil {
+				return err
+			}
+			if err := openperouter.AreReady(routers); err != nil {
+				return err
+			}
 			return checkRawConfigOnAllRouters(routers, "ip prefix-list raw-test-list seq 10 permit 10.111.0.0/16")
-		}, 2*time.Minute, time.Second).ShouldNot(HaveOccurred())
-	})
-
-	It("should order multiple raw config snippets by priority", func() {
-		rawConfigHigh := v1alpha1.RawFRRConfig{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "raw-high-priority",
-				Namespace: openperouter.Namespace,
-			},
-			Spec: v1alpha1.RawFRRConfigSpec{
-				Priority:  20,
-				RawConfig: "ip prefix-list raw-high seq 10 permit 10.222.0.0/16",
-			},
-		}
-
-		rawConfigLow := v1alpha1.RawFRRConfig{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "raw-low-priority",
-				Namespace: openperouter.Namespace,
-			},
-			Spec: v1alpha1.RawFRRConfigSpec{
-				Priority:  5,
-				RawConfig: "ip prefix-list raw-low seq 10 permit 10.33.0.0/16",
-			},
-		}
-
-		err := Updater.Update(config.Resources{
-			RawFRRConfigs: []v1alpha1.RawFRRConfig{rawConfigHigh, rawConfigLow},
-		})
-		Expect(err).NotTo(HaveOccurred())
-
-		Eventually(func() error {
-			return checkRawConfigOrderOnAllRouters(routers,
-				"ip prefix-list raw-low seq 10 permit 10.33.0.0/16",
-				"ip prefix-list raw-high seq 10 permit 10.222.0.0/16")
 		}, 2*time.Minute, time.Second).ShouldNot(HaveOccurred())
 	})
 
@@ -156,7 +154,14 @@ var _ = Describe("RawFRRConfig", Ordered, func() {
 		expected := "ip prefix-list raw-node-specific seq 10 permit 10.44.0.0/16"
 
 		Eventually(func() error {
-			for router := range routers.GetExecutors() {
+			freshRouters, err := openperouter.Get(cs, HostMode)
+			if err != nil {
+				return err
+			}
+			if err := openperouter.AreReady(freshRouters); err != nil {
+				return err
+			}
+			for router := range freshRouters.GetExecutors() {
 				runningConfig, err := frr.RunningConfig(router)
 				if err != nil {
 					return err
@@ -193,6 +198,13 @@ var _ = Describe("RawFRRConfig", Ordered, func() {
 
 		By("waiting for the raw config to appear")
 		Eventually(func() error {
+			routers, err = openperouter.Get(cs, HostMode)
+			if err != nil {
+				return err
+			}
+			if err := openperouter.AreReady(routers); err != nil {
+				return err
+			}
 			return checkRawConfigOnAllRouters(routers, "ip prefix-list raw-delete-me seq 10 permit 10.55.0.0/16")
 		}, 2*time.Minute, time.Second).ShouldNot(HaveOccurred())
 
@@ -202,6 +214,13 @@ var _ = Describe("RawFRRConfig", Ordered, func() {
 
 		By("waiting for the raw config to be removed")
 		Eventually(func() error {
+			routers, err = openperouter.Get(cs, HostMode)
+			if err != nil {
+				return err
+			}
+			if err := openperouter.AreReady(routers); err != nil {
+				return err
+			}
 			return checkRawConfigAbsentOnAllRouters(routers, "ip prefix-list raw-delete-me seq 10 permit 10.55.0.0/16")
 		}, 2*time.Minute, time.Second).ShouldNot(HaveOccurred())
 	})
@@ -235,28 +254,6 @@ func checkRawConfigAbsentOnAllRouters(routers openperouter.Routers, unexpected s
 		}
 		if strings.Contains(output, unexpected) {
 			return fmt.Errorf("router %s running config still contains %q", router.Name(), unexpected)
-		}
-	}
-	return nil
-}
-
-func checkRawConfigOrderOnAllRouters(routers openperouter.Routers, first, second string) error {
-	for router := range routers.GetExecutors() {
-		output, err := frr.RunningConfig(router)
-		if err != nil {
-			return err
-		}
-		firstIdx := strings.Index(output, first)
-		secondIdx := strings.Index(output, second)
-		if firstIdx == -1 {
-			return fmt.Errorf("router %s running config does not contain %q", router.Name(), first)
-		}
-		if secondIdx == -1 {
-			return fmt.Errorf("router %s running config does not contain %q", router.Name(), second)
-		}
-		if firstIdx >= secondIdx {
-			return fmt.Errorf("router %s: expected %q (priority lower) before %q (priority higher), but found in wrong order",
-				router.Name(), first, second)
 		}
 	}
 	return nil

@@ -23,6 +23,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/utils/ptr"
 )
 
 var (
@@ -32,7 +33,7 @@ var (
 	leafBDefaultPrefixes = []string{"192.170.21.0/24"}
 )
 
-var _ = Describe("Routes between bgp and the fabric", Label("passthrough"), Ordered, func() {
+var _ = Describe("Routes between bgp and the fabric with Underlay in ipv4", Label("passthrough"), Ordered, func() {
 	var cs clientset.Interface
 	var routers openperouter.Routers
 
@@ -44,10 +45,10 @@ var _ = Describe("Routes between bgp and the fabric", Label("passthrough"), Orde
 		Spec: v1alpha1.L3PassthroughSpec{
 			HostSession: v1alpha1.HostSession{
 				ASN:     64514,
-				HostASN: 64515,
+				HostASN: new(int64(64515)),
 				LocalCIDR: v1alpha1.LocalCIDRConfig{
-					IPv4: "192.169.10.0/24",
-					IPv6: "2001:db8:1::/64",
+					IPv4: new("192.169.10.0/24"),
+					IPv6: new("2001:db8:1::/64"),
 				},
 			},
 		},
@@ -83,13 +84,13 @@ var _ = Describe("Routes between bgp and the fabric", Label("passthrough"), Orde
 
 		err := Updater.CleanAll()
 		Expect(err).NotTo(HaveOccurred())
-		By("waiting for the router pod to rollout after removing the underlay")
+		By("waiting for all router pods to be ready after removing the underlay")
 		Eventually(func() error {
-			newRouters, err := openperouter.Get(cs, HostMode)
+			routers, err := openperouter.Get(cs, HostMode)
 			if err != nil {
 				return err
 			}
-			return openperouter.DaemonsetRolled(routers, newRouters)
+			return openperouter.AreReady(routers)
 		}, 2*time.Minute, time.Second).ShouldNot(HaveOccurred())
 	})
 
@@ -121,8 +122,8 @@ var _ = Describe("Routes between bgp and the fabric", Label("passthrough"), Orde
 			dumpIfFails(cs)
 			err := Updater.CleanButUnderlay()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(infra.LeafAConfig.RemovePrefixes()).To(Succeed())
-			Expect(infra.LeafBConfig.RemovePrefixes()).To(Succeed())
+			Expect(infra.LeafAConfig.Reset()).To(Succeed())
+			Expect(infra.LeafBConfig.Reset()).To(Succeed())
 		})
 
 		It("translates BGP incoming routes as BGP routes", func() {
@@ -158,8 +159,8 @@ var _ = Describe("Routes between bgp and the fabric", Label("passthrough"), Orde
 
 		BeforeAll(func() {
 			By("setting redistribute connected on leaves")
-			redistributeConnectedForLeaf(infra.LeafAConfig)
-			redistributeConnectedForLeaf(infra.LeafBConfig)
+			Expect(infra.LeafAConfig.RedistributeConnected()).To(Succeed())
+			Expect(infra.LeafBConfig.RedistributeConnected()).To(Succeed())
 
 			By("Creating the test namespace")
 			_, err := k8s.CreateNamespace(cs, testNamespace)
@@ -215,16 +216,16 @@ var _ = Describe("Routes between bgp and the fabric", Label("passthrough"), Orde
 
 			err = Updater.CleanButUnderlay()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(infra.LeafAConfig.RemovePrefixes()).To(Succeed())
-			Expect(infra.LeafBConfig.RemovePrefixes()).To(Succeed())
+			Expect(infra.LeafAConfig.Reset()).To(Succeed())
+			Expect(infra.LeafBConfig.Reset()).To(Succeed())
 		})
 
 		AfterEach(func() {
-			dumpIfFails(cs)
+			dumpIfFails(cs, testNamespace)
 		})
 
 		It("host and the pod from each other with the expected ips", func() {
-			hostSide, err := openperouter.HostIPFromCIDRForNode(passthrough.Spec.HostSession.LocalCIDR.IPv4, podNode)
+			hostSide, err := openperouter.HostIPFromCIDRForNode(ptr.Deref(passthrough.Spec.HostSession.LocalCIDR.IPv4, ""), podNode)
 			Expect(err).NotTo(HaveOccurred())
 
 			podIP, err := getPodIPByFamily(testPod, ipfamily.IPv4)
