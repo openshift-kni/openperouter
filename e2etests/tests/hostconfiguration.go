@@ -758,7 +758,7 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 
 				vtepIP := vtepIPForPod(cs, underlay.Spec.EVPN.VTEPCIDR, p)
 				validateConfig(l2vniParams{
-					VRF:       l2vni300.Name,
+					VRF:       "",
 					VNI:       300,
 					VXLanPort: 4789,
 					VTEPIP:    vtepIP,
@@ -792,14 +792,14 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 
 				vtepIP := vtepIPForPod(cs, underlay.Spec.EVPN.VTEPCIDR, p)
 				validateConfig(l2vniParams{
-					VRF:       l2vni300.Name,
+					VRF:       "",
 					VNI:       300,
 					VXLanPort: 4789,
 					VTEPIP:    vtepIP,
 				}, l2VNIConfiguredTestSelector, p)
 
 				validateConfig(l2vniParams{
-					VRF:          l2vni400.Name,
+					VRF:          *l2vni400.Spec.VRF,
 					VNI:          400,
 					VXLanPort:    4789,
 					VTEPIP:       vtepIP,
@@ -816,7 +816,7 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 
 				vtepIP := vtepIPForPod(cs, underlay.Spec.EVPN.VTEPCIDR, p)
 				validateConfig(l2vniParams{
-					VRF:          l2vni400.Name,
+					VRF:          *l2vni400.Spec.VRF,
 					VNI:          400,
 					VXLanPort:    4789,
 					VTEPIP:       vtepIP,
@@ -825,7 +825,7 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 
 				ginkgo.By(fmt.Sprintf("validating VNI is deleted for pod %s", p.Name))
 				validateConfig(l2vniParams{
-					VRF:       l2vni300.Name,
+					VRF:       "",
 					VNI:       300,
 					VXLanPort: 4789,
 					VTEPIP:    vtepIP,
@@ -865,7 +865,7 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 
 				vtepIP := vtepIPForPod(cs, underlay.Spec.EVPN.VTEPCIDR, p)
 				validateConfig(l2vniParams{
-					VRF:       l2vni300.Name,
+					VRF:       "",
 					VNI:       300,
 					VXLanPort: 4789,
 					VTEPIP:    vtepIP,
@@ -884,7 +884,7 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 				vtepIP := vtepIPForPod(cs, underlay.Spec.EVPN.VTEPCIDR, p)
 
 				validateConfig(l2vniParams{
-					VRF:       l2vni300.Name,
+					VRF:       "",
 					VNI:       600,
 					VXLanPort: 4789,
 					VTEPIP:    vtepIP,
@@ -951,12 +951,12 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 				},
 			})).To(Succeed())
 			l2VNI300Params := l2vniParams{
-				VRF:       l2vni300.Name,
+				VRF:       "",
 				VNI:       300,
 				VXLanPort: 4789,
 			}
 			l2VNI400Params := l2vniParams{
-				VRF:          l2vni400.Name,
+				VRF:          *l2vni400.Spec.VRF,
 				VNI:          400,
 				VXLanPort:    4789,
 				L2GatewayIPs: l2vni400.Spec.L2GatewayIPs,
