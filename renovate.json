@@ -15,6 +15,9 @@
     "jsonnet-bundler": {
         "enabled": false
     },
+    "github-actions": {
+        "enabled": false
+    },
     "tekton": {
         "enabled": true,
         "includePaths": [
