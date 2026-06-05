@@ -2,7 +2,7 @@
 ARG BASE_IMAGE=quay.io/centos/centos:stream10
 
 # Build the manager binary
-FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_9_golang_1.25 AS builder
+FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_9_golang_1.26 AS builder
 
 ARG GIT_COMMIT=dev
 ARG GIT_BRANCH=dev
