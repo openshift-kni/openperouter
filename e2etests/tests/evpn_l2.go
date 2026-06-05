@@ -4,7 +4,6 @@ package tests
 
 import (
 	"fmt"
-	"net"
 	"regexp"
 	"strings"
 	"time"
@@ -21,14 +20,12 @@ import (
 	"github.com/openperouter/openperouter/e2etests/pkg/k8s"
 	"github.com/openperouter/openperouter/e2etests/pkg/k8sclient"
 	"github.com/openperouter/openperouter/e2etests/pkg/openperouter"
-	"github.com/openperouter/openperouter/e2etests/pkg/url"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/utils/ptr"
 )
 
-var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
+var _ = Describe("Routes between bgp and the fabric with Underlay in ipv4", Ordered, func() {
 	var cs clientset.Interface
 	var routers openperouter.Routers
 
@@ -53,12 +50,12 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 			Namespace: openperouter.Namespace,
 		},
 		Spec: v1alpha1.L2VNISpec{
-			VRF: ptr.To("red"),
+			VRF: new("red"),
 			VNI: 110,
 			HostMaster: &v1alpha1.HostMaster{
 				Type: linuxBridgeHostAttachment,
 				LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-					AutoCreate: true,
+					AutoCreate: new(true),
 				},
 			},
 		},
@@ -95,13 +92,13 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 	AfterAll(func() {
 		err := Updater.CleanAll()
 		Expect(err).NotTo(HaveOccurred())
-		By("waiting for the router pod to rollout after removing the underlay")
+		By("waiting for all router pods to be ready after removing the underlay")
 		Eventually(func() error {
-			newRouters, err := openperouter.Get(cs, HostMode)
+			routers, err := openperouter.Get(cs, HostMode)
 			if err != nil {
 				return err
 			}
-			return openperouter.DaemonsetRolled(routers, newRouters)
+			return openperouter.AreReady(routers)
 		}, 2*time.Minute, time.Second).ShouldNot(HaveOccurred())
 
 		// Clean up pre-existing OVS bridges
@@ -124,10 +121,20 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 		hostMaster                                                        v1alpha1.HostMaster // Allow specifying custom HostMaster config
 		nadMaster                                                         string              // Bridge name for NAD (defaults to "br-hs-110")
 	}
+	AfterEach(func() {
+		dumpIfFails(cs, testNamespace)
+		Expect(infra.LeafAConfig.Reset()).To(Succeed())
+		Expect(infra.LeafBConfig.Reset()).To(Succeed())
+		err := Updater.CleanButUnderlay()
+		Expect(err).NotTo(HaveOccurred())
+		err = k8s.DeleteNamespace(cs, testNamespace)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
 	DescribeTable("should create two pods connected to the l2 overlay", func(tc testCase) {
 		By("setting redistribute connected on leaves")
-		redistributeConnectedForLeaf(infra.LeafAConfig)
-		redistributeConnectedForLeaf(infra.LeafBConfig)
+		Expect(infra.LeafAConfig.RedistributeConnected()).To(Succeed())
+		Expect(infra.LeafBConfig.RedistributeConnected()).To(Succeed())
 
 		nodes, err := k8s.GetNodes(cs)
 		Expect(err).NotTo(HaveOccurred())
@@ -156,16 +163,6 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 		nad, err = k8s.CreateMacvlanNad("110", testNamespace, tc.nadMaster, tc.l2GatewayIPs)
 		Expect(err).NotTo(HaveOccurred())
 
-		DeferCleanup(func() {
-			Expect(infra.LeafAConfig.RemovePrefixes()).To(Succeed())
-			Expect(infra.LeafBConfig.RemovePrefixes()).To(Succeed())
-			dumpIfFails(cs)
-			err := Updater.CleanButUnderlay()
-			Expect(err).NotTo(HaveOccurred())
-			err = k8s.DeleteNamespace(cs, testNamespace)
-			Expect(err).NotTo(HaveOccurred())
-		})
-
 		By("creating the pods")
 		firstPod, err = k8s.CreateAgnhostPod(cs, "pod1", testNamespace, k8s.WithNad(nad.Name, testNamespace, tc.firstPodIPs), k8s.OnNode(nodes[0].Name))
 		Expect(err).NotTo(HaveOccurred())
@@ -175,6 +172,20 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 		By("removing the default gateway via the primary interface")
 		Expect(removeGatewayFromPod(firstPod)).To(Succeed())
 		Expect(removeGatewayFromPod(secondPod)).To(Succeed())
+
+		By("waiting for BGP sessions to establish on both nodes before traffic check")
+		leafExec := executor.ForContainer(infra.KindLeaf)
+		for _, node := range nodes {
+			neighborIP, err := infra.NeighborIP(infra.KindLeaf, node.Name)
+			Expect(err).NotTo(HaveOccurred())
+			validateSessionWithNeighbor(
+				infra.KindLeaf,
+				node.Name,
+				leafExec,
+				neighborIP,
+				Established,
+			)
+		}
 
 		podExecutor := executor.ForPod(firstPod.Namespace, firstPod.Name, "agnhost")
 		secondPodExecutor := executor.ForPod(secondPod.Namespace, secondPod.Name, "agnhost")
@@ -216,7 +227,7 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 			hostMaster: v1alpha1.HostMaster{
 				Type: linuxBridgeHostAttachment,
 				LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-					AutoCreate: true,
+					AutoCreate: new(true),
 				},
 			},
 		}),
@@ -230,7 +241,7 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 			hostMaster: v1alpha1.HostMaster{
 				Type: linuxBridgeHostAttachment,
 				LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-					AutoCreate: true,
+					AutoCreate: new(true),
 				},
 			},
 		}),
@@ -244,7 +255,7 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 			hostMaster: v1alpha1.HostMaster{
 				Type: linuxBridgeHostAttachment,
 				LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-					AutoCreate: true,
+					AutoCreate: new(true),
 				},
 			},
 		}),
@@ -258,7 +269,7 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 			hostMaster: v1alpha1.HostMaster{
 				Type: ovsBridgeHostAttachment,
 				OVSBridge: &v1alpha1.OVSBridgeConfig{
-					AutoCreate: true,
+					AutoCreate: new(true),
 				},
 			},
 		}),
@@ -272,7 +283,7 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 			hostMaster: v1alpha1.HostMaster{
 				Type: ovsBridgeHostAttachment,
 				OVSBridge: &v1alpha1.OVSBridgeConfig{
-					AutoCreate: true,
+					AutoCreate: new(true),
 				},
 			},
 		}),
@@ -286,7 +297,7 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 			hostMaster: v1alpha1.HostMaster{
 				Type: ovsBridgeHostAttachment,
 				OVSBridge: &v1alpha1.OVSBridgeConfig{
-					AutoCreate: true,
+					AutoCreate: new(true),
 				},
 			},
 		}),
@@ -300,8 +311,8 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 			hostMaster: v1alpha1.HostMaster{
 				Type: ovsBridgeHostAttachment,
 				OVSBridge: &v1alpha1.OVSBridgeConfig{
-					Name:       preExistingOVSBridge,
-					AutoCreate: false,
+					Name:       new(preExistingOVSBridge),
+					AutoCreate: new(false),
 				},
 			},
 		}),
@@ -315,8 +326,8 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 			hostMaster: v1alpha1.HostMaster{
 				Type: ovsBridgeHostAttachment,
 				OVSBridge: &v1alpha1.OVSBridgeConfig{
-					Name:       preExistingOVSBridge,
-					AutoCreate: false,
+					Name:       new(preExistingOVSBridge),
+					AutoCreate: new(false),
 				},
 			},
 		}),
@@ -330,8 +341,8 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 			hostMaster: v1alpha1.HostMaster{
 				Type: ovsBridgeHostAttachment,
 				OVSBridge: &v1alpha1.OVSBridgeConfig{
-					Name:       preExistingOVSBridge,
-					AutoCreate: false,
+					Name:       new(preExistingOVSBridge),
+					AutoCreate: new(false),
 				},
 			},
 		}),
@@ -339,70 +350,75 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 
 })
 
-var _ = Describe("Routes between bgp and the fabric - vtepInterface", func() {
+var _ = Describe("Disconnected L2VNI east/west traffic", Ordered, func() {
 	const (
-		testNamespace             = "test-namespace"
+		testNamespace             = "test-disconnected-l2"
 		linuxBridgeHostAttachment = "linux-bridge"
-		firstPodIP                = "192.171.24.2"
-		secondPodIP               = "192.171.24.3"
+		firstPodIP                = "192.171.30.2"
+		secondPodIP               = "192.171.30.3"
 	)
 
-	var (
-		cs        clientset.Interface
-		routers   openperouter.Routers
-		nodes     []corev1.Node
-		firstPod  *corev1.Pod
-		secondPod *corev1.Pod
-		nad       nad.NetworkAttachmentDefinition
-	)
+	var cs clientset.Interface
 
-	l2VniRed := v1alpha1.L2VNI{
+	l2vniDisconnected := v1alpha1.L2VNI{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "red110",
+			Name:      "disconnected",
 			Namespace: openperouter.Namespace,
 		},
 		Spec: v1alpha1.L2VNISpec{
-			VNI: 110,
+			VNI: 300,
+			HostMaster: &v1alpha1.HostMaster{
+				Type: linuxBridgeHostAttachment,
+				LinuxBridge: &v1alpha1.LinuxBridgeConfig{
+					AutoCreate: new(true),
+				},
+			},
 		},
 	}
 
-	BeforeEach(func() {
+	BeforeAll(func() {
+		err := Updater.CleanAll()
+		Expect(err).NotTo(HaveOccurred())
+
 		cs = k8sclient.New()
-		var err error
-
-		nodes, err = k8s.GetNodes(cs)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(len(nodes)).To(BeNumerically(">=", 2), "Expected at least 2 nodes, but got fewer")
-
-		By("setting redistribute connected on leaf kind for vtepInterface")
-		// This is needed if we use vtepInterface since
-		// openperouter is not going to advertise the
-		// address there, that address is supposed to be
-		// advertised by the network fabric
-		redistributeConnectedForLeafKind(nodes)
-
-		l2VniRedWithGateway := l2VniRed.DeepCopy()
-		l2VniRedWithGateway.Spec.VRF = nil
-		l2VniRedWithGateway.Spec.L2GatewayIPs = []string{"192.171.24.1/24"}
-		l2VniRedWithGateway.Spec.HostMaster = &v1alpha1.HostMaster{
-			Type: linuxBridgeHostAttachment,
-			LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-				AutoCreate: true,
-			},
-		}
-
-		underlay := infra.Underlay
-		underlay.Spec.EVPN = &v1alpha1.EVPNConfig{
-			VTEPInterface: "toswitch",
-		}
-
-		routers, err = openperouter.Get(cs, HostMode)
-		Expect(err).NotTo(HaveOccurred())
 
 		err = Updater.Update(config.Resources{
-			Underlays: []v1alpha1.Underlay{underlay},
+			Underlays: []v1alpha1.Underlay{
+				infra.Underlay,
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	AfterAll(func() {
+		err := Updater.CleanAll()
+		Expect(err).NotTo(HaveOccurred())
+		By("waiting for all router pods to be ready after removing the underlay")
+		Eventually(func() error {
+			routers, err := openperouter.Get(cs, HostMode)
+			if err != nil {
+				return err
+			}
+			return openperouter.AreReady(routers)
+		}, 2*time.Minute, time.Second).ShouldNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		dumpIfFails(cs)
+		err := Updater.CleanButUnderlay()
+		Expect(err).NotTo(HaveOccurred())
+		err = k8s.DeleteNamespace(cs, testNamespace)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("should allow pod-to-pod L2 connectivity without a VRF", func() {
+		nodes, err := k8s.GetNodes(cs)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(len(nodes)).To(BeNumerically(">=", 2))
+
+		err = Updater.Update(config.Resources{
 			L2VNIs: []v1alpha1.L2VNI{
-				*l2VniRedWithGateway,
+				l2vniDisconnected,
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -410,56 +426,26 @@ var _ = Describe("Routes between bgp and the fabric - vtepInterface", func() {
 		_, err = k8s.CreateNamespace(cs, testNamespace)
 		Expect(err).NotTo(HaveOccurred())
 
-		nad, err = k8s.CreateMacvlanNad("110", testNamespace, "br-hs-110", []string{"192.171.24.1/24"})
-		Expect(err).NotTo(HaveOccurred())
-	})
-
-	AfterEach(func() {
-		resetLeafKindConfig(nodes)
-		dumpIfFails(cs)
-		err := Updater.CleanAll()
+		nadObj, err := k8s.CreateMacvlanNad("300", testNamespace, "br-hs-300", []string{})
 		Expect(err).NotTo(HaveOccurred())
 
-		By("waiting for the router pod to rollout after removing the underlay")
-		Eventually(func() error {
-			newRouters, err := openperouter.Get(cs, HostMode)
-			if err != nil {
-				return err
-			}
-			return openperouter.DaemonsetRolled(routers, newRouters)
-		}, 2*time.Minute, time.Second).ShouldNot(HaveOccurred())
-
-		err = k8s.DeleteNamespace(cs, testNamespace)
+		By("creating two pods on different nodes")
+		firstPod, err := k8s.CreateAgnhostPod(cs, "pod1", testNamespace,
+			k8s.WithNad(nadObj.Name, testNamespace, []string{firstPodIP + "/24"}),
+			k8s.OnNode(nodes[0].Name))
 		Expect(err).NotTo(HaveOccurred())
-	})
-
-	It("should create two pods connected to the l2 overlay with vtepInterface", func() {
-		By("creating the pods")
-		var err error
-		firstPod, err = k8s.CreateAgnhostPod(cs, "pod1", testNamespace, k8s.WithNad(nad.Name, testNamespace, []string{firstPodIP + "/24"}), k8s.OnNode(nodes[0].Name))
-		Expect(err).NotTo(HaveOccurred())
-		secondPod, err = k8s.CreateAgnhostPod(cs, "pod2", testNamespace, k8s.WithNad(nad.Name, testNamespace, []string{secondPodIP + "/24"}), k8s.OnNode(nodes[1].Name))
+		secondPod, err := k8s.CreateAgnhostPod(cs, "pod2", testNamespace,
+			k8s.WithNad(nadObj.Name, testNamespace, []string{secondPodIP + "/24"}),
+			k8s.OnNode(nodes[1].Name))
 		Expect(err).NotTo(HaveOccurred())
 
 		By("removing the default gateway via the primary interface")
 		Expect(removeGatewayFromPod(firstPod)).To(Succeed())
 		Expect(removeGatewayFromPod(secondPod)).To(Succeed())
 
-		By("checking pod to pod reachability across nodes")
-		podExecutor := executor.ForPod(firstPod.Namespace, firstPod.Name, "agnhost")
-		hostPort := net.JoinHostPort(secondPodIP, "8090")
-		urlStr := url.Format("http://%s/clientip", hostPort)
-		// Longer timeout: pod restart requires veth recreation + BGP EVPN cold-start convergence
-		Eventually(func(g Gomega) string {
-			res, err := podExecutor.Exec("curl", "-sS", urlStr)
-			g.Expect(err).ToNot(HaveOccurred(), "curl %s failed: %s", hostPort, res)
-			clientIP, _, err := net.SplitHostPort(res)
-			g.Expect(err).ToNot(HaveOccurred())
-			return clientIP
-		}).
-			WithTimeout(40*time.Second).
-			WithPolling(time.Second).
-			Should(Equal(firstPodIP), "curl should return the expected clientip")
+		By("checking bidirectional L2 reachability")
+		canPingFromPod(executor.ForPod(firstPod.Namespace, firstPod.Name, "agnhost"), secondPodIP)
+		canPingFromPod(executor.ForPod(secondPod.Namespace, secondPod.Name, "agnhost"), firstPodIP)
 	})
 })
 

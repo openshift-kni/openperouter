@@ -21,21 +21,33 @@ func TestValidateUnderlay(t *testing.T) {
 			name: "valid underlay",
 			underlay: v1alpha1.Underlay{
 				Spec: v1alpha1.UnderlaySpec{
-					EVPN: &v1alpha1.EVPNConfig{
-						VTEPCIDR: "192.168.1.0/24",
+					TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+						CIDRs: []string{"192.168.1.0/24"},
 					},
 					Nics: []string{"eth0"},
 					ASN:  65001,
+					Neighbors: []v1alpha1.Neighbor{
+						{
+							ASN:     new(int64(65002)),
+							Address: new("192.168.1.1"),
+						},
+					},
 				},
 			},
 			wantErr: false,
 		},
 		{
-			name: "missing EVPN configuration",
+			name: "missing tunnel endpoint configuration",
 			underlay: v1alpha1.Underlay{
 				Spec: v1alpha1.UnderlaySpec{
 					Nics: []string{"eth0"},
 					ASN:  65001,
+					Neighbors: []v1alpha1.Neighbor{
+						{
+							ASN:     new(int64(65002)),
+							Address: new("192.168.1.1"),
+						},
+					},
 				},
 			},
 			wantErr: false,
@@ -44,11 +56,17 @@ func TestValidateUnderlay(t *testing.T) {
 			name: "invalid VTEP CIDR",
 			underlay: v1alpha1.Underlay{
 				Spec: v1alpha1.UnderlaySpec{
-					EVPN: &v1alpha1.EVPNConfig{
-						VTEPCIDR: "invalidCIDR",
+					TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+						CIDRs: []string{"invalidCIDR"},
 					},
 					Nics: []string{"eth0", "eth1"},
 					ASN:  65001,
+					Neighbors: []v1alpha1.Neighbor{
+						{
+							ASN:     new(int64(65002)),
+							Address: new("192.168.1.1"),
+						},
+					},
 				},
 			},
 			wantErr: true,
@@ -57,11 +75,17 @@ func TestValidateUnderlay(t *testing.T) {
 			name: "empty VTEP CIDR",
 			underlay: v1alpha1.Underlay{
 				Spec: v1alpha1.UnderlaySpec{
-					EVPN: &v1alpha1.EVPNConfig{
-						VTEPCIDR: "",
+					TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+						CIDRs: []string{""},
 					},
 					Nics: []string{"eth0", "eth1"},
 					ASN:  65001,
+					Neighbors: []v1alpha1.Neighbor{
+						{
+							ASN:     new(int64(65002)),
+							Address: new("192.168.1.1"),
+						},
+					},
 				},
 			},
 			wantErr: true,
@@ -70,65 +94,15 @@ func TestValidateUnderlay(t *testing.T) {
 			name: "invalid NIC name",
 			underlay: v1alpha1.Underlay{
 				Spec: v1alpha1.UnderlaySpec{
-					EVPN: &v1alpha1.EVPNConfig{
-						VTEPCIDR: "192.168.1.0/24",
+					TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+						CIDRs: []string{"192.168.1.0/24"},
 					},
 					Nics: []string{"eth0", "1$^&invalid"},
 					ASN:  65001,
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "zero nics",
-			underlay: v1alpha1.Underlay{
-				Spec: v1alpha1.UnderlaySpec{
-					EVPN: &v1alpha1.EVPNConfig{
-						VTEPCIDR: "192.168.1.0/24",
-					},
-					Nics: []string{},
-					ASN:  65001,
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "valid underlay with no nics",
-			underlay: v1alpha1.Underlay{
-				Spec: v1alpha1.UnderlaySpec{
-					EVPN: &v1alpha1.EVPNConfig{
-						VTEPCIDR: "192.168.1.0/24",
-					},
-					Nics: nil,
-					ASN:  65001,
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "more than one nic",
-			underlay: v1alpha1.Underlay{
-				Spec: v1alpha1.UnderlaySpec{
-					EVPN: &v1alpha1.EVPNConfig{
-						VTEPCIDR: "192.168.1.0/24",
-					},
-					Nics: []string{"eth0", "eth1"},
-					ASN:  65001,
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "same local and remote ASN",
-			underlay: v1alpha1.Underlay{
-				Spec: v1alpha1.UnderlaySpec{
-					EVPN: &v1alpha1.EVPNConfig{
-						VTEPCIDR: "192.168.1.0/24",
-					},
-					ASN: 65001,
 					Neighbors: []v1alpha1.Neighbor{
 						{
-							ASN: 65001,
+							ASN:     new(int64(65002)),
+							Address: new("192.168.1.1"),
 						},
 					},
 				},
@@ -136,26 +110,75 @@ func TestValidateUnderlay(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "more than one nic",
+			underlay: v1alpha1.Underlay{
+				Spec: v1alpha1.UnderlaySpec{
+					TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+						CIDRs: []string{"192.168.1.0/24"},
+					},
+					Nics: []string{"eth0", "eth1"},
+					ASN:  65001,
+					Neighbors: []v1alpha1.Neighbor{
+						{
+							ASN:     new(int64(65002)),
+							Address: new("192.168.1.1"),
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "same local and remote ASN (iBGP)",
+			underlay: v1alpha1.Underlay{
+				Spec: v1alpha1.UnderlaySpec{
+					TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+						CIDRs: []string{"192.168.1.0/24"},
+					},
+					ASN: 65001,
+					Neighbors: []v1alpha1.Neighbor{
+						{
+							ASN: new(int64(65001)),
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
 			name: "underlay NIC is a vlan sub-interface",
 			underlay: v1alpha1.Underlay{
 				Spec: v1alpha1.UnderlaySpec{
-					EVPN: &v1alpha1.EVPNConfig{
-						VTEPCIDR: "192.168.1.0/24",
+					TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+						CIDRs: []string{"192.168.1.0/24"},
 					},
 					Nics: []string{"eno2.161"},
 					ASN:  65001,
+					Neighbors: []v1alpha1.Neighbor{
+						{
+							ASN:     new(int64(65002)),
+							Address: new("192.168.1.1"),
+						},
+					},
 				},
 			},
+			wantErr: false,
 		},
 		{
 			name: "underlay NIC starts with dot",
 			underlay: v1alpha1.Underlay{
 				Spec: v1alpha1.UnderlaySpec{
-					EVPN: &v1alpha1.EVPNConfig{
-						VTEPCIDR: "192.168.1.0/24",
+					TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+						CIDRs: []string{"192.168.1.0/24"},
 					},
 					Nics: []string{".eth0"},
 					ASN:  65001,
+					Neighbors: []v1alpha1.Neighbor{
+						{
+							ASN:     new(int64(65002)),
+							Address: new("192.168.1.1"),
+						},
+					},
 				},
 			},
 			wantErr: true,
@@ -164,11 +187,17 @@ func TestValidateUnderlay(t *testing.T) {
 			name: "a vlan sub interface whose name is too long",
 			underlay: v1alpha1.Underlay{
 				Spec: v1alpha1.UnderlaySpec{
-					EVPN: &v1alpha1.EVPNConfig{
-						VTEPCIDR: "192.168.1.0/24",
+					TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+						CIDRs: []string{"192.168.1.0/24"},
 					},
 					Nics: []string{"verylongname.123"},
 					ASN:  65001,
+					Neighbors: []v1alpha1.Neighbor{
+						{
+							ASN:     new(int64(65002)),
+							Address: new("192.168.1.1"),
+						},
+					},
 				},
 			},
 			wantErr: true,
@@ -177,62 +206,34 @@ func TestValidateUnderlay(t *testing.T) {
 			name: "underlay NIC with invalid characters after dot",
 			underlay: v1alpha1.Underlay{
 				Spec: v1alpha1.UnderlaySpec{
-					EVPN: &v1alpha1.EVPNConfig{
-						VTEPCIDR: "192.168.1.0/24",
+					TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+						CIDRs: []string{"192.168.1.0/24"},
 					},
 					Nics: []string{"eth0.100!"},
 					ASN:  65001,
+					Neighbors: []v1alpha1.Neighbor{
+						{
+							ASN:     new(int64(65002)),
+							Address: new("192.168.1.1"),
+						},
+					},
 				},
 			},
 			wantErr: true,
 		},
 		{
-			name: "both vtepcidr and vtepInterface specified",
+			name: "empty vtepCIDR specified",
 			underlay: v1alpha1.Underlay{
 				Spec: v1alpha1.UnderlaySpec{
-					EVPN: &v1alpha1.EVPNConfig{
-						VTEPCIDR:      "192.168.1.0/24",
-						VTEPInterface: "eth0",
+					TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{},
+					Nics:           []string{"eth0"},
+					ASN:            65001,
+					Neighbors: []v1alpha1.Neighbor{
+						{
+							ASN:     new(int64(65002)),
+							Address: new("192.168.1.1"),
+						},
 					},
-					Nics: []string{"eth0"},
-					ASN:  65001,
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "neither vtepcidr nor vtepInterface specified",
-			underlay: v1alpha1.Underlay{
-				Spec: v1alpha1.UnderlaySpec{
-					EVPN: &v1alpha1.EVPNConfig{},
-					Nics: []string{"eth0"},
-					ASN:  65001,
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "only vtepInterface specified",
-			underlay: v1alpha1.Underlay{
-				Spec: v1alpha1.UnderlaySpec{
-					EVPN: &v1alpha1.EVPNConfig{
-						VTEPInterface: "eth0",
-					},
-					Nics: []string{"eth1"},
-					ASN:  65001,
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "invalid vtepInterface name",
-			underlay: v1alpha1.Underlay{
-				Spec: v1alpha1.UnderlaySpec{
-					EVPN: &v1alpha1.EVPNConfig{
-						VTEPInterface: "1invalid",
-					},
-					Nics: []string{"eth0"},
-					ASN:  65001,
 				},
 			},
 			wantErr: true,
@@ -253,20 +254,32 @@ func TestValidateUnderlay(t *testing.T) {
 		underlays := []v1alpha1.Underlay{
 			{
 				Spec: v1alpha1.UnderlaySpec{
-					EVPN: &v1alpha1.EVPNConfig{
-						VTEPCIDR: "192.168.1.0/24",
+					TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+						CIDRs: []string{"192.168.1.0/24"},
 					},
 					Nics: []string{"eth0"},
 					ASN:  65001,
+					Neighbors: []v1alpha1.Neighbor{
+						{
+							ASN:     new(int64(65002)),
+							Address: new("192.168.1.1"),
+						},
+					},
 				},
 			},
 			{
 				Spec: v1alpha1.UnderlaySpec{
-					EVPN: &v1alpha1.EVPNConfig{
-						VTEPCIDR: "192.168.2.0/24",
+					TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+						CIDRs: []string{"192.168.2.0/24"},
 					},
 					Nics: []string{"eth1"},
 					ASN:  65002,
+					Neighbors: []v1alpha1.Neighbor{
+						{
+							ASN:     new(int64(65003)),
+							Address: new("192.168.2.1"),
+						},
+					},
 				},
 			},
 		}
@@ -304,8 +317,14 @@ func TestValidateUnderlaysForNodes(t *testing.T) {
 						},
 						ASN:  65001,
 						Nics: []string{"eth0"},
-						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: "192.168.1.0/24",
+						Neighbors: []v1alpha1.Neighbor{
+							{
+								ASN:     new(int64(65002)),
+								Address: new("192.168.1.1"),
+							},
+						},
+						TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+							CIDRs: []string{"192.168.1.0/24"},
 						},
 					},
 				},
@@ -331,6 +350,12 @@ func TestValidateUnderlaysForNodes(t *testing.T) {
 						},
 						ASN:  65001,
 						Nics: []string{"eth0"},
+						Neighbors: []v1alpha1.Neighbor{
+							{
+								ASN:     new(int64(65002)),
+								Address: new("192.168.1.1"),
+							},
+						},
 					},
 				},
 			},
@@ -355,6 +380,12 @@ func TestValidateUnderlaysForNodes(t *testing.T) {
 						},
 						ASN:  65001,
 						Nics: []string{"eth0"},
+						Neighbors: []v1alpha1.Neighbor{
+							{
+								ASN:     new(int64(65003)),
+								Address: new("192.168.1.1"),
+							},
+						},
 					},
 				},
 				{
@@ -365,6 +396,12 @@ func TestValidateUnderlaysForNodes(t *testing.T) {
 						},
 						ASN:  65002,
 						Nics: []string{"eth1"},
+						Neighbors: []v1alpha1.Neighbor{
+							{
+								ASN:     new(int64(65003)),
+								Address: new("192.168.1.2"),
+							},
+						},
 					},
 				},
 			},
@@ -396,8 +433,14 @@ func TestValidateUnderlaysForNodes(t *testing.T) {
 						},
 						ASN:  65001,
 						Nics: []string{"eth0"},
-						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: "192.168.1.0/24",
+						Neighbors: []v1alpha1.Neighbor{
+							{
+								ASN:     new(int64(65002)),
+								Address: new("192.168.1.1"),
+							},
+						},
+						TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+							CIDRs: []string{"192.168.1.0/24"},
 						},
 					},
 				},
@@ -409,8 +452,14 @@ func TestValidateUnderlaysForNodes(t *testing.T) {
 						},
 						ASN:  65002,
 						Nics: []string{"eth1"},
-						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: "192.168.2.0/24",
+						Neighbors: []v1alpha1.Neighbor{
+							{
+								ASN:     new(int64(65003)),
+								Address: new("192.168.2.1"),
+							},
+						},
+						TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+							CIDRs: []string{"192.168.2.0/24"},
 						},
 					},
 				},
@@ -434,8 +483,14 @@ func TestValidateUnderlaysForNodes(t *testing.T) {
 						NodeSelector: nil,
 						ASN:          65001,
 						Nics:         []string{"eth0"},
-						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: "192.168.1.0/24",
+						Neighbors: []v1alpha1.Neighbor{
+							{
+								ASN:     new(int64(65002)),
+								Address: new("192.168.1.1"),
+							},
+						},
+						TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+							CIDRs: []string{"192.168.1.0/24"},
 						},
 					},
 				},
@@ -459,8 +514,14 @@ func TestValidateUnderlaysForNodes(t *testing.T) {
 						NodeSelector: &metav1.LabelSelector{},
 						ASN:          65001,
 						Nics:         []string{"eth0"},
-						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: "192.168.1.0/24",
+						Neighbors: []v1alpha1.Neighbor{
+							{
+								ASN:     new(int64(65002)),
+								Address: new("192.168.1.1"),
+							},
+						},
+						TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+							CIDRs: []string{"192.168.1.0/24"},
 						},
 					},
 				},
@@ -486,6 +547,12 @@ func TestValidateUnderlaysForNodes(t *testing.T) {
 						},
 						ASN:  0, // Invalid ASN
 						Nics: []string{"eth0"},
+						Neighbors: []v1alpha1.Neighbor{
+							{
+								ASN:     new(int64(65002)),
+								Address: new("192.168.1.1"),
+							},
+						},
 					},
 				},
 			},
@@ -516,8 +583,14 @@ func TestValidateUnderlaysForNodes(t *testing.T) {
 							MatchLabels: map[string]string{"rack": "rack-1"},
 						},
 						ASN: 65001,
-						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: "invalid-cidr", // Invalid VTEP CIDR
+						Neighbors: []v1alpha1.Neighbor{
+							{
+								ASN:     new(int64(65002)),
+								Address: new("192.168.1.1"),
+							},
+						},
+						TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+							CIDRs: []string{"invalid-cidr"}, // Invalid VTEP CIDR
 						},
 						Nics: []string{"eth0"},
 					},
@@ -543,6 +616,12 @@ func TestValidateUnderlaysForNodes(t *testing.T) {
 						NodeSelector: nil,
 						ASN:          65001,
 						Nics:         []string{"eth0"},
+						Neighbors: []v1alpha1.Neighbor{
+							{
+								ASN:     new(int64(65003)),
+								Address: new("192.168.1.1"),
+							},
+						},
 					},
 				},
 				{
@@ -553,6 +632,12 @@ func TestValidateUnderlaysForNodes(t *testing.T) {
 						},
 						ASN:  65002,
 						Nics: []string{"eth1"},
+						Neighbors: []v1alpha1.Neighbor{
+							{
+								ASN:     new(int64(65003)),
+								Address: new("192.168.1.2"),
+							},
+						},
 					},
 				},
 			},
@@ -568,6 +653,12 @@ func TestValidateUnderlaysForNodes(t *testing.T) {
 					Spec: v1alpha1.UnderlaySpec{
 						ASN:  65001,
 						Nics: []string{"eth0"},
+						Neighbors: []v1alpha1.Neighbor{
+							{
+								ASN:     new(int64(65002)),
+								Address: new("192.168.1.1"),
+							},
+						},
 					},
 				},
 			},
@@ -608,8 +699,14 @@ func TestValidateUnderlaysForNodes(t *testing.T) {
 						},
 						ASN:  65001,
 						Nics: []string{"eth0"},
-						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: "192.168.1.0/24",
+						Neighbors: []v1alpha1.Neighbor{
+							{
+								ASN:     new(int64(65002)),
+								Address: new("192.168.1.1"),
+							},
+						},
+						TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+							CIDRs: []string{"192.168.1.0/24"},
 						},
 					},
 				},
@@ -617,7 +714,7 @@ func TestValidateUnderlaysForNodes(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "node with underlay having same local and remote ASN - should error",
+			name: "node with underlay having same local and remote ASN (iBGP)",
 			nodes: []corev1.Node{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -635,14 +732,67 @@ func TestValidateUnderlaysForNodes(t *testing.T) {
 						},
 						ASN: 65001,
 						Neighbors: []v1alpha1.Neighbor{
-							{ASN: 65001},
+							{ASN: new(int64(65001))},
 						},
 						Nics: []string{"eth0"},
 					},
 				},
 			},
-			wantErr: true,
-			errMsg:  "local ASN",
+			wantErr: false,
+		},
+		{
+			name: "neighbor having ASN 0 with external",
+			nodes: []corev1.Node{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:   "node-1",
+						Labels: map[string]string{"rack": "rack-1"},
+					},
+				},
+			},
+			underlays: []v1alpha1.Underlay{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "underlay-rack-1"},
+					Spec: v1alpha1.UnderlaySpec{
+						NodeSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"rack": "rack-1"},
+						},
+						ASN: 65001,
+						Neighbors: []v1alpha1.Neighbor{
+							{ASN: new(int64(0)), Type: new("external")},
+						},
+						Nics: []string{"eth0"},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "neighbor having ASN 0 with internal",
+			nodes: []corev1.Node{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:   "node-1",
+						Labels: map[string]string{"rack": "rack-1"},
+					},
+				},
+			},
+			underlays: []v1alpha1.Underlay{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "underlay-rack-1"},
+					Spec: v1alpha1.UnderlaySpec{
+						NodeSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"rack": "rack-1"},
+						},
+						ASN: 65001,
+						Neighbors: []v1alpha1.Neighbor{
+							{ASN: new(int64(0)), Type: new("internal")},
+						},
+						Nics: []string{"eth0"},
+					},
+				},
+			},
+			wantErr: false,
 		},
 	}
 

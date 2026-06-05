@@ -2,13 +2,15 @@
 set -euo pipefail
 
 
-CONTAINER_ENGINE=${CONTAINER_ENGINE:-"docker"}
+export CONTAINER_ENGINE=${CONTAINER_ENGINE:-"docker"}
 CONTAINER_ENGINE_CLI="docker"
-KUBECONFIG_PATH=${KUBECONFIG_PATH:-"$(pwd)/kubeconfig"}
-KIND=${KIND:-"kind"}
-CLAB_VERSION="0.67.0"
+export KUBECONFIG_PATH=${KUBECONFIG_PATH:-"$(pwd)/kubeconfig"}
+export KIND=${KIND:-"kind"}
+export KUBECTL=${KUBECTL:-"kubectl"}
+CLAB_VERSION="0.74.1"
+PID_FILE="tools/check_veths/bin/check_veths.pid"
 
-KIND_CLUSTER_NAME="${KIND_CLUSTER_NAME:-pe-kind}"
+export KIND_CLUSTER_NAME="${KIND_CLUSTER_NAME:-pe-kind}"
 
 RUNTIME_OPTION=""
 KIND_COMMAND=$KIND
@@ -23,6 +25,8 @@ if [[ $CONTAINER_ENGINE == "podman" ]]; then
         sudo systemctl start podman.socket
     fi
 fi
+
+export CONTAINER_ENGINE_CLI
 
 load_image_to_podman_on_nodes() {
     local image_tag=$1
@@ -45,7 +49,7 @@ load_local_image_to_kind() {
     local image_tag=$1
     local file_name=$2
     local temp_file="/tmp/${file_name}.tar"
-    sudo rm -f ${temp_file} || true
+    rm -f ${temp_file}
     ${CONTAINER_ENGINE_CLI} save -o ${temp_file} ${image_tag}
     ${KIND_COMMAND} load image-archive ${temp_file} --name ${KIND_CLUSTER_NAME}
     load_image_to_podman_on_nodes ${image_tag} ${file_name}

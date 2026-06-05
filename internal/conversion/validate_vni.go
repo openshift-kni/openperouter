@@ -8,9 +8,12 @@ import (
 	"net"
 	"regexp"
 	"slices"
+	"strconv"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 
 	"github.com/openperouter/openperouter/api/v1alpha1"
 	"github.com/openperouter/openperouter/internal/filter"
@@ -34,6 +37,7 @@ func ValidateL3VNIsForNodes(nodes []corev1.Node, underlays []v1alpha1.L3VNI) err
 			return fmt.Errorf("failed to validate underlays for node %q: %w", node.Name, err)
 		}
 	}
+
 	return nil
 }
 
@@ -76,6 +80,9 @@ func ValidateL2VNIs(l2Vnis []v1alpha1.L2VNI) error {
 			if err := validateHostMaster(vni.Name, vni.Spec.HostMaster); err != nil {
 				return err
 			}
+		}
+		if len(vni.Spec.L2GatewayIPs) > 0 && !hasVRF(vni) {
+			return fmt.Errorf("l2gatewayips cannot be set without spec.vrf for vni %q", vni.Name)
 		}
 		if len(vni.Spec.L2GatewayIPs) > 0 {
 			_, err := ipfamily.ForCIDRStrings(vni.Spec.L2GatewayIPs...)
@@ -125,7 +132,10 @@ func ValidateVRFs(l2Vnis []v1alpha1.L2VNI, l3Vnis []v1alpha1.L3VNI) error {
 	v4SubnetsForVRF := map[string]subnets{}
 	v6SubnetsForVRF := map[string]subnets{}
 	for _, l2vni := range l2Vnis {
-		vrfName := l2vni.VRFName()
+		if !hasVRF(l2vni) {
+			continue
+		}
+		vrfName := *l2vni.Spec.VRF
 		source := fmt.Sprintf("L2VNI %s", types.NamespacedName{Namespace: l2vni.Namespace, Name: l2vni.Name})
 		if subnet := v4SubnetForL2(l2vni); subnet != nil {
 			v4SubnetsForVRF[vrfName] = append(v4SubnetsForVRF[vrfName], subnetWithSource{source, subnet})
@@ -160,45 +170,54 @@ func ValidateVRFs(l2Vnis []v1alpha1.L2VNI, l3Vnis []v1alpha1.L3VNI) error {
 }
 
 // vni holds VNI validation data
-type vni struct {
-	name    string
-	vni     uint32
-	vrfName string
+type VNI struct {
+	name      string
+	vni       uint32
+	vrfName   string
+	exportRTs []string
+	importRTs []string
 }
 
 // vnisFromL3VNIs converts L3VNIs to vni slice
-func vnisFromL3VNIs(l3vnis []v1alpha1.L3VNI) []vni {
-	result := make([]vni, len(l3vnis))
+func vnisFromL3VNIs(l3vnis []v1alpha1.L3VNI) []VNI {
+	result := make([]VNI, len(l3vnis))
 	for i, l3vni := range l3vnis {
-		result[i] = vni{
-			name:    l3vni.Name,
-			vni:     l3vni.Spec.VNI,
-			vrfName: l3vni.Spec.VRF,
+		result[i] = VNI{
+			name:      l3vni.Name,
+			vni:       uint32(l3vni.Spec.VNI),
+			vrfName:   l3vni.Spec.VRF,
+			exportRTs: l3vni.Spec.ExportRTs,
+			importRTs: l3vni.Spec.ImportRTs,
 		}
 	}
 	return result
 }
 
 // vnisFromL2VNIs converts L2VNIs to vni slice
-func vnisFromL2VNIs(l2vnis []v1alpha1.L2VNI) []vni {
-	result := make([]vni, len(l2vnis))
+func vnisFromL2VNIs(l2vnis []v1alpha1.L2VNI) []VNI {
+	result := make([]VNI, len(l2vnis))
 	for i, l2vni := range l2vnis {
-		result[i] = vni{
-			name:    l2vni.Name,
-			vni:     l2vni.Spec.VNI,
-			vrfName: l2vni.VRFName(),
+		v := VNI{
+			name: l2vni.Name,
+			vni:  uint32(l2vni.Spec.VNI),
 		}
+		if hasVRF(l2vni) {
+			v.vrfName = *l2vni.Spec.VRF
+		}
+		result[i] = v
 	}
 	return result
 }
 
 // validateVNIs performs common validation logic for VNIs
-func validateVNIs(vnis []vni) error {
+func validateVNIs(vnis []VNI) error {
 	existingVNIs := map[uint32]string{} // a map between the given VNI number and the VNI instance it's configured in
 
 	for _, vni := range vnis {
-		if err := isValidInterfaceName(vni.vrfName); err != nil {
-			return fmt.Errorf("invalid vrf name for vni %s: %s - %w", vni.name, vni.vrfName, err)
+		if vni.vrfName != "" {
+			if err := isValidInterfaceName(vni.vrfName); err != nil {
+				return fmt.Errorf("invalid vrf name for vni %s: %s - %w", vni.name, vni.vrfName, err)
+			}
 		}
 
 		existingVNI, ok := existingVNIs[vni.vni]
@@ -206,6 +225,10 @@ func validateVNIs(vnis []vni) error {
 			return fmt.Errorf("duplicate vni %d:%s - %s", vni.vni, existingVNI, vni.name)
 		}
 		existingVNIs[vni.vni] = vni.name
+
+		if err := ValidateRouteTargets(vni); err != nil {
+			return fmt.Errorf("invalid route targets for vni %s: %w", vni.name, err)
+		}
 	}
 
 	return nil
@@ -227,6 +250,10 @@ func cidrsOverlap(cidr1, cidr2 string) (bool, error) {
 	}
 
 	return false, nil
+}
+
+func hasVRF(l2vni v1alpha1.L2VNI) bool {
+	return l2vni.Spec.VRF != nil && *l2vni.Spec.VRF != ""
 }
 
 func isValidInterfaceName(name string) error {
@@ -258,11 +285,11 @@ func validateHostMaster(vniName string, hostConfig *v1alpha1.HostMaster) error {
 	switch hostConfig.Type {
 	case v1alpha1.LinuxBridge:
 		if hostConfig.LinuxBridge != nil {
-			name = hostConfig.LinuxBridge.Name
+			name = ptr.Deref(hostConfig.LinuxBridge.Name, "")
 		}
 	case v1alpha1.OVSBridge:
 		if hostConfig.OVSBridge != nil {
-			name = hostConfig.OVSBridge.Name
+			name = ptr.Deref(hostConfig.OVSBridge.Name, "")
 		}
 	default:
 		return fmt.Errorf("invalid hostmaster type %q", hostConfig.Type)
@@ -312,10 +339,11 @@ func v4SubnetForL3(l3vni v1alpha1.L3VNI) *net.IPNet {
 	if l3vni.Spec.HostSession == nil {
 		return nil
 	}
-	if l3vni.Spec.HostSession.LocalCIDR.IPv4 == "" {
+	ipv4 := ptr.Deref(l3vni.Spec.HostSession.LocalCIDR.IPv4, "")
+	if ipv4 == "" {
 		return nil
 	}
-	_, ipnet, err := net.ParseCIDR(l3vni.Spec.HostSession.LocalCIDR.IPv4)
+	_, ipnet, err := net.ParseCIDR(ipv4)
 	if err != nil {
 		return nil
 	}
@@ -327,10 +355,11 @@ func v6SubnetForL3(l3vni v1alpha1.L3VNI) *net.IPNet {
 	if l3vni.Spec.HostSession == nil {
 		return nil
 	}
-	if l3vni.Spec.HostSession.LocalCIDR.IPv6 == "" {
+	ipv6 := ptr.Deref(l3vni.Spec.HostSession.LocalCIDR.IPv6, "")
+	if ipv6 == "" {
 		return nil
 	}
-	_, ipnet, err := net.ParseCIDR(l3vni.Spec.HostSession.LocalCIDR.IPv6)
+	_, ipnet, err := net.ParseCIDR(ipv6)
 	if err != nil {
 		return nil
 	}
@@ -396,4 +425,64 @@ func hasSubnetOverlap(vniSubnets subnets) error {
 		}
 	}
 	return nil
+}
+
+func ValidateRouteTargets(vni VNI) error {
+	for _, rt := range vni.exportRTs {
+		if err := validateRouteTarget(rt); err != nil {
+			return err
+		}
+	}
+	for _, rt := range vni.importRTs {
+		if err := validateRouteTarget(rt); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validateRouteTarget(rt string) error {
+	rtParam := strings.Split(rt, ":")
+	if len(rtParam) != 2 {
+		return fmt.Errorf("RT %q must have one of the following formats: 'ASN:MN' or 'IPv4Address:MN'", rt)
+	}
+
+	if isIPv4RouteTarget(rtParam[0]) {
+		memberNumber, err := parseMemberNumber(rtParam[1])
+		if err != nil {
+			return fmt.Errorf("RT format must have A.B.C.D:MN where MN <= 65535: %s", rt)
+		}
+		if memberNumber > 65535 {
+			return fmt.Errorf("RT format must have A.B.C.D:MN where MN <= 65535: %s", rt)
+		}
+		return nil
+	}
+
+	asn, err := strconv.ParseUint(rtParam[0], 10, 32)
+	if err != nil {
+		return fmt.Errorf("RT format must have ASN:MN %s", rt)
+	}
+
+	memberNumber, err := parseMemberNumber(rtParam[1])
+	if err != nil {
+		return fmt.Errorf("RT format must have ASN:MN where MN is a number: %s", rt)
+	}
+
+	if asn <= 65535 && memberNumber > 4294967295 {
+		return fmt.Errorf("RT format with 2-byte ASN must have ASN:MN where MN <= 4294967295: %s", rt)
+	}
+	if asn > 65535 && memberNumber > 65535 {
+		return fmt.Errorf("RT format with 4-byte ASN must have ASN:MN where MN <= 65535: %s", rt)
+	}
+
+	return nil
+}
+
+func parseMemberNumber(value string) (uint64, error) {
+	return strconv.ParseUint(value, 10, 64)
+}
+
+func isIPv4RouteTarget(value string) bool {
+	addr, err := ipfamily.ForAddresses(value)
+	return err == nil && addr == ipfamily.IPv4
 }

@@ -4,7 +4,7 @@ metadata:
   annotations:
     alm-examples: '[]'
     capabilities: Basic Install
-    createdAt: "2026-03-12T09:39:00Z"
+    createdAt: "2026-06-05T00:29:44Z"
     features.operators.openshift.io/csi: "false"
     features.operators.openshift.io/disconnected: "true"
     features.operators.openshift.io/fips-compliant: "true"
@@ -43,6 +43,9 @@ spec:
       version: v1alpha1
     - kind: RawFRRConfig
       name: rawfrrconfigs.openpe.openperouter.github.io
+      version: v1alpha1
+    - kind: RouterNodeConfigurationStatus
+      name: routernodeconfigurationstatuses.openpe.openperouter.github.io
       version: v1alpha1
     - description: Underlay is the Schema for the underlays API.
       displayName: Underlay
@@ -99,6 +102,7 @@ spec:
           - l2vnis
           - l3passthroughs
           - l3vnis
+          - routernodeconfigurationstatuses
           - underlays
           verbs:
           - create
@@ -123,6 +127,7 @@ spec:
           - l2vnis/status
           - l3passthroughs/status
           - l3vnis/status
+          - routernodeconfigurationstatuses/status
           - underlays/status
           verbs:
           - get
@@ -443,6 +448,26 @@ spec:
     targetPort: 9443
     type: ValidatingAdmissionWebhook
     webhookPath: /validate-openperouter-io-v1alpha1-l3vni
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: webhook
+    failurePolicy: Fail
+    generateName: rawfrrconfigvalidationwebhook.openperouter.io
+    rules:
+    - apiGroups:
+      - openpe.openperouter.github.io
+      apiVersions:
+      - v1alpha1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - rawfrrconfigs
+    sideEffects: None
+    targetPort: 9443
+    type: ValidatingAdmissionWebhook
+    webhookPath: /validate-openperouter-io-v1alpha1-rawfrrconfig
   - admissionReviewVersions:
     - v1
     containerPort: 443

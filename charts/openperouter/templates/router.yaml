@@ -45,7 +45,7 @@ data:
     # Check /etc/pam.d/frr if you intend to use "vtysh"!
     #
     vtysh_enable=yes
-    zebra_options="  -A 127.0.0.1 -s 90000000 --limit-fds 100000"
+    zebra_options="  -A 127.0.0.1 -s 90000000 --limit-fds 100000 -K 60"
     bgpd_options="   -A 127.0.0.1 --limit-fds 100000"
     ospfd_options="  -A 127.0.0.1"
     ospf6d_options=" -A ::1"
@@ -93,7 +93,7 @@ data:
     frr defaults traditional
     hostname Router
     line vty
-    log file /etc/frr/frr.log informational
+    log stdout informational
   vtysh.conf: |
     service integrated-vtysh-config
 ---
@@ -119,7 +119,7 @@ spec:
   template:
     metadata:
       annotations:
-        kubectl.kubernetes.io/default-container: router
+        kubectl.kubernetes.io/default-container: frr
         {{- if .Values.openperouter.multusNetworkAnnotation }}
         k8s.v1.cni.cncf.io/networks: {{ .Values.openperouter.multusNetworkAnnotation | quote }}
         {{- end }}
@@ -139,11 +139,18 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ template "openperouter.router.serviceAccountName" . }}
+      hostNetwork: true
+      terminationGracePeriodSeconds: 10
+      shareProcessNamespace: true
       containers:
       - name: frr
         securityContext:
           capabilities:
-            add: ["NET_ADMIN", "NET_RAW", "SYS_ADMIN", "NET_BIND_SERVICE"]
+            add:
+            - NET_ADMIN
+            - NET_RAW
+            - SYS_ADMIN
+            - NET_BIND_SERVICE
         image: {{ .Values.openperouter.image.repository }}:{{ .Values.openperouter.image.tag | default .Chart.AppVersion }}
         {{- if .Values.openperouter.image.pullPolicy }}
         imagePullPolicy: {{ .Values.openperouter.image.pullPolicy }}
@@ -156,20 +163,25 @@ spec:
             mountPath: /var/run/frr
           - name: frrconfig
             mountPath: /etc/frr
-        # The command is FRR's default entrypoint & waiting for the log file to appear and tailing it.
-        # If the log file isn't created in 60 seconds the tail fails and the container is restarted.
-        # This workaround is needed to have the frr logs as part of kubectl logs -c frr < k8s-frr-podname >.
+          - name: netns
+            mountPath: /var/run/netns
+            mountPropagation: HostToContainer
         command:
           - /bin/sh
           - -c
           - |
-            /sbin/tini -- /usr/lib/frr/docker-start &
-            attempts=0
-            until [[ -f /etc/frr/frr.log || $attempts -eq 60 ]]; do
+            TIMEOUT=60
+            WAITED=0
+            until [ -e /var/run/netns/perouter ]; do
+              echo "Waiting for named netns /var/run/netns/perouter..."
               sleep 1
-              attempts=$(( $attempts + 1 ))
+              WAITED=$((WAITED + 1))
+              if [ "$WAITED" -ge "$TIMEOUT" ]; then
+                echo "Timed out waiting for named netns after ${TIMEOUT}s"
+                exit 1
+              fi
             done
-            tail -f /etc/frr/frr.log
+            exec nsenter --net=/var/run/netns/perouter /sbin/tini -- /usr/lib/frr/docker-start
         {{- with .Values.openperouter.frr.resources }}
         resources:
           {{- toYaml . | nindent 12 }}
@@ -186,7 +198,10 @@ spec:
         {{- with .Values.openperouter.logLevel }}
         - --loglevel={{ . }}
         {{- end }}
-        securityContext: 
+        {{- with .Values.openperouter.frr.reloader.vtyshTimeout }}
+        - --vtysh-timeout={{ . }}
+        {{- end }}
+        securityContext:
           seLinuxOptions:
             type: spc_t
         volumeMounts:
@@ -247,6 +262,9 @@ spec:
             type: DirectoryOrCreate
         - name: frrconfig
           emptyDir: {}
+        - name: netns
+          hostPath:
+            path: /var/run/netns
       initContainers:
         # Copies the initial config files with the right permissions to the shared volume.
         - name: cp-frr-files
@@ -254,12 +272,19 @@ spec:
           {{- if .Values.openperouter.image.pullPolicy }}
           imagePullPolicy: {{ .Values.openperouter.image.pullPolicy }}
           {{- end }}
-          command: ["/bin/sh", "-c", "cp -rLf /tmp/frr/* /etc/frr/"]
+          command:
+            - /bin/sh
+            - -c
+            - |
+              cp -rLf /tmp/frr/* /etc/frr/
+              if [ -f /etc/perouter/frr.conf ]; then
+                cp /etc/perouter/frr.conf /etc/frr/frr.conf
+              fi
           volumeMounts:
             - name: frr-startup
               mountPath: /tmp/frr
             - name: frrconfig
               mountPath: /etc/frr
-      terminationGracePeriodSeconds: 10
-      shareProcessNamespace: true
+            - name: frrsharedconfig
+              mountPath: /etc/perouter
 {{- end }}

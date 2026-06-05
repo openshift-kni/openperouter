@@ -20,7 +20,7 @@ var (
 )
 
 type RawFRRSnippet struct {
-	Priority int
+	Priority *int32
 	Config   string
 }
 
@@ -34,15 +34,22 @@ type Config struct {
 	RawConfig   []RawFRRSnippet
 }
 
-type UnderlayConfig struct {
-	MyASN     uint32
-	RouterID  string
-	Neighbors []NeighborConfig
-	EVPN      *UnderlayEvpn
+type GracefulRestart struct {
+	RestartTime   int64
+	StalePathTime int64
 }
 
-type UnderlayEvpn struct {
-	VTEP string
+type UnderlayConfig struct {
+	MyASN           int64
+	RouterID        string
+	Neighbors       []NeighborConfig
+	TunnelEndpoint  *TunnelEndpoint
+	GracefulRestart *GracefulRestart
+}
+
+type TunnelEndpoint struct {
+	IPv4CIDR string
+	IPv6CIDR string
 }
 
 type PassthroughConfig struct {
@@ -53,43 +60,48 @@ type PassthroughConfig struct {
 }
 
 type L3VNIConfig struct {
-	ASN             uint32
+	ASN             int64
 	ToAdvertiseIPv4 []string
 	ToAdvertiseIPv6 []string
 	LocalNeighbor   *NeighborConfig
 	VRF             string
-	VNI             int
+	VNI             int32
 	RouterID        string
+	ExportRTs       []string
+	ImportRTs       []string
 }
 
 type BFDProfile struct {
 	Name             string
-	ReceiveInterval  *uint32
-	TransmitInterval *uint32
-	DetectMultiplier *uint32
-	EchoInterval     *uint32
+	ReceiveInterval  *int32
+	TransmitInterval *int32
+	DetectMultiplier *int32
+	EchoInterval     *int32
 	EchoMode         bool
 	PassiveMode      bool
-	MinimumTTL       *uint32
+	MinimumTTL       *int32
 }
 
 type NeighborConfig struct {
 	Name          string
-	ASN           uint32
+	ASN           PeerASN
 	Addr          string
-	Port          *uint16
-	HoldTime      *uint64
-	KeepaliveTime *uint64
-	ConnectTime   *uint64
+	Interface     string
+	ID            string
+	Port          *int32
+	HoldTime      *int64
+	KeepaliveTime *int64
+	ConnectTime   *int64
 	Password      string
 	BFDEnabled    bool
 	BFDProfile    string
 	EBGPMultiHop  bool
 	IPFamily      ipfamily.Family
-}
-
-func (n *NeighborConfig) ID() string {
-	return n.Addr
+	// Allow bgp to negotiate the extended-nexthop capability with its peer. If you are peering over a v6 LL address
+	// then this capability is turned on automatically.
+	// If you are peering over a v6 Global Address then turning on this command will allow BGP to install v4 routes
+	// with v6 nexthops if you do not have v4 configured on interfaces.
+	ExtendedNexthop bool
 }
 
 // templateConfig uses the template library to template
@@ -118,14 +130,20 @@ func templateConfig(data any) (string, error) {
 				}
 				return dict, nil
 			},
-			"mustDisableConnectedCheck": func(ipFamily ipfamily.Family, myASN, asn uint32, eBGPMultiHop bool) bool {
+			"mustDisableConnectedCheck": func(ipFamily ipfamily.Family, myASN int64, peerASN PeerASN, eBGPMultiHop bool) bool {
 				// return true only for IPv6 eBGP sessions
-				if ipFamily == "ipv6" && myASN != asn && !eBGPMultiHop {
+				if ipFamily == "ipv6" && !eBGPMultiHop && peerASN.IsExternalTo(myASN) {
 					return true
 				}
 				return false
 			},
+			"isEBGP": func(myASN int64, peerASN PeerASN) bool {
+				return peerASN.IsExternalTo(myASN)
+			},
 			"activateNeighborFor": func(ipFamily string, neighbourFamily ipfamily.Family) bool {
+				if neighbourFamily == ipfamily.DualStack {
+					return ipFamily != string(ipfamily.Unknown)
+				}
 				return string(neighbourFamily) == ipFamily
 			},
 		}).ParseFS(templates, "templates/*")

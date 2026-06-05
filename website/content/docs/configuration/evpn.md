@@ -10,14 +10,7 @@ toc: true
 
 ## Underlay Configuration
 
-In addition to the configuration described in the [underlay configuration section]({{< ref "configuration/#underlay-configuration" >}}), the VTEP (Virtual Tunnel End Point) source must be configured via the `evpn` field. There are two mutually exclusive options:
-
-- **`vtepcidr`**: OpenPERouter creates a loopback interface and allocates a unique VTEP IP per node from the given CIDR. OpenPERouter advertises the VTEP IP into the fabric via BGP.
-- **`vtepInterface`**: OpenPERouter uses an existing interface (and its IP) as the VTEP source. The ToR is responsible for advertising the interface IP into the fabric (e.g. via `redistribute connected`).
-
-Exactly one of the two must be specified.
-
-### Using vtepcidr
+In addition to the configuration described in the [underlay configuration section]({{< ref "configuration/#underlay-configuration" >}}), the VTEP (Virtual Tunnel End Point) source must be configured via the `evpn.vtepCIDR` field.
 
 ```yaml
 apiVersion: openpe.openperouter.github.io/v1alpha1
@@ -27,8 +20,9 @@ metadata:
   namespace: openperouter-system
 spec:
   asn: 64514
-  evpn:
-    vtepcidr: 100.65.0.0/24
+  tunnelEndpoint:
+    cidrs:
+    - 100.65.0.0/24
   nics:
     - toswitch
   neighbors:
@@ -36,7 +30,7 @@ spec:
       address: 192.168.11.2
 ```
 
-The `evpn.vtepcidr` field defines the IP range used for VTEP addresses. OpenPERouter automatically assigns a unique VTEP IP to each node from this range. For example, with `100.65.0.0/24`:
+The `evpn.vtepCIDR` field defines the IP range used for VTEP addresses. OpenPERouter automatically assigns a unique VTEP IP to each node from this range. For example, with `100.65.0.0/24`:
 
 - Node 1: `100.65.0.1`
 - Node 2: `100.65.0.2`
@@ -45,37 +39,16 @@ The `evpn.vtepcidr` field defines the IP range used for VTEP addresses. OpenPERo
 
 A loopback interface is created inside the router namespace with the allocated IP, and OpenPERouter advertises the VTEP IP to the fabric over the BGP underlay session.
 
-### Using vtepInterface
-
-```yaml
-apiVersion: openpe.openperouter.github.io/v1alpha1
-kind: Underlay
-metadata:
-  name: underlay
-  namespace: openperouter-system
-spec:
-  asn: 64514
-  evpn:
-    vtepInterface: toswitch
-  nics:
-    - toswitch
-  neighbors:
-    - asn: 64512
-      address: 192.168.11.2
-```
-
-When `vtepInterface` is set, OpenPERouter uses the specified interface's IP as the VXLan VTEP. The interface must already have an IP address configured; the first IPv4 address found on the interface is used as the VTEP IP.
-
 ### Configuration Fields
 
 | Field | Type | Description | Required |
 |-------|------|-------------|----------|
 | `asn` | integer | Local ASN for BGP sessions | Yes |
-| `evpn.vtepcidr` | string | CIDR block for VTEP IP allocation. Mutually exclusive with `vtepInterface`. | Yes (one of `vtepcidr` / `vtepInterface`) |
-| `evpn.vtepInterface` | string | Name of an existing interface to use as VTEP source. Mutually exclusive with `vtepcidr`. | Yes (one of `vtepcidr` / `vtepInterface`) |
+| `evpn.vtepCIDR` | string | CIDR block for VTEP IP allocation | Yes |
 | `nics` | array | List of network interface names to move to router namespace | Yes |
 | `neighbors` | array | List of BGP neighbors to peer with | Yes |
 | `nodeSelector` | object | Label selector to target specific nodes (applies to all nodes if omitted) | No |
+| `gracefulRestart` | object | Enables BGP Graceful Restart when present. See [Graceful Restart]({{< ref "graceful-restart" >}}). | No |
 
 ## L3 VNI Configuration
 
@@ -153,10 +126,11 @@ When you create or update VNI configurations, OpenPERouter automatically:
 
 1. **Creates Network Interfaces**: Sets up VXLAN interface and Linux VRF named after the VNI
 2. **Establishes Connectivity**: Creates veth pair and moves one end to the router's namespace
-3. **Assigns IP Addresses**: Allocates IPs from the `localcidr` range:
+3. **Adjusts Veth MTU**: Sets the MTU on both veth legs to the underlay NIC's MTU minus 50 bytes to account for VXLan encapsulation overhead
+4. **Assigns IP Addresses**: Allocates IPs from the `localcidr` range:
    - Router side: First IP in the CIDR (e.g., `192.169.11.1`)
    - Host side: Each node gets a free IP in the CIDR, starting from the second (e.g., `192.169.11.15`)
-4. **Creates BGP Session**: Opens BGP session between router and host using the specified ASNs
+5. **Creates BGP Session**: Opens BGP session between router and host using the specified ASNs
 
 ## L2VNI Configuration
 
@@ -198,9 +172,10 @@ When you create or update VNI configurations, OpenPERouter automatically:
 
 1. **Creates Network Interfaces**: Sets up VXLAN interface and Linux VRF named after the VNI
 2. **Establishes Connectivity**: Creates veth pair and moves one end to the router's namespace
-3. **Enslaves the veth**: the veth is connected to the bridge corresponding to the l2 domain
-4. **Optionally creates a bridge on the host**: if hostmaster.autocreate is set to `true`
-5. **Optionally connects the host veth to the bridge on the host**: if hostmaster.autocreate is set to `true` or name
+3. **Adjusts Veth MTU**: Sets the MTU on both veth legs to the underlay NIC's MTU minus 50 bytes to account for VXLan encapsulation overhead
+4. **Enslaves the veth**: the veth is connected to the bridge corresponding to the l2 domain
+5. **Optionally creates a bridge on the host**: if hostmaster.autocreate is set to `true`
+6. **Optionally connects the host veth to the bridge on the host**: if hostmaster.autocreate is set to `true` or name
 is set
 
 ## Per-Node Configuration

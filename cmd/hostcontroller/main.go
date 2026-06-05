@@ -46,14 +46,13 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/openperouter/openperouter/api/static"
 	periov1alpha1 "github.com/openperouter/openperouter/api/v1alpha1"
+	"github.com/openperouter/openperouter/internal/buildversion"
 	"github.com/openperouter/openperouter/internal/controller/routerconfiguration"
 	"github.com/openperouter/openperouter/internal/filewatcher"
 	"github.com/openperouter/openperouter/internal/hostnetwork"
 	"github.com/openperouter/openperouter/internal/logging"
-	"github.com/openperouter/openperouter/internal/pods"
 	"github.com/openperouter/openperouter/internal/staticconfiguration"
 	"github.com/openperouter/openperouter/internal/systemdctl"
-	"github.com/openperouter/openperouter/internal/version"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	// +kubebuilder:scaffold:imports
 )
@@ -89,15 +88,14 @@ type k8sModeParameters struct {
 }
 
 type parameters struct {
-	probeAddr          string
-	frrConfigPath      string
-	reloaderSocket     string
-	mode               string
-	underlayFromMultus bool
-	ovsSocketPath      string
-	nodeName           string
-	namespace          string
-	logLevel           string
+	probeAddr      string
+	frrConfigPath  string
+	reloaderSocket string
+	mode           string
+	ovsSocketPath  string
+	nodeName       string
+	namespace      string
+	logLevel       string
 }
 
 func main() {
@@ -110,7 +108,6 @@ func main() {
 	flag.StringVar(&args.logLevel, "loglevel", "info", "the verbosity of the process")
 	flag.StringVar(&args.frrConfigPath, "frrconfig", "/etc/perouter/frr/frr.conf",
 		"the location of the frr configuration file")
-	flag.BoolVar(&args.underlayFromMultus, "underlay-from-multus", false, "Whether underlay access is built with Multus")
 	flag.StringVar(&args.ovsSocketPath, "ovssocket", "unix:/var/run/openvswitch/db.sock",
 		"the OVS database socket path")
 
@@ -146,7 +143,7 @@ func main() {
 		os.Exit(1)
 	}
 	ctrl.SetLogger(logr.FromSlogHandler(logger.Handler()))
-	setupLog.Info("version", "version", version.Version())
+	setupLog.Info("version", "version", buildversion.Version())
 	setupLog.Info("arguments", "args", fmt.Sprintf("%+v", args))
 
 	// Setup signal handler once for the entire process
@@ -158,7 +155,7 @@ func main() {
 	}
 
 	if args.mode == modeK8s {
-		runK8sMode(ctx, args, k8sModeParams, logger)
+		runK8sMode(ctx, args, logger)
 		return
 	}
 
@@ -168,7 +165,6 @@ func main() {
 func runK8sMode(
 	ctx context.Context,
 	args parameters,
-	k8sModeParams k8sModeParameters,
 	logger *slog.Logger,
 ) {
 	// K8s mode: setup k8s-based reconciler and start
@@ -178,9 +174,7 @@ func runK8sMode(
 		os.Exit(1)
 	}
 	// runK8sConfigReconciler is blocking so when running in k8s mode we should stop here
-	if err := runK8sConfigReconciler(
-		ctx, args, k8sModeParams, k8sConfig, logger, args.probeAddr,
-	); err != nil {
+	if err := runK8sConfigReconciler(ctx, args, k8sConfig, logger, args.probeAddr); err != nil {
 		logger.Error("failed to enable k8s reconciler", "error", err)
 		os.Exit(1)
 	}
@@ -206,7 +200,9 @@ func runHostMode(
 	staticControllerCtx, stopStaticReconciler := context.WithCancel(ctx)
 	defer stopStaticReconciler()
 
+	staticDone := make(chan struct{})
 	go func() {
+		defer close(staticDone)
 		logger.Info("creating static configuration controller for host mode")
 		err := runStaticConfigReconciler(
 			staticControllerCtx, args, hostModeParams, nodeConfig, logger, args.probeAddr,
@@ -232,6 +228,10 @@ func runHostMode(
 	logger.Info("kubernetes API is now available, stopping static reconciler and starting k8s reconciler")
 
 	stopStaticReconciler()
+	// Wait for the static reconciler to fully stop and release the health probe port
+	// before starting the K8s reconciler, which binds the same port.
+	<-staticDone
+	logger.Info("static reconciler fully stopped, starting k8s reconciler")
 
 	// Start API reconciler in main thread (blocking) - keeps process alive
 	if err := runK8sConfigReconcilerHostMode(
@@ -273,6 +273,7 @@ func runK8sConfigReconcilerHostMode(ctx context.Context,
 		LogLevel:        args.logLevel,
 		Logger:          logger,
 		MyNode:          args.nodeName,
+		MyNamespace:     args.namespace,
 		FRRReloadSocket: args.reloaderSocket,
 		FRRConfigPath:   args.frrConfigPath,
 		RouterProvider:  routerProvider,
@@ -304,7 +305,6 @@ func runK8sConfigReconcilerHostMode(ctx context.Context,
 
 func runK8sConfigReconciler(ctx context.Context,
 	args parameters,
-	k8sModeParams k8sModeParameters,
 	k8sConfig *rest.Config,
 	logger *slog.Logger,
 	probeAddr string) error {
@@ -316,28 +316,23 @@ func runK8sConfigReconciler(ctx context.Context,
 		return fmt.Errorf("unable to start manager: %w", err)
 	}
 
-	podRuntime, err := pods.NewRuntime(k8sModeParams.criSocket, 5*time.Minute)
-	if err != nil {
-		return fmt.Errorf("failed to connect to crio: %w", err)
-	}
-	routerProvider := &routerconfiguration.RouterPodProvider{
-		FRRConfigPath: args.frrConfigPath,
-		PodRuntime:    podRuntime,
-		Client:        mgr.GetClient(),
-		Node:          args.nodeName,
+	routerProvider := &routerconfiguration.RouterNamedNSProvider{
+		FRRConfigPath:   args.frrConfigPath,
+		FRRReloadSocket: args.reloaderSocket,
+		Client:          mgr.GetClient(),
+		Node:            args.nodeName,
 	}
 
 	apiReconciler := &routerconfiguration.PERouterReconciler{
-		Client:             mgr.GetClient(),
-		Scheme:             mgr.GetScheme(),
-		LogLevel:           args.logLevel,
-		Logger:             logger,
-		MyNode:             args.nodeName,
-		FRRReloadSocket:    args.reloaderSocket,
-		FRRConfigPath:      args.frrConfigPath,
-		RouterProvider:     routerProvider,
-		MyNamespace:        args.namespace,
-		UnderlayFromMultus: args.underlayFromMultus,
+		Client:          mgr.GetClient(),
+		Scheme:          mgr.GetScheme(),
+		LogLevel:        args.logLevel,
+		Logger:          logger,
+		MyNode:          args.nodeName,
+		FRRReloadSocket: args.reloaderSocket,
+		FRRConfigPath:   args.frrConfigPath,
+		RouterProvider:  routerProvider,
+		MyNamespace:     args.namespace,
 	}
 
 	if err := apiReconciler.SetupWithManager(mgr); err != nil {
@@ -438,6 +433,12 @@ func createK8sManager(
 					Label: labels.SelectorFromSet(labels.Set{"app": "router"}),
 					Field: fields.Set{
 						"spec.nodeName":      nodeName,
+						"metadata.namespace": namespace,
+					}.AsSelector(),
+				},
+				&periov1alpha1.RouterNodeConfigurationStatus{}: {
+					Field: fields.Set{
+						"metadata.name":      nodeName,
 						"metadata.namespace": namespace,
 					}.AsSelector(),
 				},
