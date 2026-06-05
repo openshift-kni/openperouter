@@ -25,5 +25,12 @@
             "lgtm",
             "ok-to-test"
         ]
-    }
+    },
+    "packageRules": [
+        {
+            "matchManagers": ["git-submodules"],
+            "matchFileNames": ["openshift/**"],
+            "enabled": false
+        }
+    ]
 }
