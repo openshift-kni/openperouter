@@ -22,12 +22,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/utils/ptr"
 )
 
 var _ = Describe("Router Host configuration", Ordered, func() {
 	var cs clientset.Interface
-	var routers openperouter.Routers
 	frrk8sPods := []*corev1.Pod{}
 	nodes := []corev1.Node{}
 
@@ -36,7 +34,7 @@ var _ = Describe("Router Host configuration", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		cs = k8sclient.New()
-		routers, err = openperouter.Get(cs, HostMode)
+		_, err = openperouter.Get(cs, HostMode)
 		Expect(err).NotTo(HaveOccurred())
 		frrk8sPods, err = frrk8s.Pods(cs)
 		Expect(err).NotTo(HaveOccurred())
@@ -50,19 +48,23 @@ var _ = Describe("Router Host configuration", Ordered, func() {
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
+
+		// Configure leaf switches with node neighbors
+		Expect(infra.LeafKind1Config.UpdateConfig(nodes, infra.LeafKindConfiguration{})).To(Succeed())
+		Expect(infra.LeafKind2Config.UpdateConfig(nodes, infra.LeafKindConfiguration{})).To(Succeed())
 	})
 
 	AfterAll(func() {
 		err := Updater.CleanAll()
 		Expect(err).NotTo(HaveOccurred())
-		By("waiting for the router pod to rollout after removing the underlay")
-		Eventually(func() error {
-			newRouters, err := openperouter.Get(cs, HostMode)
-			if err != nil {
-				return err
-			}
-			return openperouter.DaemonsetRolled(routers, newRouters)
-		}, 2*time.Minute, time.Second).ShouldNot(HaveOccurred())
+		By("waiting for the underlay to be removed from all nodes")
+		for _, node := range nodes {
+			Eventually(func(g Gomega) {
+				isConfigured, err := openperouter.UnderlayConfigured(node.Name)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(isConfigured).To(BeFalse())
+			}, 2*time.Minute, time.Second).Should(Succeed())
+		}
 	})
 
 	BeforeEach(func() {
@@ -76,16 +78,22 @@ var _ = Describe("Router Host configuration", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	validateTORSession := func() {
-		exec := executor.ForContainer(infra.KindLeaf)
-		for _, node := range nodes {
-			neighborIP, err := infra.NeighborIP(infra.KindLeaf, node.Name)
-			Expect(err).NotTo(HaveOccurred())
-			validateSessionWithNeighbor(infra.KindLeaf, node.Name, exec, neighborIP, Established)
+	validateTORSessions := func() {
+		leaves := []string{infra.KindLeaf, infra.KindLeaf2}
+		for _, leaf := range leaves {
+			exec := executor.ForContainer(leaf)
+			Eventually(func() error {
+				for _, node := range nodes {
+					neighborIP, err := infra.NeighborIP(leaf, node.Name)
+					Expect(err).NotTo(HaveOccurred())
+					validateSessionWithNeighbor(leaf, node.Name, exec, neighborIP, Established)
+				}
+				return nil
+			}, time.Minute, time.Second).ShouldNot(HaveOccurred())
 		}
 	}
-	It("peers with the tor", func() {
-		validateTORSession()
+	It("peers with both TOR switches", func() {
+		validateTORSessions()
 	})
 
 	Context("with a l3 vni", func() {
@@ -98,9 +106,9 @@ var _ = Describe("Router Host configuration", Ordered, func() {
 				VRF: "red",
 				HostSession: &v1alpha1.HostSession{
 					ASN:     64514,
-					HostASN: 64515,
+					HostASN: new(int64(64515)),
 					LocalCIDR: v1alpha1.LocalCIDRConfig{
-						IPv4: "192.169.10.0/24",
+						IPv4: new("192.169.10.0/24"),
 					},
 				},
 				VNI: 100,
@@ -143,9 +151,9 @@ var _ = Describe("Router Host configuration", Ordered, func() {
 				VRF: "red",
 				HostSession: &v1alpha1.HostSession{
 					ASN:      64514,
-					HostType: "external",
+					HostType: new("external"),
 					LocalCIDR: v1alpha1.LocalCIDRConfig{
-						IPv4: "192.169.10.0/24",
+						IPv4: new("192.169.10.0/24"),
 					},
 				},
 				VNI: 100,
@@ -192,9 +200,9 @@ var _ = Describe("Router Host configuration", Ordered, func() {
 				VRF: "red",
 				HostSession: &v1alpha1.HostSession{
 					ASN:      64514,
-					HostType: "internal",
+					HostType: new("internal"),
 					LocalCIDR: v1alpha1.LocalCIDRConfig{
-						IPv4: "192.169.10.0/24",
+						IPv4: new("192.169.10.0/24"),
 					},
 				},
 				VNI: 100,
@@ -240,10 +248,10 @@ var _ = Describe("Router Host configuration", Ordered, func() {
 			Spec: v1alpha1.L3VNISpec{
 				VRF: "red",
 				HostSession: &v1alpha1.HostSession{
-					ASN:     64514,
-					HostASN: 64514,
+					ASN:      64514,
+					HostType: new("internal"),
 					LocalCIDR: v1alpha1.LocalCIDRConfig{
-						IPv4: "192.169.10.0/24",
+						IPv4: new("192.169.10.0/24"),
 					},
 				},
 				VNI: 100,
@@ -292,7 +300,7 @@ var _ = Describe("Router Host configuration", Ordered, func() {
 					HostSession: &v1alpha1.HostSession{
 						ASN: 64514,
 						LocalCIDR: v1alpha1.LocalCIDRConfig{
-							IPv4: "192.169.10.0/24",
+							IPv4: new("192.169.10.0/24"),
 						},
 					},
 					VNI: 100,
@@ -318,10 +326,10 @@ var _ = Describe("Router Host configuration", Ordered, func() {
 					VRF: "red",
 					HostSession: &v1alpha1.HostSession{
 						ASN:      64514,
-						HostASN:  100,
-						HostType: "internal",
+						HostASN:  new(int64(100)),
+						HostType: new("internal"),
 						LocalCIDR: v1alpha1.LocalCIDRConfig{
-							IPv4: "192.169.10.0/24",
+							IPv4: new("192.169.10.0/24"),
 						},
 					},
 					VNI: 100,
@@ -345,9 +353,9 @@ var _ = Describe("Router Host configuration", Ordered, func() {
 			Spec: v1alpha1.L3PassthroughSpec{
 				HostSession: v1alpha1.HostSession{
 					ASN:     64514,
-					HostASN: 64515,
+					HostASN: new(int64(64515)),
 					LocalCIDR: v1alpha1.LocalCIDRConfig{
-						IPv4: "192.169.10.0/24",
+						IPv4: new("192.169.10.0/24"),
 					},
 				},
 			},
@@ -388,9 +396,9 @@ var _ = Describe("Router Host configuration", Ordered, func() {
 			Spec: v1alpha1.L3PassthroughSpec{
 				HostSession: v1alpha1.HostSession{
 					ASN:      64514,
-					HostType: "external",
+					HostType: new("external"),
 					LocalCIDR: v1alpha1.LocalCIDRConfig{
-						IPv4: "192.169.10.0/24",
+						IPv4: new("192.169.10.0/24"),
 					},
 				},
 			},
@@ -436,9 +444,9 @@ var _ = Describe("Router Host configuration", Ordered, func() {
 			Spec: v1alpha1.L3PassthroughSpec{
 				HostSession: v1alpha1.HostSession{
 					ASN:      64514,
-					HostType: "internal",
+					HostType: new("internal"),
 					LocalCIDR: v1alpha1.LocalCIDRConfig{
-						IPv4: "192.169.10.0/24",
+						IPv4: new("192.169.10.0/24"),
 					},
 				},
 			},
@@ -484,9 +492,9 @@ var _ = Describe("Router Host configuration", Ordered, func() {
 			Spec: v1alpha1.L3PassthroughSpec{
 				HostSession: v1alpha1.HostSession{
 					ASN:     64514,
-					HostASN: 64514,
+					HostASN: new(int64(64514)),
 					LocalCIDR: v1alpha1.LocalCIDRConfig{
-						IPv4: "192.169.10.0/24",
+						IPv4: new("192.169.10.0/24"),
 					},
 				},
 			},
@@ -524,25 +532,28 @@ var _ = Describe("Router Host configuration", Ordered, func() {
 	})
 
 	// This test must be the last of the ordered describe as it will remove the underlay
-	It("deleting the underlay removes the session with the tor", func() {
-		validateTORSession()
+	It("deleting the underlay removes the session with both TOR switches", func() {
+		validateTORSessions()
 
-		By("deleting the vni removes the session with the host")
+		By("deleting the underlay removes the session with the TOR switches")
 		err := Updater.Client().Delete(context.Background(), &infra.Underlay)
 		Expect(err).NotTo(HaveOccurred())
 
-		exec := executor.ForContainer(infra.KindLeaf)
-		for _, node := range nodes {
-			neighborIP, err := infra.NeighborIP(infra.KindLeaf, node.Name)
-			Expect(err).NotTo(HaveOccurred())
-			validateSessionDownForNeigh(exec, neighborIP)
+		// Validate sessions are down on both leaf nodes
+		leaves := []string{infra.KindLeaf, infra.KindLeaf2}
+		for _, leaf := range leaves {
+			exec := executor.ForContainer(leaf)
+			for _, node := range nodes {
+				neighborIP, err := infra.NeighborIP(leaf, node.Name)
+				Expect(err).NotTo(HaveOccurred())
+				validateSessionDownForNeigh(exec, neighborIP)
+			}
 		}
 	})
 })
 
 var _ = Describe("Underlay external and internal configuration", Ordered, func() {
 	var cs clientset.Interface
-	var routers openperouter.Routers
 	nodes := []corev1.Node{}
 
 	BeforeAll(func() {
@@ -550,22 +561,23 @@ var _ = Describe("Underlay external and internal configuration", Ordered, func()
 		Expect(err).NotTo(HaveOccurred())
 
 		cs = k8sclient.New()
-		routers, err = openperouter.Get(cs, HostMode)
-		Expect(err).NotTo(HaveOccurred())
 		nodesItems, err := cs.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 		Expect(err).NotTo(HaveOccurred())
 		nodes = nodesItems.Items
 	})
 
 	AfterAll(func() {
-		By("waiting for the router pod to rollout after removing the underlay")
-		Eventually(func() error {
-			newRouters, err := openperouter.Get(cs, HostMode)
-			if err != nil {
-				return err
-			}
-			return openperouter.DaemonsetRolled(routers, newRouters)
-		}, 2*time.Minute, time.Second).ShouldNot(HaveOccurred())
+		err := Updater.CleanAll()
+		Expect(err).NotTo(HaveOccurred())
+
+		By("waiting for the underlay to be removed from all nodes")
+		for _, node := range nodes {
+			Eventually(func(g Gomega) {
+				isConfigured, err := openperouter.UnderlayConfigured(node.Name)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(isConfigured).To(BeFalse())
+			}, 2*time.Minute, time.Second).Should(Succeed())
+		}
 	})
 
 	BeforeEach(func() {
@@ -575,7 +587,8 @@ var _ = Describe("Underlay external and internal configuration", Ordered, func()
 
 	AfterEach(func() {
 		dumpIfFails(cs)
-		resetLeafKindConfig(nodes)
+		Expect(infra.LeafKind1Config.UpdateConfig(nodes, infra.LeafKindConfiguration{})).To(Succeed())
+		Expect(infra.LeafKind2Config.UpdateConfig(nodes, infra.LeafKindConfiguration{})).To(Succeed())
 		err := Updater.CleanAll()
 		Expect(err).NotTo(HaveOccurred())
 	})
@@ -591,11 +604,12 @@ var _ = Describe("Underlay external and internal configuration", Ordered, func()
 
 	It("peers with the tor with BGP external", func() {
 		By("ensuring leafkind expects eBGP with PE ASN 64514")
-		resetLeafKindConfig(nodes)
+		Expect(infra.LeafKind1Config.UpdateConfig(nodes, infra.LeafKindConfiguration{})).To(Succeed())
+		Expect(infra.LeafKind2Config.UpdateConfig(nodes, infra.LeafKindConfiguration{})).To(Succeed())
 
 		underlay := *infra.Underlay.DeepCopy()
-		underlay.Spec.Neighbors[0].ASN = 0
-		underlay.Spec.Neighbors[0].Type = "external"
+		underlay.Spec.Neighbors[0].ASN = nil
+		underlay.Spec.Neighbors[0].Type = new("external")
 		err := Updater.Update(config.Resources{
 			Underlays: []v1alpha1.Underlay{
 				underlay,
@@ -607,12 +621,13 @@ var _ = Describe("Underlay external and internal configuration", Ordered, func()
 
 	It("peers with the tor with BGP internal", func() {
 		By("reconfiguring leafkind for iBGP (PERouterASN=64512)")
-		ibgpForLeafKind(nodes)
+		Expect(infra.LeafKind1Config.UpdateConfig(nodes, infra.LeafKindConfiguration{PERouterASN: 64512, NextHopSelf: true})).To(Succeed())
+		Expect(infra.LeafKind2Config.UpdateConfig(nodes, infra.LeafKindConfiguration{PERouterASN: 64512, NextHopSelf: true})).To(Succeed())
 
 		underlay := *infra.Underlay.DeepCopy()
 		underlay.Spec.ASN = 64512
-		underlay.Spec.Neighbors[0].ASN = 0
-		underlay.Spec.Neighbors[0].Type = "internal"
+		underlay.Spec.Neighbors[0].ASN = nil
+		underlay.Spec.Neighbors[0].Type = new("internal")
 		err := Updater.Update(config.Resources{
 			Underlays: []v1alpha1.Underlay{
 				underlay,
@@ -624,10 +639,11 @@ var _ = Describe("Underlay external and internal configuration", Ordered, func()
 
 	It("peers with the tor with iBGP with ASN number", func() {
 		By("reconfiguring leafkind for iBGP (PERouterASN=64512)")
-		ibgpForLeafKind(nodes)
+		Expect(infra.LeafKind1Config.UpdateConfig(nodes, infra.LeafKindConfiguration{PERouterASN: 64512, NextHopSelf: true})).To(Succeed())
+		Expect(infra.LeafKind2Config.UpdateConfig(nodes, infra.LeafKindConfiguration{PERouterASN: 64512, NextHopSelf: true})).To(Succeed())
 
 		underlay := *infra.Underlay.DeepCopy()
-		underlay.Spec.ASN = 64512
+		underlay.Spec.ASN = int64(64512)
 		err := Updater.Update(config.Resources{
 			Underlays: []v1alpha1.Underlay{
 				underlay,
@@ -639,8 +655,8 @@ var _ = Describe("Underlay external and internal configuration", Ordered, func()
 
 	It("rejects resource when neither neighbor ASN nor Type are specified", func() {
 		underlay := *infra.Underlay.DeepCopy()
-		underlay.Spec.Neighbors[0].ASN = 0
-		underlay.Spec.Neighbors[0].Type = ""
+		underlay.Spec.Neighbors[0].ASN = nil
+		underlay.Spec.Neighbors[0].Type = nil
 		err := Updater.Update(config.Resources{
 			Underlays: []v1alpha1.Underlay{
 				underlay,
@@ -651,8 +667,8 @@ var _ = Describe("Underlay external and internal configuration", Ordered, func()
 
 	It("rejects resource when both neighbor ASN and Type are specified", func() {
 		underlay := *infra.Underlay.DeepCopy()
-		underlay.Spec.Neighbors[0].ASN = 100
-		underlay.Spec.Neighbors[0].Type = "external"
+		underlay.Spec.Neighbors[0].ASN = new(int64(100))
+		underlay.Spec.Neighbors[0].Type = new("external")
 		err := Updater.Update(config.Resources{
 			Underlays: []v1alpha1.Underlay{
 				underlay,
@@ -664,13 +680,12 @@ var _ = Describe("Underlay external and internal configuration", Ordered, func()
 
 var _ = Describe("Underlay BFD Configuration", Ordered, func() {
 	var cs clientset.Interface
-	var routers openperouter.Routers
 	nodes := []corev1.Node{}
 
 	BeforeEach(func() {
 		cs = k8sclient.New()
 		var err error
-		routers, err = openperouter.Get(cs, HostMode)
+		_, err = openperouter.Get(cs, HostMode)
 		Expect(err).NotTo(HaveOccurred())
 		nodesItems, err := cs.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 		Expect(err).NotTo(HaveOccurred())
@@ -683,9 +698,9 @@ var _ = Describe("Underlay BFD Configuration", Ordered, func() {
 			neighbors = append(neighbors, neighborIP)
 		}
 
-		// Enable BFD on leafkind
-		err = infra.UpdateLeafKindConfig(nodes, true)
-		Expect(err).NotTo(HaveOccurred())
+		// Enable BFD on both leaf switches
+		Expect(infra.LeafKind1Config.UpdateConfig(nodes, infra.LeafKindConfiguration{EnableBFD: true})).NotTo(HaveOccurred())
+		Expect(infra.LeafKind2Config.UpdateConfig(nodes, infra.LeafKindConfiguration{EnableBFD: true})).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -693,17 +708,17 @@ var _ = Describe("Underlay BFD Configuration", Ordered, func() {
 		err := Updater.CleanAll()
 		Expect(err).NotTo(HaveOccurred())
 
-		By("waiting for router pods to rollout")
-		Eventually(func() error {
-			newRouters, err := openperouter.Get(cs, HostMode)
-			if err != nil {
-				return err
-			}
-			return openperouter.DaemonsetRolled(routers, newRouters)
-		}, 2*time.Minute, time.Second).ShouldNot(HaveOccurred())
+		By("waiting for the underlay to be removed from all nodes")
+		for _, node := range nodes {
+			Eventually(func(g Gomega) {
+				isConfigured, err := openperouter.UnderlayConfigured(node.Name)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(isConfigured).To(BeFalse())
+			}, 2*time.Minute, time.Second).Should(Succeed())
+		}
 
-		err = infra.UpdateLeafKindConfig(nodes, false)
-		Expect(err).NotTo(HaveOccurred())
+		Expect(infra.LeafKind1Config.UpdateConfig(nodes, infra.LeafKindConfiguration{})).NotTo(HaveOccurred())
+		Expect(infra.LeafKind2Config.UpdateConfig(nodes, infra.LeafKindConfiguration{})).NotTo(HaveOccurred())
 	})
 
 	DescribeTable("should establish BFD sessions with the ToR",
@@ -791,14 +806,14 @@ var _ = Describe("Underlay BFD Configuration", Ordered, func() {
 				},
 				Spec: v1alpha1.UnderlaySpec{
 					ASN:  64514,
-					Nics: []string{"toswitch"},
+					Nics: []string{"toswitch1"},
 					EVPN: &v1alpha1.EVPNConfig{
-						VTEPCIDR: "100.65.0.0/24",
+						VTEPCIDR: new("100.65.0.0/24"),
 					},
 					Neighbors: []v1alpha1.Neighbor{
 						{
-							ASN:     64512,
-							Address: "192.168.11.2",
+							ASN:     new(int64(64512)),
+							Address: new("192.168.11.2"),
 							BFD:     &v1alpha1.BFDSettings{},
 						},
 					},
@@ -812,22 +827,135 @@ var _ = Describe("Underlay BFD Configuration", Ordered, func() {
 				},
 				Spec: v1alpha1.UnderlaySpec{
 					ASN:  64514,
-					Nics: []string{"toswitch"},
+					Nics: []string{"toswitch1"},
 					EVPN: &v1alpha1.EVPNConfig{
-						VTEPCIDR: "100.65.0.0/24",
+						VTEPCIDR: new("100.65.0.0/24"),
 					},
 					Neighbors: []v1alpha1.Neighbor{
 						{
-							ASN:     64512,
-							Address: "192.168.11.2",
+							ASN:     new(int64(64512)),
+							Address: new("192.168.11.2"),
 							BFD: &v1alpha1.BFDSettings{
-								TransmitInterval: ptr.To(uint32(90)),
-								ReceiveInterval:  ptr.To(uint32(80)),
-								DetectMultiplier: ptr.To(uint32(5)),
+								TransmitInterval: new(int32(90)),
+								ReceiveInterval:  new(int32(80)),
+								DetectMultiplier: new(int32(5)),
 							},
 						},
 					},
 				},
 			}),
 	)
+})
+
+var _ = Describe("Add extra neighbor", Ordered, func() {
+	var cs clientset.Interface
+	var initialRouters openperouter.Routers
+	nodes := []corev1.Node{}
+
+	BeforeAll(func() {
+		err := Updater.CleanAll()
+		Expect(err).NotTo(HaveOccurred())
+		cs = k8sclient.New()
+		nodesItems, err := cs.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+		Expect(err).NotTo(HaveOccurred())
+		nodes = nodesItems.Items
+	})
+
+	AfterAll(func() {
+		err := Updater.CleanAll()
+		Expect(err).NotTo(HaveOccurred())
+
+		By("waiting for the underlay to be removed from all nodes")
+		for _, node := range nodes {
+			Eventually(func(g Gomega) {
+				isConfigured, err := openperouter.UnderlayConfigured(node.Name)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(isConfigured).To(BeFalse())
+			}, 2*time.Minute, time.Second).Should(Succeed())
+		}
+	})
+
+	AfterEach(func() {
+		dumpIfFails(cs)
+	})
+
+	It("adds a neighbor without restarting the router pods", func() {
+		By("Deploying underlay with a single neighbor")
+		singleNeighborUnderlay := v1alpha1.Underlay{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "underlay",
+				Namespace: openperouter.Namespace,
+			},
+			Spec: v1alpha1.UnderlaySpec{
+				ASN:  64514,
+				Nics: []string{"toswitch1"},
+				Neighbors: []v1alpha1.Neighbor{
+					{
+						ASN:     new(int64(64512)),
+						Address: new("192.168.11.2"),
+					},
+				},
+				EVPN: &v1alpha1.EVPNConfig{
+					VTEPCIDR: new("100.65.0.0/24"),
+				},
+			},
+		}
+		err := Updater.Update(config.Resources{
+			Underlays: []v1alpha1.Underlay{singleNeighborUnderlay},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Waiting for BGP session with first neighbor to establish")
+		exec := executor.ForContainer(infra.KindLeaf)
+
+		Eventually(func() error {
+			for _, node := range nodes {
+				neighborIP, err := infra.NeighborIP(infra.KindLeaf, node.Name)
+				if err != nil {
+					continue
+				}
+				validateSessionWithNeighbor(infra.KindLeaf, node.Name, exec, neighborIP, Established)
+			}
+			return nil
+		}, 2*time.Minute, time.Second).ShouldNot(HaveOccurred())
+
+		By("Recording router state before adding neighbor")
+		initialRouters, err = openperouter.Get(cs, HostMode)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Adding a second neighbor to the underlay")
+		twoNeighborUnderlay := singleNeighborUnderlay.DeepCopy()
+		twoNeighborUnderlay.Spec.Neighbors = append(twoNeighborUnderlay.Spec.Neighbors, v1alpha1.Neighbor{
+			ASN:     new(int64(64513)),
+			Address: new("192.168.12.2"),
+		})
+		twoNeighborUnderlay.Spec.Nics = []string{"toswitch1", "toswitch2"}
+		err = Updater.Update(config.Resources{
+			Underlays: []v1alpha1.Underlay{*twoNeighborUnderlay},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Waiting for BGP session with second neighbor to establish")
+		exec2 := executor.ForContainer(infra.KindLeaf2)
+		Eventually(func() error {
+			for _, node := range nodes {
+				neighborIP, err := infra.NeighborIP(infra.KindLeaf2, node.Name)
+				if err != nil {
+					continue
+				}
+				validateSessionWithNeighbor(infra.KindLeaf2, node.Name, exec2, neighborIP, Established)
+			}
+			return nil
+		}, 2*time.Minute, time.Second).ShouldNot(HaveOccurred())
+
+		By("Verifying router pods were NOT restarted")
+		Consistently(func() error {
+			currentRouters, err := openperouter.Get(cs, HostMode)
+			if err != nil {
+				return err
+			}
+			return openperouter.DaemonsetRolled(initialRouters, currentRouters)
+		}, 30*time.Second, 5*time.Second).Should(HaveOccurred())
+	})
+
 })

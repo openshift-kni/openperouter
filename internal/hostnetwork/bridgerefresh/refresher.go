@@ -10,13 +10,12 @@ import (
 
 	"github.com/openperouter/openperouter/internal/hostnetwork"
 	"github.com/openperouter/openperouter/internal/netnamespace"
-	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netns"
 )
 
 const (
 	// DefaultRefreshPeriod is how often to check and refresh neighbor entries.
-	DefaultRefreshPeriod = 60 * time.Second
+	DefaultRefreshPeriod = 30 * time.Second
 )
 
 // StartOptions configures optional parameters for BridgeRefresher.
@@ -25,19 +24,22 @@ type StartOptions struct {
 }
 
 // BridgeRefresher manages neighbor refresh for an L2VNI bridge.
-// It reacts to netlink neighbor notifications and also periodically
-// sends ICMP pings to STALE neighbors to prevent EVPN Type-2 routes
-// from being withdrawn and to force STALE neighbors to FAILED state
-// in case the entry is really STALE.
+// It periodically sends ICMP pings to STALE neighbors to prevent
+// EVPN Type-2 routes from being withdrawn and to force STALE
+// neighbors to FAILED state in case the entry is really STALE.
+//
+// The refresher opens the netns fd ephemerally on each tick (open,
+// use, close) rather than holding a persistent fd. This prevents
+// zombie network namespaces when the netns is deleted externally.
 type BridgeRefresher struct {
 	bridgeName    string // e.g., "br-pe-110"
 	namespace     string // Path to network namespace
 	refreshPeriod time.Duration
-	vni           int
-	bridgeIndex   int // cached link index for filtering netlink events
+	vni           int32
 
-	cancel context.CancelFunc
-	wg     sync.WaitGroup
+	cancel   context.CancelFunc
+	wg       sync.WaitGroup
+	stopOnce sync.Once
 }
 
 // New creates a new BridgeRefresher for an L2VNI.
@@ -70,74 +72,27 @@ func (r *BridgeRefresher) Start(ctx context.Context) {
 }
 
 // Stop gracefully stops the refresher and waits for it to finish.
+// It is safe to call multiple times.
 func (r *BridgeRefresher) Stop() {
-	r.cancel()
-	r.wg.Wait()
-	slog.Info("stopped bridge refresher", "bridge", r.bridgeName)
+	r.stopOnce.Do(func() {
+		r.cancel()
+		r.wg.Wait()
+		slog.Info("stopped bridge refresher", "bridge", r.bridgeName)
+	})
 }
 
-// run is the main refresh loop. It subscribes to netlink neighbor
-// notifications for immediate reaction to STALE transitions, with
-// periodic polling as a fallback.
+// run is the main refresh loop.
 func (r *BridgeRefresher) run(ctx context.Context) {
 	ticker := time.NewTicker(r.refreshPeriod)
 	defer ticker.Stop()
 
-	neighCh, stopNetlinkListener := r.subscribeNeighborUpdates()
-
 	for {
 		select {
 		case <-ctx.Done():
-			stopNetlinkListener()
 			return
 		case <-ticker.C:
 			r.refresh()
-		case update, ok := <-neighCh:
-			if !ok {
-				slog.Error("neighbor subscription closed unexpectedly", "bridge", r.bridgeName)
-				neighCh = nil
-				continue
-			}
-			if r.isRelevantNeighUpdate(update) {
-				r.refreshNeighbor(update.Neigh)
-			}
 		}
-	}
-}
-
-// isRelevantNeighUpdate returns true if the update is a STALE transition
-// on this refresher's bridge that warrants an immediate refresh.
-func (r *BridgeRefresher) isRelevantNeighUpdate(update netlink.NeighUpdate) bool {
-	if update.LinkIndex != r.bridgeIndex {
-		return false
-	}
-	if update.State&netlink.NUD_STALE == 0 {
-		return false
-	}
-	if update.IP == nil || update.IP.IsLinkLocalUnicast() {
-		return false
-	}
-	return true
-}
-
-// refreshNeighbor pings a single neighbor inside the bridge namespace.
-func (r *BridgeRefresher) refreshNeighbor(neigh netlink.Neigh) {
-	ns, err := netns.GetFromPath(r.namespace)
-	if err != nil {
-		slog.Debug("failed to get namespace for neighbor refresh", "namespace", r.namespace, "error", err)
-		return
-	}
-	defer func() {
-		if err := ns.Close(); err != nil {
-			slog.Debug("failed to close namespace", "namespace", r.namespace, "error", err)
-		}
-	}()
-
-	if err := netnamespace.In(ns, func() error {
-		slog.Debug("pinging stale neighbor", "ip", neigh.IP, "bridge", r.bridgeName)
-		return r.sendPing(neigh.IP)
-	}); err != nil {
-		slog.Debug("failed to ping neighbor", "ip", neigh.IP, "bridge", r.bridgeName, "error", err)
 	}
 }
 

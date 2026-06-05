@@ -63,7 +63,7 @@ var _ = Describe("OpenPERouter Controller", func() {
 					Namespace: openperouterTestNamespace,
 				},
 				Spec: operatorapi.OpenPERouterSpec{
-					LogLevel: "debug",
+					LogLevel: new(operatorapi.LogLevelDebug),
 				},
 			}
 
@@ -128,7 +128,7 @@ var _ = Describe("OpenPERouter Controller", func() {
 			By("Updating the OpenPERouter resource")
 			err = k8sClient.Get(context.TODO(), types.NamespacedName{Name: "openperouter", Namespace: openperouterTestNamespace}, openperouter)
 			Expect(err).ToNot(HaveOccurred())
-			openperouter.Spec.LogLevel = "info"
+			openperouter.Spec.LogLevel = new(operatorapi.LogLevelInfo)
 			err = k8sClient.Update(context.Background(), openperouter)
 			Expect(err).ToNot(HaveOccurred())
 

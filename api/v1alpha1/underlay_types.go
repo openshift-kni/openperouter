@@ -22,55 +22,84 @@ import (
 
 // UnderlaySpec defines the desired state of Underlay.
 type UnderlaySpec struct {
-	// NodeSelector specifies which nodes this Underlay applies to.
+	// nodeSelector specifies which nodes this Underlay applies to.
 	// If empty or not specified, applies to all nodes (backward compatible).
 	// Multiple Underlays with overlapping node selectors will be rejected.
 	// +optional
 	NodeSelector *metav1.LabelSelector `json:"nodeSelector,omitempty"`
 
-	// ASN is the local AS number to use for the session with the TOR switch.
+	// asn is the local AS number to use for the session with the TOR switch.
 	// +kubebuilder:validation:Minimum=1
 	// +kubebuilder:validation:Maximum=4294967295
 	// +required
-	ASN uint32 `json:"asn,omitempty"`
+	ASN int64 `json:"asn,omitempty"`
 
-	// RouterIDCIDR is the ipv4 cidr to be used to assign a different routerID on each node.
-	// +kubebuilder:default="10.0.0.0/24"
+	// routeridcidr is the ipv4 cidr to be used to assign a different routerID on each node.
+	// +default="10.0.0.0/24"
 	// +optional
-	RouterIDCIDR string `json:"routeridcidr,omitempty"`
+	RouterIDCIDR *string `json:"routeridcidr,omitempty"`
 
-	// Neighbors is the list of external neighbors to peer with.
+	// neighbors is the list of external BGP neighbors to peer with.
+	// Note: MaxItems=128 is arbitrarily chosen to keep total CEL cost low
+	// Note: kubeapilinter complained about 'the struct has no required fields', but CEL enforces either/or choices
+	// for Address and Interface.
+	// Multiple neighbors are supported for connecting to multiple TOR switches
+	// or establishing redundant BGP sessions. Each neighbor address must be unique.
+	// At least one neighbor is required.
 	// +kubebuilder:validation:MinItems=1
-	Neighbors []Neighbor `json:"neighbors,omitempty"`
+	// +kubebuilder:validation:MaxItems=128
+	// +required
+	// +listType=atomic
+	Neighbors []Neighbor `json:"neighbors,omitempty"` //nolint:kubeapilinter
 
-	// Nics is the list of physical nics to move under the PERouter namespace to connect
-	// to external routers. This field is optional when using Multus networks for TOR connectivity.
+	// nics is the list of physical nics to move under the PERouter namespace to connect
+	// to external routers. At least one NIC is required.
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:items:Pattern=`^[a-zA-Z][a-zA-Z0-9._-]*$`
 	// +kubebuilder:validation:items:MaxLength=15
+	// +required
+	// +listType=atomic
 	Nics []string `json:"nics,omitempty"`
 
+	// evpn contains EVPN-VXLAN configuration for the underlay.
+	// +optional
 	EVPN *EVPNConfig `json:"evpn,omitempty"`
+
+	// gracefulRestart configures BGP Graceful Restart behaviour.
+	// When set, FRR advertises GR capability and preserves forwarding
+	// state across restarts so that peers keep stale routes active.
+	// Omit to disable graceful restart.
+	// +optional
+	GracefulRestart *GracefulRestartConfig `json:"gracefulRestart,omitempty"`
+}
+
+// GracefulRestartConfig holds BGP Graceful Restart parameters.
+// Its presence on the Underlay enables graceful restart.
+type GracefulRestartConfig struct {
+	// restartTimeSeconds is the time in seconds that the restarting router
+	// requests its peers to preserve routes. Peers will wait this long
+	// before removing stale routes.
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=4095
+	// +default=120
+	// +optional
+	RestartTimeSeconds *int64 `json:"restartTimeSeconds,omitempty"`
+
+	// stalePathTimeSeconds is the time in seconds that stale paths from a
+	// restarting peer are retained locally.
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=4095
+	// +default=360
+	// +optional
+	StalePathTimeSeconds *int64 `json:"stalePathTimeSeconds,omitempty"`
 }
 
 // EVPNConfig contains EVPN-VXLAN configuration for the underlay.
-// +kubebuilder:validation:XValidation:rule="(self.?vtepcidr.orValue(\"\") != \"\") != (self.?vtepInterface.orValue(\"\") != \"\")",message="exactly one of vtepcidr or vtepInterface must be specified"
 type EVPNConfig struct {
-	// VTEPCIDR is CIDR to be used to assign IPs to the local VTEP on each node.
+	// vtepCIDR is the CIDR to be used to assign IPs to the local VTEP on each node.
 	// A loopback interface will be created with an IP derived from this CIDR.
-	// Mutually exclusive with vtepInterface.
 	// +optional
-	VTEPCIDR string `json:"vtepcidr,omitempty"`
-
-	// VTEPInterface is the name of an existing interface to use as the VTEP source.
-	// The interface must already have an IP address configured that will be used
-	// as the VTEP IP. Mutually exclusive with vtepcidr.
-	// The ToR must advertise the interface IP into the fabric underlay
-	// (e.g. via redistribute connected) so that the VTEP address is reachable
-	// from other leaves.
-	// +kubebuilder:validation:Pattern=`^[a-zA-Z][a-zA-Z0-9._-]*$`
-	// +kubebuilder:validation:MaxLength=15
-	// +optional
-	VTEPInterface string `json:"vtepInterface,omitempty"`
+	VTEPCIDR *string `json:"vtepCIDR,omitempty"`
 }
 
 // UnderlayStatus defines the observed state of Underlay.
@@ -85,11 +114,17 @@ type UnderlayStatus struct {
 
 // Underlay is the Schema for the underlays API.
 type Underlay struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// metadata is the standard object metadata.
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   UnderlaySpec   `json:"spec,omitempty"`
-	Status UnderlayStatus `json:"status,omitempty"`
+	// spec defines the desired state of Underlay.
+	// +required
+	Spec UnderlaySpec `json:"spec,omitzero,omitempty"`
+	// status defines the observed state of Underlay.
+	// +optional
+	Status *UnderlayStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -99,8 +134,4 @@ type UnderlayList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Underlay `json:"items"`
-}
-
-func init() {
-	SchemeBuilder.Register(&Underlay{}, &UnderlayList{})
 }

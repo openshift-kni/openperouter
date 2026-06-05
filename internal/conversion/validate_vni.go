@@ -13,6 +13,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 
 	"github.com/openperouter/openperouter/api/v1alpha1"
 	"github.com/openperouter/openperouter/internal/filter"
@@ -131,7 +132,10 @@ func ValidateVRFs(l2Vnis []v1alpha1.L2VNI, l3Vnis []v1alpha1.L3VNI) error {
 	v4SubnetsForVRF := map[string]subnets{}
 	v6SubnetsForVRF := map[string]subnets{}
 	for _, l2vni := range l2Vnis {
-		vrfName := l2vni.VRFName()
+		if !hasVRF(l2vni) {
+			continue
+		}
+		vrfName := *l2vni.Spec.VRF
 		source := fmt.Sprintf("L2VNI %s", types.NamespacedName{Namespace: l2vni.Namespace, Name: l2vni.Name})
 		if subnet := v4SubnetForL2(l2vni); subnet != nil {
 			v4SubnetsForVRF[vrfName] = append(v4SubnetsForVRF[vrfName], subnetWithSource{source, subnet})
@@ -180,7 +184,7 @@ func vnisFromL3VNIs(l3vnis []v1alpha1.L3VNI) []VNI {
 	for i, l3vni := range l3vnis {
 		result[i] = VNI{
 			name:      l3vni.Name,
-			vni:       l3vni.Spec.VNI,
+			vni:       uint32(l3vni.Spec.VNI),
 			vrfName:   l3vni.Spec.VRF,
 			exportRTs: l3vni.Spec.ExportRTs,
 			importRTs: l3vni.Spec.ImportRTs,
@@ -193,11 +197,14 @@ func vnisFromL3VNIs(l3vnis []v1alpha1.L3VNI) []VNI {
 func vnisFromL2VNIs(l2vnis []v1alpha1.L2VNI) []VNI {
 	result := make([]VNI, len(l2vnis))
 	for i, l2vni := range l2vnis {
-		result[i] = VNI{
-			name:    l2vni.Name,
-			vni:     l2vni.Spec.VNI,
-			vrfName: l2vni.VRFName(),
+		v := VNI{
+			name: l2vni.Name,
+			vni:  uint32(l2vni.Spec.VNI),
 		}
+		if hasVRF(l2vni) {
+			v.vrfName = *l2vni.Spec.VRF
+		}
+		result[i] = v
 	}
 	return result
 }
@@ -207,8 +214,10 @@ func validateVNIs(vnis []VNI) error {
 	existingVNIs := map[uint32]string{} // a map between the given VNI number and the VNI instance it's configured in
 
 	for _, vni := range vnis {
-		if err := isValidInterfaceName(vni.vrfName); err != nil {
-			return fmt.Errorf("invalid vrf name for vni %s: %s - %w", vni.name, vni.vrfName, err)
+		if vni.vrfName != "" {
+			if err := isValidInterfaceName(vni.vrfName); err != nil {
+				return fmt.Errorf("invalid vrf name for vni %s: %s - %w", vni.name, vni.vrfName, err)
+			}
 		}
 
 		existingVNI, ok := existingVNIs[vni.vni]
@@ -276,11 +285,11 @@ func validateHostMaster(vniName string, hostConfig *v1alpha1.HostMaster) error {
 	switch hostConfig.Type {
 	case v1alpha1.LinuxBridge:
 		if hostConfig.LinuxBridge != nil {
-			name = hostConfig.LinuxBridge.Name
+			name = ptr.Deref(hostConfig.LinuxBridge.Name, "")
 		}
 	case v1alpha1.OVSBridge:
 		if hostConfig.OVSBridge != nil {
-			name = hostConfig.OVSBridge.Name
+			name = ptr.Deref(hostConfig.OVSBridge.Name, "")
 		}
 	default:
 		return fmt.Errorf("invalid hostmaster type %q", hostConfig.Type)
@@ -330,10 +339,11 @@ func v4SubnetForL3(l3vni v1alpha1.L3VNI) *net.IPNet {
 	if l3vni.Spec.HostSession == nil {
 		return nil
 	}
-	if l3vni.Spec.HostSession.LocalCIDR.IPv4 == "" {
+	ipv4 := ptr.Deref(l3vni.Spec.HostSession.LocalCIDR.IPv4, "")
+	if ipv4 == "" {
 		return nil
 	}
-	_, ipnet, err := net.ParseCIDR(l3vni.Spec.HostSession.LocalCIDR.IPv4)
+	_, ipnet, err := net.ParseCIDR(ipv4)
 	if err != nil {
 		return nil
 	}
@@ -345,10 +355,11 @@ func v6SubnetForL3(l3vni v1alpha1.L3VNI) *net.IPNet {
 	if l3vni.Spec.HostSession == nil {
 		return nil
 	}
-	if l3vni.Spec.HostSession.LocalCIDR.IPv6 == "" {
+	ipv6 := ptr.Deref(l3vni.Spec.HostSession.LocalCIDR.IPv6, "")
+	if ipv6 == "" {
 		return nil
 	}
-	_, ipnet, err := net.ParseCIDR(l3vni.Spec.HostSession.LocalCIDR.IPv6)
+	_, ipnet, err := net.ParseCIDR(ipv6)
 	if err != nil {
 		return nil
 	}
