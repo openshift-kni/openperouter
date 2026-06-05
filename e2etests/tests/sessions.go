@@ -807,8 +807,8 @@ var _ = Describe("Underlay BFD Configuration", Ordered, func() {
 				Spec: v1alpha1.UnderlaySpec{
 					ASN:  64514,
 					Nics: []string{"toswitch1"},
-					EVPN: &v1alpha1.EVPNConfig{
-						VTEPCIDR: new("100.65.0.0/24"),
+					TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+						CIDRs: []string{"100.65.0.0/24"},
 					},
 					Neighbors: []v1alpha1.Neighbor{
 						{
@@ -828,8 +828,8 @@ var _ = Describe("Underlay BFD Configuration", Ordered, func() {
 				Spec: v1alpha1.UnderlaySpec{
 					ASN:  64514,
 					Nics: []string{"toswitch1"},
-					EVPN: &v1alpha1.EVPNConfig{
-						VTEPCIDR: new("100.65.0.0/24"),
+					TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+						CIDRs: []string{"100.65.0.0/24"},
 					},
 					Neighbors: []v1alpha1.Neighbor{
 						{
@@ -895,8 +895,8 @@ var _ = Describe("Add extra neighbor", Ordered, func() {
 						Address: new("192.168.11.2"),
 					},
 				},
-				EVPN: &v1alpha1.EVPNConfig{
-					VTEPCIDR: new("100.65.0.0/24"),
+				TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+					CIDRs: []string{"100.65.0.0/24"},
 				},
 			},
 		}

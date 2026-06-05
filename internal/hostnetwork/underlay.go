@@ -24,13 +24,14 @@ const (
 const underlayGroupID = 4242
 
 type UnderlayParams struct {
-	UnderlayInterfaces []string            `json:"underlay_interfaces"`
-	TargetNS           string              `json:"target_ns"`
-	EVPN               *UnderlayEVPNParams `json:"evpn"`
+	UnderlayInterfaces []string                      `json:"underlay_interfaces"`
+	TargetNS           string                        `json:"target_ns"`
+	TunnelEndpoint     *UnderlayTunnelEndpointParams `json:"tunnel_endpoint"`
 }
 
-type UnderlayEVPNParams struct {
-	VtepIP string `json:"vtep_ip"`
+type UnderlayTunnelEndpointParams struct {
+	IPv4CIDR string `json:"ipv4_cidr"`
+	IPv6CIDR string `json:"ipv6_cidr"`
 }
 
 func SetupUnderlay(ctx context.Context, params UnderlayParams) error {
@@ -84,14 +85,19 @@ func SetupUnderlay(ctx context.Context, params UnderlayParams) error {
 		}
 	}
 
-	if params.EVPN == nil {
+	if params.TunnelEndpoint == nil {
 		return nil
 	}
 
-	if params.EVPN.VtepIP != "" {
-		if err := ensureLoopback(ctx, ns, params.EVPN.VtepIP); err != nil {
-			return err
-		}
+	vtepIPs := make([]string, 0, 2)
+	if ip := params.TunnelEndpoint.IPv4CIDR; ip != "" {
+		vtepIPs = append(vtepIPs, ip)
+	}
+	if ip := params.TunnelEndpoint.IPv6CIDR; ip != "" {
+		vtepIPs = append(vtepIPs, ip)
+	}
+	if err := ensureLoopback(ctx, ns, vtepIPs...); err != nil {
+		return err
 	}
 
 	return nil
@@ -103,7 +109,7 @@ func (e UnderlayExistsError) Error() string {
 	return string(e)
 }
 
-func ensureLoopback(ctx context.Context, ns netns.NsHandle, vtepIP string) error {
+func ensureLoopback(ctx context.Context, ns netns.NsHandle, vtepIPs ...string) error {
 	slog.DebugContext(ctx, "setup underlay", "step", "setting up loopback interface")
 	defer slog.DebugContext(ctx, "setup underlay", "step", "loopback interface set up")
 
@@ -113,9 +119,11 @@ func ensureLoopback(ctx context.Context, ns netns.NsHandle, vtepIP string) error
 			return fmt.Errorf("ensureLoopback: failed to retrieve %s, err: %w", loopbackName, err)
 		}
 
-		err = assignIPToInterface(loopback, vtepIP)
-		if err != nil {
-			return err
+		for _, vtepIP := range vtepIPs {
+			err = assignIPToInterface(loopback, vtepIP)
+			if err != nil {
+				return err
+			}
 		}
 		// The link is already set up during namespace creation. However, in order to be idempotent, do this here again,
 		// in case something external set the link to down.

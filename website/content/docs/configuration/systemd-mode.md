@@ -23,8 +23,9 @@ Each `openpe_*.yaml` file contains the `spec` part of the corresponding Kubernet
 ```yaml
 underlays:
   - asn: 64514
-    evpn:
-      vtepCIDR: 100.65.0.0/24
+    tunnelEndpoint:
+      cidrs:
+      - 100.65.0.0/24
     nics:
       - eth0
     neighbors:
@@ -64,8 +65,9 @@ l3vnis:
 # openpe_underlay.yaml - node-specific
 underlays:
   - asn: 64514
-    evpn:
-      vtepCIDR: 100.65.0.0/24
+    tunnelEndpoint:
+      cidrs:
+      - 100.65.0.0/24
     nics:
       - eth0
     neighbors:
