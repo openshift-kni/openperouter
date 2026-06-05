@@ -1,5 +1,5 @@
 resources:
-- https://github.com/metallb/frr-k8s/config/default/?timeout=120&ref=v0.0.18
+- https://github.com/metallb/frr-k8s/config/default/?timeout=120&ref=v0.0.25
 images:
 - name: gcr.io/kubebuilder/kube-rbac-proxy
   newName: registry.k8s.io/kubebuilder/kube-rbac-proxy
