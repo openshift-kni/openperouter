@@ -78,7 +78,7 @@ func TestParseChartWithCustomValues(t *testing.T) {
 			Namespace: openperouterTestNamespace,
 		},
 		Spec: operatorapi.OpenPERouterSpec{
-			LogLevel: "info",
+			LogLevel: new(operatorapi.LogLevelInfo),
 		},
 	}
 
@@ -146,8 +146,8 @@ func TestParseChartWithMultusAnnotation(t *testing.T) {
 			Namespace: openperouterTestNamespace,
 		},
 		Spec: operatorapi.OpenPERouterSpec{
-			LogLevel:                "info",
-			MultusNetworkAnnotation: multusAnnotation,
+			LogLevel:                new(operatorapi.LogLevelInfo),
+			MultusNetworkAnnotation: &multusAnnotation,
 		},
 	}
 
@@ -184,7 +184,7 @@ func TestParseChartWithoutMultusAnnotation(t *testing.T) {
 			Namespace: openperouterTestNamespace,
 		},
 		Spec: operatorapi.OpenPERouterSpec{
-			LogLevel: "info",
+			LogLevel: new(operatorapi.LogLevelInfo),
 		},
 	}
 
@@ -266,8 +266,8 @@ func TestParseChartWithMasterTolerations(t *testing.T) {
 					Namespace: openperouterTestNamespace,
 				},
 				Spec: operatorapi.OpenPERouterSpec{
-					LogLevel:    "info",
-					RunOnMaster: tt.runOnMaster,
+					LogLevel:    new(operatorapi.LogLevelInfo),
+					RunOnMaster: &tt.runOnMaster,
 				},
 			}
 

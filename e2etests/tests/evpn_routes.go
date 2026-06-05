@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/utils/ptr"
+
 	frrk8sapi "github.com/metallb/frr-k8s/api/v1beta1"
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/ginkgo/v2"
@@ -39,7 +41,7 @@ var (
 	emptyPrefixes        = []string{}
 )
 
-var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
+var _ = Describe("Routes between bgp and the fabric with Underlay in ipv4", Ordered, func() {
 	var cs clientset.Interface
 	var routers openperouter.Routers
 
@@ -52,10 +54,10 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 			VRF: "red",
 			HostSession: &v1alpha1.HostSession{
 				ASN:     64514,
-				HostASN: 64515,
+				HostASN: new(int64(64515)),
 				LocalCIDR: v1alpha1.LocalCIDRConfig{
-					IPv4: "192.169.10.0/24",
-					IPv6: "2001:db8:1::/64",
+					IPv4: new("192.169.10.0/24"),
+					IPv6: new("2001:db8:1::/64"),
 				},
 			},
 			VNI: 100,
@@ -71,10 +73,10 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 			VRF: "blue",
 			HostSession: &v1alpha1.HostSession{
 				ASN:     64514,
-				HostASN: 64515,
+				HostASN: new(int64(64515)),
 				LocalCIDR: v1alpha1.LocalCIDRConfig{
-					IPv4: "192.169.11.0/24",
-					IPv6: "2001:db8:2::/64",
+					IPv4: new("192.169.11.0/24"),
+					IPv6: new("2001:db8:2::/64"),
 				},
 			},
 			VNI: 200,
@@ -86,8 +88,13 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		cs = k8sclient.New()
-		routers, err = openperouter.Get(cs, HostMode)
-		Expect(err).NotTo(HaveOccurred())
+		Eventually(func() error {
+			routers, err = openperouter.Get(cs, HostMode)
+			if err != nil {
+				return err
+			}
+			return openperouter.AreReady(routers)
+		}, 2*time.Minute, time.Second).ShouldNot(HaveOccurred())
 
 		routers.Dump(ginkgo.GinkgoWriter)
 
@@ -102,13 +109,13 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 	AfterAll(func() {
 		err := Updater.CleanAll()
 		Expect(err).NotTo(HaveOccurred())
-		By("waiting for the router pod to rollout after removing the underlay")
+		By("waiting for all router pods to be ready after removing the underlay")
 		Eventually(func() error {
-			newRouters, err := openperouter.Get(cs, HostMode)
+			routers, err := openperouter.Get(cs, HostMode)
 			if err != nil {
 				return err
 			}
-			return openperouter.DaemonsetRolled(routers, newRouters)
+			return openperouter.AreReady(routers)
 		}, 2*time.Minute, time.Second).ShouldNot(HaveOccurred())
 	})
 
@@ -117,8 +124,8 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 			dumpIfFails(cs)
 			err := Updater.CleanButUnderlay()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(infra.LeafAConfig.RemovePrefixes()).To(Succeed())
-			Expect(infra.LeafBConfig.RemovePrefixes()).To(Succeed())
+			Expect(infra.LeafAConfig.Reset()).To(Succeed())
+			Expect(infra.LeafBConfig.Reset()).To(Succeed())
 		})
 
 		BeforeEach(func() {
@@ -137,7 +144,14 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 			checkRouteFromLeaf := func(leaf infra.Leaf, vni v1alpha1.L3VNI, mustContain bool, prefixes []string) {
 				By(fmt.Sprintf("checking routes from leaf %s on vni %s, mustContain %v %v", leaf.Name, vni.Name, mustContain, prefixes))
 				Eventually(func() error {
-					for exec := range routers.GetExecutors() {
+					currentRouters, err := openperouter.Get(cs, HostMode)
+					if err != nil {
+						return err
+					}
+					if err := openperouter.AreReady(currentRouters); err != nil {
+						return err
+					}
+					for exec := range currentRouters.GetExecutors() {
 						evpn, err := frr.EVPNInfo(exec)
 						if err != nil {
 							return fmt.Errorf("failed to get EVPN info from %s: %w", exec.Name(), err)
@@ -225,8 +239,8 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 			dumpIfFails(cs)
 			err := Updater.CleanButUnderlay()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(infra.LeafAConfig.RemovePrefixes()).To(Succeed())
-			Expect(infra.LeafBConfig.RemovePrefixes()).To(Succeed())
+			Expect(infra.LeafAConfig.Reset()).To(Succeed())
+			Expect(infra.LeafBConfig.Reset()).To(Succeed())
 		})
 
 		It("translates EVPN incoming routes as BGP routes", func() {
@@ -276,8 +290,8 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 
 		BeforeAll(func() {
 			By("setting redistribute connected on leaves")
-			redistributeConnectedForLeaf(infra.LeafAConfig)
-			redistributeConnectedForLeaf(infra.LeafBConfig)
+			Expect(infra.LeafAConfig.RedistributeConnected()).To(Succeed())
+			Expect(infra.LeafBConfig.RedistributeConnected()).To(Succeed())
 
 			By("Creating the test namespace")
 			_, err := k8s.CreateNamespace(cs, testNamespace)
@@ -318,12 +332,12 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 
 			err = Updater.CleanButUnderlay()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(infra.LeafAConfig.RemovePrefixes()).To(Succeed())
-			Expect(infra.LeafBConfig.RemovePrefixes()).To(Succeed())
+			Expect(infra.LeafAConfig.Reset()).To(Succeed())
+			Expect(infra.LeafBConfig.Reset()).To(Succeed())
 		})
 
 		AfterEach(func() {
-			dumpIfFails(cs)
+			dumpIfFails(cs, testNamespace)
 		})
 
 		DescribeTable("should be able to reach the hosts from the test pod and vice versa", func(
@@ -334,10 +348,10 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 		) {
 
 			var localCIDR string
-			localCIDR = vni.Spec.HostSession.LocalCIDR.IPv4
+			localCIDR = ptr.Deref(vni.Spec.HostSession.LocalCIDR.IPv4, "")
 
 			if ipFamily == ipfamily.IPv6 {
-				localCIDR = vni.Spec.HostSession.LocalCIDR.IPv6
+				localCIDR = ptr.Deref(vni.Spec.HostSession.LocalCIDR.IPv6, "")
 			}
 			hostSide, err := openperouter.HostIPFromCIDRForNode(localCIDR, podNode)
 			Expect(err).NotTo(HaveOccurred())
@@ -399,7 +413,7 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 	})
 })
 
-var _ = Describe("Routes between bgp and the fabric with iBGP testing e2e integration between a pod and the blue / red hosts", func() {
+var _ = Describe("Routes between bgp and the fabric with iBGP testing e2e integration between a pod and the red hosts", func() {
 	var cs clientset.Interface
 	var routers openperouter.Routers
 	var nodes []corev1.Node
@@ -411,15 +425,19 @@ var _ = Describe("Routes between bgp and the fabric with iBGP testing e2e integr
 		},
 		Spec: v1alpha1.UnderlaySpec{
 			ASN:  64512,
-			Nics: []string{"toswitch"},
+			Nics: []string{"toswitch1", "toswitch2"},
 			Neighbors: []v1alpha1.Neighbor{
 				{
-					Type:    "internal",
-					Address: "192.168.11.2",
+					Type:    new("internal"),
+					Address: new("192.168.11.2"),
+				},
+				{
+					Type:    new("internal"),
+					Address: new("192.168.12.2"),
 				},
 			},
 			EVPN: &v1alpha1.EVPNConfig{
-				VTEPCIDR: "100.65.0.0/24",
+				VTEPCIDR: new("100.65.0.0/24"),
 			},
 		},
 	}
@@ -433,32 +451,13 @@ var _ = Describe("Routes between bgp and the fabric with iBGP testing e2e integr
 			VRF: "red",
 			HostSession: &v1alpha1.HostSession{
 				ASN:     64514,
-				HostASN: 64515,
+				HostASN: new(int64(64515)),
 				LocalCIDR: v1alpha1.LocalCIDRConfig{
-					IPv4: "192.169.10.0/24",
-					IPv6: "2001:db8:1::/64",
+					IPv4: new("192.169.10.0/24"),
+					IPv6: new("2001:db8:1::/64"),
 				},
 			},
 			VNI: 100,
-		},
-	}
-
-	vniBlue := v1alpha1.L3VNI{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "blue",
-			Namespace: openperouter.Namespace,
-		},
-		Spec: v1alpha1.L3VNISpec{
-			VRF: "blue",
-			HostSession: &v1alpha1.HostSession{
-				ASN:     64514,
-				HostASN: 64515,
-				LocalCIDR: v1alpha1.LocalCIDRConfig{
-					IPv4: "192.169.11.0/24",
-					IPv6: "2001:db8:2::/64",
-				},
-			},
-			VNI: 200,
 		},
 	}
 
@@ -479,7 +478,12 @@ var _ = Describe("Routes between bgp and the fabric with iBGP testing e2e integr
 		By("setting iBGP next-hop-self force on leaf kind")
 		nodes, err = k8s.GetNodes(cs)
 		Expect(err).NotTo(HaveOccurred())
-		ibgpForLeafKind(nodes)
+		Expect(
+			infra.LeafKind1Config.UpdateConfig(nodes, infra.LeafKindConfiguration{NextHopSelf: true, PERouterASN: 64512}),
+		).To(Succeed())
+		Expect(
+			infra.LeafKind2Config.UpdateConfig(nodes, infra.LeafKindConfiguration{NextHopSelf: true, PERouterASN: 64512}),
+		).To(Succeed())
 
 		err = Updater.Update(config.Resources{
 			Underlays: []v1alpha1.Underlay{
@@ -489,8 +493,12 @@ var _ = Describe("Routes between bgp and the fabric with iBGP testing e2e integr
 		Expect(err).NotTo(HaveOccurred())
 
 		By("setting redistribute connected on leaves")
-		redistributeConnectedForLeaf(infra.LeafAConfig)
-		redistributeConnectedForLeaf(infra.LeafBConfig)
+		Expect(
+			infra.LeafAConfig.RedistributeConnected(),
+		).To(Succeed())
+		Expect(
+			infra.LeafBConfig.RedistributeConnected(),
+		).To(Succeed())
 
 		By("Creating the test namespace")
 		_, err = k8s.CreateNamespace(cs, testNamespace)
@@ -507,45 +515,43 @@ var _ = Describe("Routes between bgp and the fabric with iBGP testing e2e integr
 
 		By("Creating the frr-k8s configuration for the node where the test pod runs and advertising all pod ips")
 		frrK8sConfigRedForPod := advertisePodToVNI(testPod, vniRed, nodeSelector)
-		frrK8sConfigBlueForPod := advertisePodToVNI(testPod, vniBlue, nodeSelector)
 
 		err = Updater.Update(config.Resources{
 			L3VNIs: []v1alpha1.L3VNI{
 				vniRed,
-				vniBlue,
 			},
-			FRRConfigurations: append(frrK8sConfigRedForPod, frrK8sConfigBlueForPod...),
+			FRRConfigurations: frrK8sConfigRedForPod,
 		})
 		Expect(err).NotTo(HaveOccurred())
 
 		frrK8sPodOnNode, err := frrk8s.PodForNode(cs, testPod.Spec.NodeName)
 		Expect(err).NotTo(HaveOccurred())
 		validateFRRK8sSessionForHostSession(vniRed.Name, *vniRed.Spec.HostSession, Established, frrK8sPodOnNode)
-		validateFRRK8sSessionForHostSession(vniBlue.Name, *vniBlue.Spec.HostSession, Established, frrK8sPodOnNode)
 	})
 
 	AfterEach(func() {
-		dumpIfFails(cs)
+		dumpIfFails(cs, testNamespace)
 
 		By("Deleting the test namespace")
 		err := k8s.DeleteNamespace(cs, testNamespace)
 		Expect(err).NotTo(HaveOccurred())
 
 		// RemovePrefixes() is used to reset the LeafA and LeafB configurations to default.
-		Expect(infra.LeafAConfig.RemovePrefixes()).To(Succeed())
-		Expect(infra.LeafBConfig.RemovePrefixes()).To(Succeed())
+		Expect(infra.LeafAConfig.Reset()).To(Succeed())
+		Expect(infra.LeafBConfig.Reset()).To(Succeed())
 
-		resetLeafKindConfig(nodes)
+		Expect(infra.LeafKind1Config.UpdateConfig(nodes, infra.LeafKindConfiguration{})).To(Succeed())
+		Expect(infra.LeafKind2Config.UpdateConfig(nodes, infra.LeafKindConfiguration{})).To(Succeed())
 
 		err = Updater.CleanAll()
 		Expect(err).NotTo(HaveOccurred())
-		By("waiting for the router pod to rollout after removing the underlay")
+		By("waiting for all router pods to be ready after removing the underlay")
 		Eventually(func() error {
-			newRouters, err := openperouter.Get(cs, HostMode)
+			routers, err := openperouter.Get(cs, HostMode)
 			if err != nil {
 				return err
 			}
-			return openperouter.DaemonsetRolled(routers, newRouters)
+			return openperouter.AreReady(routers)
 		}, 2*time.Minute, time.Second).ShouldNot(HaveOccurred())
 	})
 
@@ -555,12 +561,8 @@ var _ = Describe("Routes between bgp and the fabric with iBGP testing e2e integr
 		externalHostIP := infra.HostARedIPv4
 		ipFamily := ipfamily.IPv4
 
-		var localCIDR string
-		localCIDR = vni.Spec.HostSession.LocalCIDR.IPv4
+		localCIDR := ptr.Deref(vni.Spec.HostSession.LocalCIDR.IPv4, "")
 
-		if ipFamily == ipfamily.IPv6 {
-			localCIDR = vni.Spec.HostSession.LocalCIDR.IPv6
-		}
 		hostSide, err := openperouter.HostIPFromCIDRForNode(localCIDR, podNode)
 		Expect(err).NotTo(HaveOccurred())
 

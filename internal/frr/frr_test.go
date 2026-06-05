@@ -15,7 +15,6 @@ import (
 
 	"github.com/openperouter/openperouter/internal/ipfamily"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/utils/ptr"
 )
 
 const testData = "testdata/"
@@ -37,6 +36,7 @@ func TestBasic(t *testing.T) {
 				{
 					ASN:      mustNewPeerASNFromNumber(64513),
 					Addr:     "192.168.1.2",
+					ID:       "192.168.1.2",
 					IPFamily: ipfamily.IPv4,
 				},
 			},
@@ -50,6 +50,7 @@ func TestBasic(t *testing.T) {
 				LocalNeighbor: &NeighborConfig{
 					ASN:      mustNewPeerASNFromNumber(64513),
 					Addr:     "192.168.1.2",
+					ID:       "192.168.1.2",
 					IPFamily: ipfamily.IPv4,
 				},
 				ToAdvertiseIPv4: []string{
@@ -80,6 +81,7 @@ func TestBasicWithASNRT(t *testing.T) {
 				{
 					ASN:      mustNewPeerASNFromNumber(64513),
 					Addr:     "192.168.1.2",
+					ID:       "192.168.1.2",
 					IPFamily: ipfamily.IPv4,
 				},
 			},
@@ -93,6 +95,7 @@ func TestBasicWithASNRT(t *testing.T) {
 				LocalNeighbor: &NeighborConfig{
 					ASN:      mustNewPeerASNFromNumber(64513),
 					Addr:     "192.168.1.2",
+					ID:       "192.168.1.2",
 					IPFamily: ipfamily.IPv4,
 				},
 				ToAdvertiseIPv4: []string{
@@ -125,6 +128,7 @@ func TestBasicWithIPRT(t *testing.T) {
 				{
 					ASN:      mustNewPeerASNFromNumber(64513),
 					Addr:     "192.168.1.2",
+					ID:       "192.168.1.2",
 					IPFamily: ipfamily.IPv4,
 				},
 			},
@@ -138,6 +142,7 @@ func TestBasicWithIPRT(t *testing.T) {
 				LocalNeighbor: &NeighborConfig{
 					ASN:      mustNewPeerASNFromNumber(64513),
 					Addr:     "192.168.1.2",
+					ID:       "192.168.1.2",
 					IPFamily: ipfamily.IPv4,
 				},
 				ToAdvertiseIPv4: []string{
@@ -170,6 +175,7 @@ func TestExternal(t *testing.T) {
 				{
 					ASN:      mustNewPeerASNFromType("external"),
 					Addr:     "192.168.1.2",
+					ID:       "192.168.1.2",
 					IPFamily: ipfamily.IPv4,
 				},
 			},
@@ -183,6 +189,7 @@ func TestExternal(t *testing.T) {
 				LocalNeighbor: &NeighborConfig{
 					ASN:      mustNewPeerASNFromType("external"),
 					Addr:     "192.168.1.2",
+					ID:       "192.168.1.2",
 					IPFamily: ipfamily.IPv4,
 				},
 				ToAdvertiseIPv4: []string{
@@ -213,6 +220,7 @@ func TestInternal(t *testing.T) {
 				{
 					ASN:      mustNewPeerASNFromType("internal"),
 					Addr:     "192.168.1.2",
+					ID:       "192.168.1.2",
 					IPFamily: ipfamily.IPv4,
 				},
 			},
@@ -226,6 +234,7 @@ func TestInternal(t *testing.T) {
 				LocalNeighbor: &NeighborConfig{
 					ASN:      mustNewPeerASNFromNumber(64512),
 					Addr:     "192.168.1.3",
+					ID:       "192.168.1.3",
 					IPFamily: ipfamily.IPv4,
 				},
 				ToAdvertiseIPv4: []string{
@@ -256,6 +265,7 @@ func TestDualStack(t *testing.T) {
 				{
 					ASN:      mustNewPeerASNFromNumber(64513),
 					Addr:     "192.168.1.2",
+					ID:       "192.168.1.2",
 					IPFamily: ipfamily.IPv4,
 				},
 			},
@@ -269,6 +279,7 @@ func TestDualStack(t *testing.T) {
 				LocalNeighbor: &NeighborConfig{
 					ASN:      mustNewPeerASNFromNumber(64513),
 					Addr:     "192.168.1.2",
+					ID:       "192.168.1.2",
 					IPFamily: ipfamily.IPv4,
 				},
 				ToAdvertiseIPv4: []string{
@@ -302,6 +313,7 @@ func TestDualStackWithRT(t *testing.T) {
 				{
 					ASN:      mustNewPeerASNFromNumber(64513),
 					Addr:     "192.168.1.2",
+					ID:       "192.168.1.2",
 					IPFamily: ipfamily.IPv4,
 				},
 			},
@@ -315,6 +327,7 @@ func TestDualStackWithRT(t *testing.T) {
 				LocalNeighbor: &NeighborConfig{
 					ASN:      mustNewPeerASNFromNumber(64513),
 					Addr:     "192.168.1.2",
+					ID:       "192.168.1.2",
 					IPFamily: ipfamily.IPv4,
 				},
 				ToAdvertiseIPv4: []string{
@@ -348,9 +361,11 @@ func TestIPv6Only(t *testing.T) {
 			RouterID: "10.0.0.1",
 			Neighbors: []NeighborConfig{
 				{
-					ASN:      mustNewPeerASNFromNumber(64513),
-					Addr:     "2001:db8::2",
-					IPFamily: ipfamily.IPv6,
+					ASN:             mustNewPeerASNFromNumber(64513),
+					Addr:            "2001:db8::2",
+					ID:              "2001:db8::2",
+					IPFamily:        ipfamily.IPv4,
+					ExtendedNexthop: true,
 				},
 			},
 		},
@@ -363,6 +378,53 @@ func TestIPv6Only(t *testing.T) {
 				LocalNeighbor: &NeighborConfig{
 					ASN:      mustNewPeerASNFromNumber(64513),
 					Addr:     "2001:db8::2",
+					ID:       "2001:db8::2",
+					IPFamily: ipfamily.IPv6,
+				},
+				ToAdvertiseIPv6: []string{
+					"2001:db8::2/64",
+				},
+			},
+		},
+	}
+	if err := ApplyConfig(context.TODO(), &config, updater); err != nil {
+		t.Fatalf("Failed to apply config: %s", err)
+	}
+
+	testCheckConfigFile(t)
+}
+
+func TestBGPUnnumbered(t *testing.T) {
+	configFile := testSetup(t)
+	updater := testUpdater(configFile)
+
+	config := Config{
+		Underlay: UnderlayConfig{
+			MyASN: 64512,
+			EVPN: &UnderlayEvpn{
+				VTEP: "100.64.0.1/32",
+			},
+			RouterID: "10.0.0.1",
+			Neighbors: []NeighborConfig{
+				{
+					ASN:             mustNewPeerASNFromNumber(64512),
+					Interface:       "eth1",
+					ID:              "eth1",
+					IPFamily:        ipfamily.IPv4,
+					ExtendedNexthop: true,
+				},
+			},
+		},
+		VNIs: []L3VNIConfig{
+			{
+				VRF:      "red",
+				ASN:      64512,
+				VNI:      100,
+				RouterID: "10.0.0.1",
+				LocalNeighbor: &NeighborConfig{
+					ASN:      mustNewPeerASNFromNumber(64512),
+					Addr:     "2001:db8::2",
+					ID:       "2001:db8::2",
 					IPFamily: ipfamily.IPv6,
 				},
 				ToAdvertiseIPv6: []string{
@@ -393,6 +455,7 @@ func TestIPv6OnlyWithRT(t *testing.T) {
 				{
 					ASN:      mustNewPeerASNFromNumber(64513),
 					Addr:     "2001:db8::2",
+					ID:       "2001:db8::2",
 					IPFamily: ipfamily.IPv6,
 				},
 			},
@@ -406,6 +469,7 @@ func TestIPv6OnlyWithRT(t *testing.T) {
 				LocalNeighbor: &NeighborConfig{
 					ASN:      mustNewPeerASNFromNumber(64513),
 					Addr:     "2001:db8::2",
+					ID:       "2001:db8::2",
 					IPFamily: ipfamily.IPv6,
 				},
 				ToAdvertiseIPv6: []string{
@@ -450,6 +514,7 @@ func TestNoVNIs(t *testing.T) {
 				{
 					ASN:      mustNewPeerASNFromNumber(64513),
 					Addr:     "192.168.1.2",
+					ID:       "192.168.1.2",
 					IPFamily: ipfamily.IPv4,
 				},
 			},
@@ -477,6 +542,7 @@ func TestBFDEnabled(t *testing.T) {
 				{
 					ASN:        mustNewPeerASNFromNumber(64513),
 					Addr:       "192.168.1.2",
+					ID:         "192.168.1.2",
 					IPFamily:   ipfamily.IPv4,
 					BFDEnabled: true,
 				},
@@ -505,6 +571,7 @@ func TestBFDProfile(t *testing.T) {
 				{
 					ASN:        mustNewPeerASNFromNumber(64513),
 					Addr:       "192.168.1.2",
+					ID:         "192.168.1.2",
 					IPFamily:   ipfamily.IPv4,
 					BFDEnabled: true,
 					BFDProfile: "foo",
@@ -514,7 +581,7 @@ func TestBFDProfile(t *testing.T) {
 		BFDProfiles: []BFDProfile{
 			{
 				Name:            "foo",
-				ReceiveInterval: ptr.To(uint32(43)),
+				ReceiveInterval: new(int32(43)),
 			},
 		},
 	}
@@ -540,6 +607,7 @@ func TestL3VNIWithoutLocalNeighborAndAdvertise(t *testing.T) {
 				{
 					ASN:      mustNewPeerASNFromNumber(64513),
 					Addr:     "192.168.1.2",
+					ID:       "192.168.1.2",
 					IPFamily: ipfamily.IPv4,
 				},
 			},
@@ -550,6 +618,51 @@ func TestL3VNIWithoutLocalNeighborAndAdvertise(t *testing.T) {
 				VRF:      "red",
 				VNI:      100,
 				ASN:      64512,
+			},
+		},
+	}
+	if err := ApplyConfig(context.Background(), &config, updater); err != nil {
+		t.Fatalf("Failed to apply config: %s", err)
+	}
+
+	testCheckConfigFile(t)
+}
+
+func TestL3VNIWithLocalNeighborAndRedistributeConnected(t *testing.T) {
+	configFile := testSetup(t)
+	updater := testUpdater(configFile)
+
+	config := Config{
+		Underlay: UnderlayConfig{
+			MyASN:    64512,
+			RouterID: "10.0.0.1",
+			EVPN: &UnderlayEvpn{
+				VTEP: "100.64.0.1/32",
+			},
+			Neighbors: []NeighborConfig{
+				{
+					ASN:      mustNewPeerASNFromNumber(64513),
+					Addr:     "192.168.1.2",
+					ID:       "192.168.1.2",
+					IPFamily: ipfamily.IPv4,
+				},
+			},
+		},
+		VNIs: []L3VNIConfig{
+			{
+				VRF:      "red",
+				ASN:      64512,
+				VNI:      100,
+				RouterID: "10.0.0.1",
+				LocalNeighbor: &NeighborConfig{
+					ASN:      mustNewPeerASNFromNumber(64513),
+					Addr:     "192.168.1.2",
+					ID:       "192.168.1.2",
+					IPFamily: ipfamily.IPv4,
+				},
+				ToAdvertiseIPv4: []string{
+					"192.169.10.2/24",
+				},
 			},
 		},
 	}
@@ -572,6 +685,7 @@ func TestPassthroughNoEVPN(t *testing.T) {
 				{
 					ASN:      mustNewPeerASNFromNumber(64513),
 					Addr:     "192.168.1.2",
+					ID:       "192.168.1.2",
 					IPFamily: ipfamily.IPv4,
 				},
 			},
@@ -580,6 +694,7 @@ func TestPassthroughNoEVPN(t *testing.T) {
 			LocalNeighborV4: &NeighborConfig{
 				ASN:      mustNewPeerASNFromNumber(64513),
 				Addr:     "192.168.1.3",
+				ID:       "192.168.1.3",
 				IPFamily: ipfamily.IPv4,
 			},
 			ToAdvertiseIPv4: []string{
@@ -607,6 +722,7 @@ func TestPassthroughExternal(t *testing.T) {
 				{
 					ASN:      mustNewPeerASNFromNumber(64513),
 					Addr:     "192.168.1.2",
+					ID:       "192.168.1.2",
 					IPFamily: ipfamily.IPv4,
 				},
 			},
@@ -615,6 +731,7 @@ func TestPassthroughExternal(t *testing.T) {
 			LocalNeighborV4: &NeighborConfig{
 				ASN:      mustNewPeerASNFromType("external"),
 				Addr:     "192.168.1.3",
+				ID:       "192.168.1.3",
 				IPFamily: ipfamily.IPv4,
 			},
 			ToAdvertiseIPv4: []string{
@@ -645,6 +762,7 @@ func TestPassthroughV4(t *testing.T) {
 				{
 					ASN:      mustNewPeerASNFromNumber(64513),
 					Addr:     "192.168.1.2",
+					ID:       "192.168.1.2",
 					IPFamily: ipfamily.IPv4,
 				},
 			},
@@ -653,6 +771,7 @@ func TestPassthroughV4(t *testing.T) {
 			LocalNeighborV4: &NeighborConfig{
 				ASN:      mustNewPeerASNFromNumber(64513),
 				Addr:     "192.168.1.3",
+				ID:       "192.168.1.3",
 				IPFamily: ipfamily.IPv4,
 			},
 			ToAdvertiseIPv4: []string{
@@ -683,7 +802,14 @@ func TestPassthroughDual(t *testing.T) {
 				{
 					ASN:      mustNewPeerASNFromNumber(64513),
 					Addr:     "192.168.1.2",
+					ID:       "192.168.1.2",
 					IPFamily: ipfamily.IPv4,
+				},
+				{
+					ASN:      mustNewPeerASNFromNumber(64513),
+					Addr:     "2001:db8::1",
+					ID:       "2001:db8::1",
+					IPFamily: ipfamily.DualStack,
 				},
 			},
 		},
@@ -691,11 +817,13 @@ func TestPassthroughDual(t *testing.T) {
 			LocalNeighborV4: &NeighborConfig{
 				ASN:      mustNewPeerASNFromNumber(64513),
 				Addr:     "192.168.1.3",
+				ID:       "192.168.1.3",
 				IPFamily: ipfamily.IPv4,
 			},
 			LocalNeighborV6: &NeighborConfig{
 				ASN:      mustNewPeerASNFromNumber(64513),
 				Addr:     "2001:db8:20::2",
+				ID:       "2001:db8:20::2",
 				IPFamily: ipfamily.IPv6,
 			},
 			ToAdvertiseIPv4: []string{
@@ -728,13 +856,14 @@ func TestRawConfig(t *testing.T) {
 				{
 					ASN:      mustNewPeerASNFromNumber(64513),
 					Addr:     "192.168.1.2",
+					ID:       "192.168.1.2",
 					IPFamily: ipfamily.IPv4,
 				},
 			},
 		},
 		RawConfig: []RawFRRSnippet{
-			{Priority: 5, Config: "ip prefix-list raw-low seq 10 permit 10.0.0.0/8"},
-			{Priority: 20, Config: "ip prefix-list raw-high seq 10 permit 10.1.0.0/16"},
+			{Priority: new(int32(5)), Config: "ip prefix-list raw-low seq 10 permit 10.0.0.0/8"},
+			{Priority: new(int32(20)), Config: "ip prefix-list raw-high seq 10 permit 10.1.0.0/16"},
 		},
 	}
 	if err := ApplyConfig(context.Background(), &config, updater); err != nil {
@@ -808,6 +937,70 @@ func testCheckConfigFile(t *testing.T) {
 	}
 }
 
+func TestGracefulRestart(t *testing.T) {
+	configFile := testSetup(t)
+	updater := testUpdater(configFile)
+
+	config := Config{
+		Underlay: UnderlayConfig{
+			MyASN: 64512,
+			EVPN: &UnderlayEvpn{
+				VTEP: "100.64.0.1/32",
+			},
+			RouterID: "10.0.0.1",
+			Neighbors: []NeighborConfig{
+				{
+					ASN:      mustNewPeerASNFromNumber(64512),
+					Addr:     "192.168.1.2",
+					ID:       "192.168.1.2",
+					IPFamily: ipfamily.IPv4,
+				},
+			},
+			GracefulRestart: &GracefulRestart{
+				RestartTime:   120,
+				StalePathTime: 360,
+			},
+		},
+	}
+	if err := ApplyConfig(context.Background(), &config, updater); err != nil {
+		t.Fatalf("Failed to apply config: %s", err)
+	}
+
+	testCheckConfigFile(t)
+}
+
+func TestGracefulRestartCustomTimers(t *testing.T) {
+	configFile := testSetup(t)
+	updater := testUpdater(configFile)
+
+	config := Config{
+		Underlay: UnderlayConfig{
+			MyASN: 64512,
+			EVPN: &UnderlayEvpn{
+				VTEP: "100.64.0.1/32",
+			},
+			RouterID: "10.0.0.1",
+			Neighbors: []NeighborConfig{
+				{
+					ASN:      mustNewPeerASNFromNumber(64512),
+					Addr:     "192.168.1.2",
+					ID:       "192.168.1.2",
+					IPFamily: ipfamily.IPv4,
+				},
+			},
+			GracefulRestart: &GracefulRestart{
+				RestartTime:   90,
+				StalePathTime: 180,
+			},
+		},
+	}
+	if err := ApplyConfig(context.Background(), &config, updater); err != nil {
+		t.Fatalf("Failed to apply config: %s", err)
+	}
+
+	testCheckConfigFile(t)
+}
+
 func testUpdater(configFile string) func(context.Context, string) error {
 	return func(_ context.Context, config string) error {
 		err := os.WriteFile(configFile, []byte(config), 0600)
@@ -818,11 +1011,11 @@ func testUpdater(configFile string) func(context.Context, string) error {
 	}
 }
 
-func mustNewPeerASNFromNumber(number uint32) PeerASN {
+func mustNewPeerASNFromNumber(number int64) PeerASN {
 	if number == 0 {
 		panic("number must be > 0")
 	}
-	asn, err := NewPeerASN(number, "")
+	asn, err := NewPeerASN(&number, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -830,7 +1023,7 @@ func mustNewPeerASNFromNumber(number uint32) PeerASN {
 }
 
 func mustNewPeerASNFromType(t string) PeerASN {
-	asn, err := NewPeerASN(0, t)
+	asn, err := NewPeerASN(nil, &t)
 	if err != nil {
 		panic(err)
 	}
