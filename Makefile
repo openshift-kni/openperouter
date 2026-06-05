@@ -30,6 +30,12 @@ SHELL = /usr/bin/env bash -o pipefail
 # file to deploy. It defauls to the single cluster variant
 CLAB_TOPOLOGY_FILE ?= singlecluster/kind.clab.yml
 
+# COREDUMP determines if we want to setup the coredump via our scripts. We
+# do not want to do this in local setups, but this is needed for CI environments.
+COREDUMP ?= false
+
+KIND_EXPORT_LOGS ?=/tmp/kind_logs
+
 .PHONY: all
 all: build
 
@@ -58,6 +64,8 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 	$(CONTROLLER_GEN) crd webhook paths="./operator/api/..." paths="./operator/config/..." output:crd:artifacts:config=operator/config/crd/bases
 	$(CONTROLLER_GEN) rbac:roleName=controller-role paths="./internal/controller/..." output:rbac:artifacts:config=config/rbac/
 	$(CONTROLLER_GEN) rbac:roleName=operator-role paths="./operator/..." output:rbac:artifacts:config=operator/config/rbac/
+	# The following line generates operator/config/webhook/webhook/manifests.yaml
+	$(CONTROLLER_GEN) crd webhook paths="./api/..." paths="./config/..." output:crd:none output:webhook:artifacts:config=operator/config/webhook/webhook
 	cp config/crd/bases/*.yaml charts/openperouter/charts/crds/templates
 	rm -f charts/openperouter/charts/crds/templates/kustomization.yaml
 	hack/generate-bindata.sh
@@ -75,6 +83,7 @@ fix: ## Run go fix against code.
 .PHONY: fmt
 fmt: ## Run go fmt against code.
 	go fmt ./...
+	cd e2etests && go fmt ./...
 
 .PHONY: vet
 vet: ## Run go vet against code.
@@ -84,7 +93,7 @@ vet: ## Run go vet against code.
 test: fmt vet envtest $(LOCALBIN) ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $$(go list ./... | grep -v e2etest) -coverprofile cover.out
 	@RUNASROOT_TESTS=""; \
-	for pkg in $$(grep -rl "//go:build runasroot" --include="*_test.go" . | xargs -I{} dirname {} | sort -u); do \
+	for pkg in $$(grep -rl "//go:build runasroot" --include="*_test.go" $$(go list -f '{{.Dir}}' ./...) | xargs -I{} dirname {} | sort -u); do \
 		name=$$(basename $$pkg); \
 		go test -tags=runasroot -c -race -o $(LOCALBIN)/$$name.test $$pkg; \
 		RUNASROOT_TESTS="$$RUNASROOT_TESTS /src/bin/$$name.test"; \
@@ -163,7 +172,7 @@ KIND_VERSION ?= v0.27.0
 KIND_CLUSTER_NAME ?= pe-kind
 HELM_VERSION ?= v3.12.3
 HELM_DOCS_VERSION ?= v1.10.0
-APIDOCSGEN_VERSION ?= v0.0.12
+APIDOCSGEN_VERSION ?= v0.3.0
 HUGO_VERSION ?= v0.147.8
 
 # Kind node image configuration
@@ -184,6 +193,17 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 
 .PHONY: deploy
 deploy: kind deploy-cluster deploy-controller ## Deploy cluster and controller.
+
+.PHONY: deploy-scale
+deploy-scale: export KUSTOMIZE_LAYER=scale
+deploy-scale: kind deploy-cluster deploy-controller deploy-metrics-server ## Deploy cluster and controller without resource limits for scale testing.
+
+.PHONY: deploy-metrics-server
+deploy-metrics-server: kubectl ## Install metrics-server for scale testing (requires --kubelet-insecure-tls for kind clusters).
+	$(KUBECTL) apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+	$(KUBECTL) patch -n kube-system deployment metrics-server --type=json \
+		-p='[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--kubelet-insecure-tls"}]'
+	$(KUBECTL) -n kube-system rollout status deployment/metrics-server --timeout=300s
 
 .PHONY: setup-hostmode
 setup-hostmode: ## Setup node configuration for hostmode.
@@ -252,9 +272,9 @@ deploy-controller-cluster: kubectl kustomize ## Deploy controller to a specific 
 
 .PHONY: deploy-helm
 deploy-helm: helm kind deploy-cluster
-	$(KUBECTL) -n ${NAMESPACE} delete ds controller || true
-	$(KUBECTL) -n ${NAMESPACE} delete ds router || true
-	$(KUBECTL) -n ${NAMESPACE} delete deployment nodemarker || true
+	$(KUBECTL) -n ${NAMESPACE} delete ds openperouter-controller || true
+	$(KUBECTL) -n ${NAMESPACE} delete ds openperouter-router || true
+	$(KUBECTL) -n ${NAMESPACE} delete deployment openperouter-nodemarker || true
 	$(KUBECTL) create ns ${NAMESPACE} || true
 	$(KUBECTL) label ns ${NAMESPACE} pod-security.kubernetes.io/enforce=privileged
 	$(HELM) install openperouter charts/openperouter/ --set openperouter.image.tag=${IMG_TAG} \
@@ -328,18 +348,32 @@ e2etests-hostmode-boot: ginkgo kubectl build-validator create-export-logs ## Run
 	@echo "=== Deploying controller to enable K8s API ==="
 	$(MAKE) deploy-controller KUSTOMIZE_LAYER=hostmode
 	@echo "=== Running passthrough tests (with K8s API available) ==="
-	$(GINKGO) -v $(GINKGO_ARGS) --timeout=3h --label-filter='passthrough' ./e2etests/suite -- --kubectl=$(KUBECTL) $(TEST_ARGS) --skip-underlay-passthrough --systemdmode --hostvalidator $(VALIDATOR_PATH) --reporterpath=${KIND_EXPORT_LOGS} 
+	$(GINKGO) -v $(GINKGO_ARGS) --label-filter="passthrough" --timeout=3h ./e2etests/suite -- --kubectl=$(KUBECTL) $(TEST_ARGS) --skip-underlay-passthrough --systemdmode --hostvalidator $(VALIDATOR_PATH) --reporterpath=${KIND_EXPORT_LOGS}
 
+.PHONY: scale-tests
+scale-tests: ginkgo kubectl create-export-logs ## Run VNI scale tests
+	$(GINKGO) -v --timeout=3h \
+		--json-report=scale-report.json --output-dir=${KIND_EXPORT_LOGS} --keep-separate-reports \
+		./e2etests/scale_suite -- \
+		--kubectl=$(KUBECTL) $(TEST_ARGS)
+
+SCALE_REPORT ?= ${KIND_EXPORT_LOGS}/e2etests_scale_suite_scale-report.json
+
+.PHONY: parse-scale-report
+parse-scale-report: ## Parse scale test JSON report and print summary tables.
+	python3 hack/parse-scale-report.py $(SCALE_REPORT)
 
 .PHONY: clab-cluster
-clab-cluster: kind-node-image-build
-	KUBECONFIG_PATH=$(KUBECONFIG_PATH) KIND=$(KIND) CLAB_TOPOLOGY=$(CLAB_TOPOLOGY_FILE) clab/setup.sh
+clab-cluster: kind-node-image-build kubectl
+	KUBECONFIG_PATH=$(KUBECONFIG_PATH) KIND=$(KIND) KUBECTL=$(KUBECTL) CLAB_TOPOLOGY=$(CLAB_TOPOLOGY_FILE) \
+	  KIND_EXPORT_LOGS=$(KIND_EXPORT_LOGS) COREDUMP=$(COREDUMP) clab/setup.sh
 	@echo 'kind cluster created, to use it please'
 	@echo 'export KUBECONFIG=${KUBECONFIG_PATH}'
 
 .PHONY: clab-multi-cluster
-clab-multi-cluster: kind-node-image-build ## Deploy multi-cluster setup with 2 kindleafs, 2 kind switches, and 2 kind clusters (control plane + worker each)
-	KUBECONFIG_PATH=$(KUBECONFIG_PATH) KIND=$(KIND) CLAB_TOPOLOGY=multicluster/kind.clab.yml clab/setup.sh pe-kind-a pe-kind-b
+clab-multi-cluster: kind-node-image-build kubectl ## Deploy multi-cluster setup with 2 kindleafs, 2 kind switches, and 2 kind clusters (control plane + worker each)
+	KUBECONFIG_PATH=$(KUBECONFIG_PATH) KIND=$(KIND) KUBECTL=$(KUBECTL) CLAB_TOPOLOGY=multicluster/kind.clab.yml \
+	  KIND_EXPORT_LOGS=$(KIND_EXPORT_LOGS) COREDUMP=$(COREDUMP) clab/setup.sh pe-kind-a pe-kind-b
 	@echo 'Multi-cluster deployment created:'
 	@echo '  - Cluster A: export KUBECONFIG=${KUBECONFIG_PATH}-pe-kind-a'
 	@echo '  - Cluster B: export KUBECONFIG=${KUBECONFIG_PATH}-pe-kind-b'
@@ -351,12 +385,12 @@ clean: kind ## Shutdown and clean up kind cluster(s) and containerlab topology.
 
 .PHONY: load-on-kind
 load-on-kind: ## Load the docker image into the kind cluster.
-	KIND=$(KIND) bash -c 'source clab/common.sh && load_local_image_to_kind ${IMG} router'
+	KIND=$(KIND) KUBECTL=$(KUBECTL) bash -c 'source clab/common.sh && load_local_image_to_kind ${IMG} router'
 
 .PHONY: load-on-multi-cluster
 load-on-multi-cluster: ## Load the docker image into both kind clusters.
-	KIND=$(KIND) bash -c 'export KIND_CLUSTER_NAME=pe-kind-a && source clab/common.sh && load_local_image_to_kind ${IMG} router-a'
-	KIND=$(KIND) bash -c 'export KIND_CLUSTER_NAME=pe-kind-b && source clab/common.sh && load_local_image_to_kind ${IMG} router-b'
+	KIND=$(KIND) KUBECTL=$(KUBECTL) bash -c 'export KIND_CLUSTER_NAME=pe-kind-a && source clab/common.sh && load_local_image_to_kind ${IMG} router-a'
+	KIND=$(KIND) KUBECTL=$(KUBECTL) bash -c 'export KIND_CLUSTER_NAME=pe-kind-b && source clab/common.sh && load_local_image_to_kind ${IMG} router-b'
 
 ##@ Kind Node Image
 
@@ -368,17 +402,32 @@ kind-node-image-build: ## Build custom kind node image with OVS
 kind-node-image-push: ## Push custom kind node image to quay.io
 	cd hack/kind-node-image && ./push.sh
 
+GOLANGCI_LINT_VERSION ?= 2.9.0
+GOLANGCI_LINT_CUSTOM_BIN ?= $(LOCALBIN)/golangci-lint-custom
+GOLANGCI_LINT_CACHE ?= $(HOME)/.cache/golangci-lint
+
+$(GOLANGCI_LINT_CUSTOM_BIN): .custom-gcl.yml
+	CONTAINER_ENGINE=$(CONTAINER_ENGINE) \
+	GOLANGCI_LINT_VERSION=$(GOLANGCI_LINT_VERSION) \
+	GOLANGCI_LINT_CACHE=$(GOLANGCI_LINT_CACHE) \
+	hack/golangci-lint.sh build
+
 .PHONY: lint
-lint:
-	hack/lint.sh
+lint: $(GOLANGCI_LINT_CUSTOM_BIN)
+	CONTAINER_ENGINE=$(CONTAINER_ENGINE) \
+	GOLANGCI_LINT_VERSION=$(GOLANGCI_LINT_VERSION) \
+	GOLANGCI_LINT_CACHE=$(GOLANGCI_LINT_CACHE) \
+	hack/golangci-lint.sh run
 
 .PHONY: bumplicense
 bumplicense:
 	hack/bumplicense.sh
 
 .PHONY: checkuncommitted
+CSV_FILE = operator/bundle/manifests/openperouter-operator.clusterserviceversion.yaml
 checkuncommitted:
-	git diff --exit-code
+	git diff --exit-code -I'^    createdAt: ' -- $(CSV_FILE)
+	git diff --exit-code -- ':!$(CSV_FILE)'
 
 .PHONY: bumpall
 bumpall: bumplicense manifests
@@ -392,11 +441,15 @@ bump-k8s-deps: ## Bump all k8s.io and sigs.k8s.io dependencies (K8S_VERSION=v0.3
 bump-go-version: ## Bump Go version across the project (GO_VERSION=1.25.7 or omit for latest)
 	hack/bump_go_version.sh $(GO_VERSION)
 
-KIND_EXPORT_LOGS ?=/tmp/kind_logs
-
 .PHONY: kind-export-logs
 kind-export-logs: create-export-logs
 	$(LOCALBIN)/kind export logs --name ${KIND_CLUSTER_NAME} ${KIND_EXPORT_LOGS}
+
+.PHONY: generate-all
+generate-all: generate manifests generate-all-in-one helm-docs api-docs bundle ## Generate all code, manifests, and documentation.
+
+.PHONY: generate-all-ci
+generate-all-ci: generate manifests generate-all-in-one api-docs bundle ## Generate all code, manifests, and documentation (CI-friendly, excludes helm-docs).
 
 .PHONY: generate-all-in-one
 generate-all-in-one: manifests kustomize ## Create manifests
@@ -580,7 +633,7 @@ endif
 # Build a catalog image by adding bundle images to an empty catalog using the operator package manager tool, 'opm'.
 # This recipe invokes 'opm' in 'semver' bundle add mode. For more information on add modes, see:
 # https://github.com/operator-framework/community-operators/blob/7f1438c/docs/packaging-operator.md#updating-your-existing-operator
-USE_HTTP ?= ""
+USE_HTTP ?=
 .PHONY: catalog-build
 catalog-build: opm ## Build a catalog image.
 	$(OPM) index add --container-tool $(CONTAINER_ENGINE) --mode semver --tag $(CATALOG_IMG) --bundles $(BUNDLE_IMGS) $(FROM_INDEX_OPT) $(USE_HTTP)

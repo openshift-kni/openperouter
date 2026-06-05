@@ -15,7 +15,7 @@ import (
 
 const (
 	// DefaultRefreshPeriod is how often to check and refresh neighbor entries.
-	DefaultRefreshPeriod = 60 * time.Second
+	DefaultRefreshPeriod = 30 * time.Second
 )
 
 // StartOptions configures optional parameters for BridgeRefresher.
@@ -25,16 +25,21 @@ type StartOptions struct {
 
 // BridgeRefresher manages neighbor refresh for an L2VNI bridge.
 // It periodically sends ICMP pings to STALE neighbors to prevent
-// EVPN Type-2 routes from being withdrawn and to force STALE neighbors
-// to FAILED state in case the entry is really STALE.
+// EVPN Type-2 routes from being withdrawn and to force STALE
+// neighbors to FAILED state in case the entry is really STALE.
+//
+// The refresher opens the netns fd ephemerally on each tick (open,
+// use, close) rather than holding a persistent fd. This prevents
+// zombie network namespaces when the netns is deleted externally.
 type BridgeRefresher struct {
 	bridgeName    string // e.g., "br-pe-110"
 	namespace     string // Path to network namespace
 	refreshPeriod time.Duration
-	vni           int
+	vni           int32
 
-	cancel context.CancelFunc
-	wg     sync.WaitGroup
+	cancel   context.CancelFunc
+	wg       sync.WaitGroup
+	stopOnce sync.Once
 }
 
 // New creates a new BridgeRefresher for an L2VNI.
@@ -67,10 +72,13 @@ func (r *BridgeRefresher) Start(ctx context.Context) {
 }
 
 // Stop gracefully stops the refresher and waits for it to finish.
+// It is safe to call multiple times.
 func (r *BridgeRefresher) Stop() {
-	r.cancel()
-	r.wg.Wait()
-	slog.Info("stopped bridge refresher", "bridge", r.bridgeName)
+	r.stopOnce.Do(func() {
+		r.cancel()
+		r.wg.Wait()
+		slog.Info("stopped bridge refresher", "bridge", r.bridgeName)
+	})
 }
 
 // run is the main refresh loop.
@@ -111,6 +119,8 @@ func (r *BridgeRefresher) refresh() {
 
 // refreshStaleNeighbors sends ICMP pings to all STALE neighbors on the bridge.
 func (r *BridgeRefresher) refreshStaleNeighbors() {
+	slog.Debug("refreshing stale neighbors", "bridge", r.bridgeName)
+
 	neighbors, err := r.listStaleNeighbors()
 	if err != nil {
 		slog.Debug("failed to list stale neighbors", "bridge", r.bridgeName, "error", err)
@@ -118,12 +128,9 @@ func (r *BridgeRefresher) refreshStaleNeighbors() {
 	}
 
 	for _, neigh := range neighbors {
+		slog.Debug("pinging stale neighbor", "ip", neigh.IP, "bridge", r.bridgeName)
 		if err := r.sendPing(neigh.IP); err != nil {
 			slog.Debug("failed to ping neighbor", "ip", neigh.IP, "bridge", r.bridgeName, "error", err)
 		}
-	}
-
-	if len(neighbors) > 0 {
-		slog.Debug("pinged stale neighbors", "bridge", r.bridgeName, "count", len(neighbors))
 	}
 }

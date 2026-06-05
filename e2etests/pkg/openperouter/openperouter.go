@@ -59,6 +59,20 @@ func Get(cs clientset.Interface, hostMode bool) (Routers, error) {
 	return routerPodmans{routers: routers}, nil
 }
 
+// AreReady returns nil when every router in the set is non-terminating and
+// ready. In host mode (routerPodmans) it always returns nil because podman
+// has no pod-readiness concept.
+func AreReady(routers Routers) error {
+	rp, ok := routers.(routerPods)
+	if !ok {
+		return nil
+	}
+	if !allPodsReady(rp.pods) {
+		return fmt.Errorf("not all router pods are non-terminating and ready")
+	}
+	return nil
+}
+
 func RouterPodsForNodes(cs clientset.Interface, nodes map[string]bool) ([]*corev1.Pod, error) {
 	routerPods, err := k8s.PodsForLabel(cs, Namespace, routerLabelSelector)
 	if err != nil {

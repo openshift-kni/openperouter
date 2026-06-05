@@ -1,4 +1,4 @@
-log file /etc/frr/frr.log {{.Loglevel}}
+log stdout {{.Loglevel}}
 log timestamp precision 3
 {{- if eq .Loglevel "debug" }}
 debug zebra events
@@ -11,6 +11,8 @@ debug bgp updates
 debug bgp keepalives
 debug bgp nht
 debug bgp zebra
+debug bgp neighbor
+debug bgp graceful-restart
 debug bfd network
 debug bfd peer
 debug bfd zebra
@@ -41,22 +43,29 @@ router bgp {{ .Underlay.MyASN }}
   no bgp network import-check
   no bgp default ipv4-unicast
   bgp router-id {{ .Underlay.RouterID }}
+{{- if .Underlay.GracefulRestart }}
+  bgp graceful-restart
+  bgp graceful-restart preserve-fw-state
+  bgp graceful-restart restart-time {{ .Underlay.GracefulRestart.RestartTime }}
+  bgp graceful-restart stalepath-time {{ .Underlay.GracefulRestart.StalePathTime }}
+{{- end }}
 
 {{- range $n := .Underlay.Neighbors }}
 {{- template "neighborsession" dict "neighbor" $n "routerASN" $.Underlay.MyASN -}}
 {{- end }}
 {{- range $n := .Underlay.Neighbors }}
-{{- template "neighborenableipfamily" . -}}
+{{- template "neighborenableipfamily" dict "neighbor" $n "routerASN" $.Underlay.MyASN -}}
 {{end }}
 
 {{- if .Passthrough }}
 {{- template "localpassthrough" . -}}
 {{- end }}
 
-{{- if .Underlay.EVPN }}
+{{- if .Underlay.TunnelEndpoint }}
 {{- template "underlayevpn" . -}}
 {{- end }}
-
+exit
+!
 {{- end }}
 
 {{- range .VNIs }}
@@ -67,12 +76,33 @@ router bgp {{ .ASN }} vrf {{ .VRF }}
   bgp router-id {{ .RouterID }}
 
   {{- if .LocalNeighbor }}
-  {{ template "localneighbor" . }}
+  {{ template "localneighbor" dict "vni" . "routerASN" $.Underlay.MyASN -}}
+  {{- else if or .ToAdvertiseIPv4 .ToAdvertiseIPv6 }}
+  address-family ipv4 unicast
+  {{- range .ToAdvertiseIPv4 }}
+    network {{ . }}
+  {{- end }}
+  exit-address-family
+  address-family ipv6 unicast
+  {{- range .ToAdvertiseIPv6 }}
+    network {{ . }}
+  {{- end }}
+  exit-address-family
   {{- end }}
 
   address-family l2vpn evpn
     advertise ipv4 unicast
     advertise ipv6 unicast
+    {{- if .ExportRTs }}
+    {{- range .ExportRTs }}
+    route-target export {{ . }}
+    {{- end }}
+    {{- end }}
+    {{- if .ImportRTs }}
+    {{- range .ImportRTs }}
+    route-target import {{ . }}
+    {{- end }}
+    {{- end }}
   exit-address-family
 exit
 {{- end }}

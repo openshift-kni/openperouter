@@ -9,10 +9,12 @@ import (
 	"github.com/openperouter/openperouter/api/v1alpha1"
 	"github.com/openperouter/openperouter/internal/hostnetwork"
 	"github.com/openperouter/openperouter/internal/ipam"
+	"github.com/openperouter/openperouter/internal/ipfamily"
+
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func APItoHostConfig(nodeIndex int, targetNS string, underlayFromMultus bool, apiConfig ApiConfigData) (HostConfigData, error) {
+func APItoHostConfig(nodeIndex int, targetNS string, apiConfig APIConfigData) (HostConfigData, error) {
 	res := HostConfigData{
 		L3VNIs: []hostnetwork.L3VNIParams{},
 		L2VNIs: []hostnetwork.L2VNIParams{},
@@ -29,16 +31,15 @@ func APItoHostConfig(nodeIndex int, targetNS string, underlayFromMultus bool, ap
 
 	underlay := apiConfig.Underlays[0]
 
-	if len(underlay.Spec.Nics) == 0 && !underlayFromMultus {
-		return res, fmt.Errorf("underlay interface must be specified when Multus is not enabled")
+	if len(underlay.Spec.Nics) == 0 {
+		return res, fmt.Errorf("underlay interface must be specified")
 	}
 
 	res.Underlay = hostnetwork.UnderlayParams{
-		TargetNS: targetNS,
+		TargetNS:           targetNS,
+		UnderlayInterfaces: make([]string, len(underlay.Spec.Nics)),
 	}
-	if len(underlay.Spec.Nics) > 0 {
-		res.Underlay.UnderlayInterface = underlay.Spec.Nics[0]
-	}
+	copy(res.Underlay.UnderlayInterfaces, underlay.Spec.Nics)
 
 	if len(apiConfig.L3Passthrough) == 1 {
 		vethIPs, err := ipam.VethIPsFromPool(apiConfig.L3Passthrough[0].Spec.HostSession.LocalCIDR.IPv4, apiConfig.L3Passthrough[0].Spec.HostSession.LocalCIDR.IPv6, nodeIndex)
@@ -59,32 +60,28 @@ func APItoHostConfig(nodeIndex int, targetNS string, underlayFromMultus bool, ap
 
 	// EVPN is required when VNIs are defined, but EVPN without VNIs is allowed
 	// (e.g., for preparation or advanced BGP EVPN use cases)
-	if underlay.Spec.EVPN == nil && (len(apiConfig.L3VNIs) > 0 || len(apiConfig.L2VNIs) > 0) {
-		return res, fmt.Errorf("underlay EVPN configuration is required when L3 or L2 VNIs are defined")
+	if underlay.Spec.TunnelEndpoint == nil && (len(apiConfig.L3VNIs) > 0 || len(apiConfig.L2VNIs) > 0) {
+		return res, fmt.Errorf("underlay tunnel endpoint configuration is required when L3 or L2 VNIs are defined")
 	}
 
-	if underlay.Spec.EVPN == nil {
+	if underlay.Spec.TunnelEndpoint == nil {
 		return res, nil
 	}
 
-	res.Underlay.EVPN = &hostnetwork.UnderlayEVPNParams{}
-	if underlay.Spec.EVPN.VTEPCIDR != "" {
-		vtepIP, err := ipam.VTEPIp(underlay.Spec.EVPN.VTEPCIDR, nodeIndex)
-		if err != nil {
-			return res, fmt.Errorf("failed to get vtep ip, cidr %s, nodeIndex %d: %w", underlay.Spec.EVPN.VTEPCIDR, nodeIndex, err)
-		}
-		res.Underlay.EVPN.VtepIP = vtepIP.String()
+	underlayConfigTunnelEndpoint, err := tunnelEndpointToHost(underlay, nodeIndex)
+	if err != nil {
+		return HostConfigData{}, err
 	}
+	res.Underlay.TunnelEndpoint = &underlayConfigTunnelEndpoint
 
 	for _, vni := range apiConfig.L3VNIs {
 		v := hostnetwork.L3VNIParams{
 			VNIParams: hostnetwork.VNIParams{
-				VRF:           vni.Spec.VRF,
-				TargetNS:      targetNS,
-				VTEPIP:        res.Underlay.EVPN.VtepIP,
-				VTEPInterface: underlay.Spec.EVPN.VTEPInterface,
-				VNI:           int(vni.Spec.VNI),
-				VXLanPort:     int(vni.Spec.VXLanPort),
+				VRF:       vni.Spec.VRF,
+				TargetNS:  targetNS,
+				VTEPIP:    res.Underlay.TunnelEndpoint.IPv4CIDR,
+				VNI:       vni.Spec.VNI,
+				VXLanPort: vni.Spec.VXLanPort,
 			},
 		}
 		if vni.Spec.HostSession == nil {
@@ -109,54 +106,102 @@ func APItoHostConfig(nodeIndex int, targetNS string, underlayFromMultus bool, ap
 
 	res.L2VNIs = []hostnetwork.L2VNIParams{}
 	for _, l2vni := range apiConfig.L2VNIs {
-		vni := hostnetwork.L2VNIParams{
-			VNIParams: hostnetwork.VNIParams{
-				VRF:           l2vni.VRFName(),
-				TargetNS:      targetNS,
-				VTEPIP:        res.Underlay.EVPN.VtepIP,
-				VTEPInterface: underlay.Spec.EVPN.VTEPInterface,
-				VNI:           int(l2vni.Spec.VNI),
-				VXLanPort:     int(l2vni.Spec.VXLanPort),
-			},
+		vni, err := convertL2VNI(l2vni, targetNS, res.Underlay.TunnelEndpoint.IPv4CIDR)
+		if err != nil {
+			return HostConfigData{}, err
 		}
-		if len(l2vni.Spec.L2GatewayIPs) > 0 {
-			vni.L2GatewayIPs = make([]string, len(l2vni.Spec.L2GatewayIPs))
-			copy(vni.L2GatewayIPs, l2vni.Spec.L2GatewayIPs)
-		}
-		if l2vni.Spec.HostMaster != nil {
-			var name string
-			var autoCreate bool
-
-			switch l2vni.Spec.HostMaster.Type {
-			case v1alpha1.LinuxBridge:
-				if l2vni.Spec.HostMaster.LinuxBridge != nil {
-					name = l2vni.Spec.HostMaster.LinuxBridge.Name
-					autoCreate = l2vni.Spec.HostMaster.LinuxBridge.AutoCreate
-				}
-			case v1alpha1.OVSBridge:
-				if l2vni.Spec.HostMaster.OVSBridge != nil {
-					name = l2vni.Spec.HostMaster.OVSBridge.Name
-					autoCreate = l2vni.Spec.HostMaster.OVSBridge.AutoCreate
-				}
-			default:
-				return HostConfigData{}, fmt.Errorf(
-					"unknown host master type %q for L2VNI %s",
-					l2vni.Spec.HostMaster.Type,
-					client.ObjectKeyFromObject(&l2vni),
-				)
-			}
-
-			vni.HostMaster = &hostnetwork.HostMaster{
-				Name:       name,
-				Type:       l2vni.Spec.HostMaster.Type,
-				AutoCreate: autoCreate,
-			}
-		}
-
 		res.L2VNIs = append(res.L2VNIs, vni)
 	}
 
 	return res, nil
+}
+
+func tunnelEndpointToHost(underlay v1alpha1.Underlay, nodeIndex int) (hostnetwork.UnderlayTunnelEndpointParams, error) {
+	tunnelEndpoint := hostnetwork.UnderlayTunnelEndpointParams{}
+	for _, cidr := range underlay.Spec.TunnelEndpoint.CIDRs {
+		af := ipfamily.ForCIDRString(cidr)
+		if af == ipfamily.Unknown {
+			return hostnetwork.UnderlayTunnelEndpointParams{},
+				fmt.Errorf("failed to determine address family for CIDR %q", cidr)
+		}
+
+		ip, err := ipam.VTEPIp(cidr, nodeIndex)
+		if err != nil {
+			return hostnetwork.UnderlayTunnelEndpointParams{},
+				fmt.Errorf("failed to get vtep ip, cidr %s, nodeIndex %d: %w", cidr, nodeIndex, err)
+		}
+
+		if af == ipfamily.IPv4 {
+			tunnelEndpoint.IPv4CIDR = ip.String()
+			continue
+		}
+		tunnelEndpoint.IPv6CIDR = ip.String()
+	}
+	if tunnelEndpoint.IPv4CIDR == "" {
+		return hostnetwork.UnderlayTunnelEndpointParams{},
+			fmt.Errorf("no IPv4 CIDR found after conversion from tunnel endpoint CIDRS: %v",
+				underlay.Spec.TunnelEndpoint.CIDRs)
+	}
+	return tunnelEndpoint, nil
+}
+
+func convertL2VNI(l2vni v1alpha1.L2VNI, targetNS string, vtepIP string) (hostnetwork.L2VNIParams, error) {
+	vni := hostnetwork.L2VNIParams{
+		VNIParams: hostnetwork.VNIParams{
+			TargetNS:  targetNS,
+			VTEPIP:    vtepIP,
+			VNI:       l2vni.Spec.VNI,
+			VXLanPort: l2vni.Spec.VXLanPort,
+		},
+	}
+	if hasVRF(l2vni) {
+		vni.VRF = *l2vni.Spec.VRF
+	}
+	if len(l2vni.Spec.L2GatewayIPs) > 0 {
+		vni.L2GatewayIPs = make([]string, len(l2vni.Spec.L2GatewayIPs))
+		copy(vni.L2GatewayIPs, l2vni.Spec.L2GatewayIPs)
+	}
+	if l2vni.Spec.HostMaster != nil {
+		hm, err := convertHostMaster(&l2vni)
+		if err != nil {
+			return hostnetwork.L2VNIParams{}, err
+		}
+		vni.HostMaster = hm
+	}
+	return vni, nil
+}
+
+func convertHostMaster(l2vni *v1alpha1.L2VNI) (*hostnetwork.HostMaster, error) {
+	switch l2vni.Spec.HostMaster.Type {
+	case v1alpha1.LinuxBridge:
+		if l2vni.Spec.HostMaster.LinuxBridge != nil {
+			return &hostnetwork.HostMaster{
+				Name:       l2vni.Spec.HostMaster.LinuxBridge.Name,
+				Type:       l2vni.Spec.HostMaster.Type,
+				AutoCreate: l2vni.Spec.HostMaster.LinuxBridge.AutoCreate,
+			}, nil
+		}
+	case v1alpha1.OVSBridge:
+		if l2vni.Spec.HostMaster.OVSBridge != nil {
+			return &hostnetwork.HostMaster{
+				Name:       l2vni.Spec.HostMaster.OVSBridge.Name,
+				Type:       l2vni.Spec.HostMaster.Type,
+				AutoCreate: l2vni.Spec.HostMaster.OVSBridge.AutoCreate,
+			}, nil
+		}
+	default:
+		return nil, fmt.Errorf(
+			"unknown host master type %q for L2VNI %s",
+			l2vni.Spec.HostMaster.Type,
+			client.ObjectKeyFromObject(l2vni),
+		)
+	}
+
+	return nil, fmt.Errorf(
+		"host master config is nil for type %q in L2VNI %s",
+		l2vni.Spec.HostMaster.Type,
+		client.ObjectKeyFromObject(l2vni),
+	)
 }
 
 // ipNetToString returns the string representation of the IPNet, or empty string if IP is nil

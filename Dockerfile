@@ -1,7 +1,7 @@
-ARG FRR_IMAGE=quay.io/frrouting/frr:10.2.1
+ARG FRR_IMAGE=quay.io/frrouting/frr:10.6.0
 
 # Build the manager binary
-FROM golang:1.25.7 AS builder
+FROM golang:1.26.3 AS builder
 
 ARG GIT_COMMIT=dev
 ARG GIT_BRANCH=dev
@@ -18,6 +18,7 @@ COPY cmd/ cmd/
 COPY api/ api/
 COPY internal/ internal/
 COPY operator/ operator/
+COPY config/ config/
 
 RUN --mount=type=cache,target=/root/.cache/go-build \
   --mount=type=cache,target=/go/pkg/mod \
@@ -27,6 +28,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
   --mount=type=bind,source=api,target=api \
   --mount=type=bind,source=cmd,target=cmd \
   --mount=type=bind,source=operator,target=operator \
+  --mount=type=bind,source=config,target=config \
   CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -o reloader ./cmd/reloader \
   && \
   CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -o controller ./cmd/hostcontroller \

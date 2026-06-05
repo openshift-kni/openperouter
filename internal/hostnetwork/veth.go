@@ -121,20 +121,19 @@ func createVeth(ctx context.Context, logger *slog.Logger, vethNames VethNames) (
 	}
 
 	vethHost, ok := link.(*netlink.Veth)
-	if ok {
-		return vethHost, nil
-	}
-	logger.DebugContext(ctx, "link exists, but not a veth, deleting and creating")
-	if err := netlink.LinkDel(link); err != nil {
-		return nil, fmt.Errorf("failed to delete link %v: %w", link, err)
+	if !ok {
+		logger.DebugContext(ctx, "link exists, but not a veth, deleting and creating")
+		if err := netlink.LinkDel(link); err != nil {
+			return nil, fmt.Errorf("failed to delete link %v: %w", link, err)
+		}
+		if err := netlink.LinkAdd(toCreate); err != nil {
+			return nil, fmt.Errorf("failed to add veth for vrf %s/%s: %w", vethNames.HostSide, vethNames.NamespaceSide, err)
+		}
+		slog.DebugContext(ctx, "veth recreated", "veth", vethNames.HostSide)
+		return toCreate, nil
 	}
 
-	if err := netlink.LinkAdd(toCreate); err != nil {
-		return nil, fmt.Errorf("failed to add veth for vrf %s/%s: %w", vethNames.HostSide, vethNames.NamespaceSide, err)
-	}
-
-	slog.DebugContext(ctx, "veth recreated", "veth", vethNames.HostSide)
-	return toCreate, nil
+	return vethHost, nil
 }
 
 const HostVethPrefix = "host-"
@@ -142,14 +141,18 @@ const PEVethPrefix = "pe-"
 
 // vethNamesFromVNI returns the names of the veth legs
 // corresponding to the default namespace and the target namespace, based on VNI.
-func vethNamesFromVNI(vni int) VethNames {
+func vethNamesFromVNI(vni int32) VethNames {
 	hostSide := fmt.Sprintf("%s%d", HostVethPrefix, vni)
 	peSide := fmt.Sprintf("%s%d", PEVethPrefix, vni)
 	return VethNames{HostSide: hostSide, NamespaceSide: peSide}
 }
 
-// vniFromHostVeth extracts the VNI (as int) from a host veth name.
-func vniFromHostVeth(hostVethName string) (int, error) {
+// vniFromHostVeth extracts the VNI (as int32) from a host veth name.
+func vniFromHostVeth(hostVethName string) (int32, error) {
 	trimmed := strings.TrimPrefix(hostVethName, HostVethPrefix)
-	return strconv.Atoi(trimmed)
+	res, err := strconv.ParseInt(trimmed, 10, 32)
+	if err != nil {
+		return 0, err
+	}
+	return int32(res), nil
 }

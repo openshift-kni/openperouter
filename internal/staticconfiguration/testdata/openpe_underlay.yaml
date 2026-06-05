@@ -1,7 +1,7 @@
 underlays:
   - asn: 64514
     nics:
-      - toswitch
+      - toswitch1
       - eth0
     neighbors:
       - asn: 64512
@@ -12,5 +12,6 @@ underlays:
           receiveInterval: 300
           transmitInterval: 300
           detectMultiplier: 3
-    evpn:
-      vtepCIDR: "100.65.0.0/24"
+    tunnelEndpoint:
+      cidrs:
+      - "100.65.0.0/24"

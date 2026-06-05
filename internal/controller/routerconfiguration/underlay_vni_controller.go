@@ -42,17 +42,16 @@ import (
 
 type PERouterReconciler struct {
 	client.Client
-	Scheme             *runtime.Scheme
-	MyNode             string
-	MyNamespace        string
-	LogLevel           string
-	Logger             *slog.Logger
-	UnderlayFromMultus bool
-	FRRConfigPath      string
-	FRRReloadSocket    string
-	StaticConfigDir    string
-	NodeConfigPath     string
-	RouterProvider     RouterProvider
+	Scheme          *runtime.Scheme
+	MyNode          string
+	MyNamespace     string
+	LogLevel        string
+	Logger          *slog.Logger
+	FRRConfigPath   string
+	FRRReloadSocket string
+	StaticConfigDir string
+	NodeConfigPath  string
+	RouterProvider  RouterProvider
 
 	// TriggerChan receives events from FileWatcher (in host mode)
 	TriggerChan chan event.GenericEvent
@@ -76,6 +75,8 @@ type requestKey string
 // +kubebuilder:rbac:groups=openpe.openperouter.github.io,resources=l3passthroughs/finalizers,verbs=update
 // +kubebuilder:rbac:groups=openpe.openperouter.github.io,resources=rawfrrconfigs,verbs=get;list;watch
 // +kubebuilder:rbac:groups=openpe.openperouter.github.io,resources=rawfrrconfigs/status,verbs=get
+// +kubebuilder:rbac:groups=openpe.openperouter.github.io,resources=routernodeconfigurationstatuses,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=openpe.openperouter.github.io,resources=routernodeconfigurationstatuses/status,verbs=get;update;patch
 
 func (r *PERouterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := r.Logger.With("controller", "RouterConfiguration", "request", req.String())
@@ -122,15 +123,26 @@ func (r *PERouterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, err
 	}
 
-	err = Reconcile(ctx, config, r.UnderlayFromMultus, nodeIndex, r.LogLevel, r.FRRConfigPath, targetNS, updater)
+	err = Reconcile(ctx, config, nodeIndex, r.LogLevel, r.FRRConfigPath, targetNS, updater)
 	if nonRecoverableHostError(err) {
 		logger.Error("non recoverable error", "error", err)
 		if err := router.HandleNonRecoverableError(ctx); err != nil {
 			slog.Error("failed to handle non recoverable error", "error", err)
 			return ctrl.Result{}, err
 		}
+		return ctrl.Result{}, nil
 	}
+	var errs []error
 	if err != nil {
+		errs = append(errs, err)
+	}
+
+	if err := r.reconcileNodeStatus(ctx); err != nil {
+		errs = append(errs, err)
+	}
+
+	if len(errs) > 0 {
+		err := errors.Join(errs...)
 		slog.Error("failed to configure the host", "error", err)
 		return ctrl.Result{}, err
 	}
@@ -138,7 +150,7 @@ func (r *PERouterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	return ctrl.Result{}, nil
 }
 
-func mergeStaticConfig(staticConfigDir string, config conversion.ApiConfigData, logger *slog.Logger) (conversion.ApiConfigData, error) {
+func mergeStaticConfig(staticConfigDir string, config conversion.APIConfigData, logger *slog.Logger) (conversion.APIConfigData, error) {
 	var noConfigErr *staticconfiguration.NoConfigAvailable
 	staticConfig, err := readStaticConfigs(staticConfigDir)
 	// if we don't have a static configuration is fair to continue and use only the dynamic one
@@ -148,7 +160,7 @@ func mergeStaticConfig(staticConfigDir string, config conversion.ApiConfigData, 
 	}
 	if err != nil {
 		logger.Error("failed to read static configuration", "error", err, "dir", staticConfigDir)
-		return conversion.ApiConfigData{}, fmt.Errorf("failed to read static configuration: %w", err)
+		return conversion.APIConfigData{}, fmt.Errorf("failed to read static configuration: %w", err)
 	}
 
 	merged, err := conversion.MergeAPIConfigs(config, staticConfig)
@@ -161,72 +173,72 @@ func mergeStaticConfig(staticConfigDir string, config conversion.ApiConfigData, 
 	return merged, nil
 }
 
-func (r *PERouterReconciler) getConfigFromAPI(ctx context.Context, logger *slog.Logger) (conversion.ApiConfigData, error) {
+func (r *PERouterReconciler) getConfigFromAPI(ctx context.Context, logger *slog.Logger) (conversion.APIConfigData, error) {
 	var underlays v1alpha1.UnderlayList
 	if err := r.List(ctx, &underlays); err != nil {
 		slog.Error("failed to list underlays", "error", err)
-		return conversion.ApiConfigData{}, err
+		return conversion.APIConfigData{}, err
 	}
 
 	var l3vnis v1alpha1.L3VNIList
 	if err := r.List(ctx, &l3vnis); err != nil {
 		slog.Error("failed to list l3vnis", "error", err)
-		return conversion.ApiConfigData{}, err
+		return conversion.APIConfigData{}, err
 	}
 
 	var l2vnis v1alpha1.L2VNIList
 	if err := r.List(ctx, &l2vnis); err != nil {
 		slog.Error("failed to list l2vnis", "error", err)
-		return conversion.ApiConfigData{}, err
+		return conversion.APIConfigData{}, err
 	}
 
 	var l3passthrough v1alpha1.L3PassthroughList
 	if err := r.List(ctx, &l3passthrough); err != nil {
 		slog.Error("failed to list l3passthrough", "error", err)
-		return conversion.ApiConfigData{}, err
+		return conversion.APIConfigData{}, err
 	}
 
 	var rawFRRConfigs v1alpha1.RawFRRConfigList
 	if err := r.List(ctx, &rawFRRConfigs); err != nil {
 		slog.Error("failed to list rawfrrconfigs", "error", err)
-		return conversion.ApiConfigData{}, err
+		return conversion.APIConfigData{}, err
 	}
 
 	node := &v1.Node{}
 	if err := r.Get(ctx, client.ObjectKey{Name: r.MyNode}, node); err != nil {
 		slog.Error("failed to get node", "node", r.MyNode, "error", err)
-		return conversion.ApiConfigData{}, err
+		return conversion.APIConfigData{}, err
 	}
 
 	// Filter resources by node selector
 	filteredUnderlays, err := filter.UnderlaysForNode(node, underlays.Items)
 	if err != nil {
 		slog.Error("failed to filter underlays for node", "node", r.MyNode, "error", err)
-		return conversion.ApiConfigData{}, err
+		return conversion.APIConfigData{}, err
 	}
 
 	filteredL3VNIs, err := filter.L3VNIsForNode(node, l3vnis.Items)
 	if err != nil {
 		slog.Error("failed to filter l3vnis for node", "node", r.MyNode, "error", err)
-		return conversion.ApiConfigData{}, err
+		return conversion.APIConfigData{}, err
 	}
 
 	filteredL2VNIs, err := filter.L2VNIsForNode(node, l2vnis.Items)
 	if err != nil {
 		slog.Error("failed to filter l2vnis for node", "node", r.MyNode, "error", err)
-		return conversion.ApiConfigData{}, err
+		return conversion.APIConfigData{}, err
 	}
 
 	filteredL3Passthrough, err := filter.L3PassthroughsForNode(node, l3passthrough.Items)
 	if err != nil {
 		slog.Error("failed to filter l3passthrough for node", "node", r.MyNode, "error", err)
-		return conversion.ApiConfigData{}, err
+		return conversion.APIConfigData{}, err
 	}
 
 	filteredRawFRRConfigs, err := filter.RawFRRConfigsForNode(node, rawFRRConfigs.Items)
 	if err != nil {
 		slog.Error("failed to filter rawfrrconfigs for node", "node", r.MyNode, "error", err)
-		return conversion.ApiConfigData{}, err
+		return conversion.APIConfigData{}, err
 	}
 
 	if len(filteredRawFRRConfigs) > 0 {
@@ -235,7 +247,7 @@ func (r *PERouterReconciler) getConfigFromAPI(ctx context.Context, logger *slog.
 
 	logger.Debug("using config", "l3vnis", l3vnis.Items, "l2vnis", l2vnis.Items, "underlays", underlays.Items, "l3passthrough", l3passthrough.Items, "rawfrrconfigs", rawFRRConfigs.Items)
 
-	apiConfig := conversion.ApiConfigData{
+	apiConfig := conversion.APIConfigData{
 		Underlays:     filteredUnderlays,
 		L3VNIs:        filteredL3VNIs,
 		L2VNIs:        filteredL2VNIs,
@@ -248,6 +260,13 @@ func (r *PERouterReconciler) getConfigFromAPI(ctx context.Context, logger *slog.
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *PERouterReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	filterLocalNodeStatus := predicate.NewPredicateFuncs(func(object client.Object) bool {
+		if o, ok := object.(*v1alpha1.RouterNodeConfigurationStatus); ok {
+			return o.Name == r.MyNode
+		}
+		return true
+	})
+
 	filterNonRouterPods := predicate.NewPredicateFuncs(func(object client.Object) bool {
 		switch o := object.(type) {
 		case *v1.Pod:
@@ -302,7 +321,9 @@ func (r *PERouterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(&v1alpha1.L2VNI{}, &handler.EnqueueRequestForObject{}).
 		Watches(&v1alpha1.L3Passthrough{}, &handler.EnqueueRequestForObject{}).
 		Watches(&v1alpha1.RawFRRConfig{}, &handler.EnqueueRequestForObject{}).
+		Watches(&v1alpha1.RouterNodeConfigurationStatus{}, &handler.EnqueueRequestForObject{}).
 		WithEventFilter(filterNonRouterPods).
+		WithEventFilter(filterLocalNodeStatus).
 		WithEventFilter(filterUpdates).
 		Named("routercontroller")
 

@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"strings"
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
@@ -23,7 +22,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/utils/ptr"
 )
 
 var _ = Describe("North/south traffic after FRR container restart", Ordered, func() {
@@ -47,12 +45,12 @@ var _ = Describe("North/south traffic after FRR container restart", Ordered, fun
 			Namespace: openperouter.Namespace,
 		},
 		Spec: v1alpha1.L2VNISpec{
-			VRF: ptr.To("red"),
+			VRF: new("red"),
 			VNI: 110,
 			HostMaster: &v1alpha1.HostMaster{
 				Type: "linux-bridge",
 				LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-					AutoCreate: true,
+					AutoCreate: new(true),
 				},
 			},
 		},
@@ -63,8 +61,13 @@ var _ = Describe("North/south traffic after FRR container restart", Ordered, fun
 		Expect(err).NotTo(HaveOccurred())
 
 		cs = k8sclient.New()
-		routers, err = openperouter.Get(cs, HostMode)
-		Expect(err).NotTo(HaveOccurred())
+		Eventually(func() error {
+			routers, err = openperouter.Get(cs, HostMode)
+			if err != nil {
+				return err
+			}
+			return openperouter.AreReady(routers)
+		}, 2*time.Minute, time.Second).ShouldNot(HaveOccurred())
 
 		routers.Dump(ginkgo.GinkgoWriter)
 
@@ -75,20 +78,20 @@ var _ = Describe("North/south traffic after FRR container restart", Ordered, fun
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		redistributeConnectedForLeaf(infra.LeafAConfig)
-		redistributeConnectedForLeaf(infra.LeafBConfig)
+		Expect(infra.LeafAConfig.RedistributeConnected()).To(Succeed())
+		Expect(infra.LeafBConfig.RedistributeConnected()).To(Succeed())
 	})
 
 	AfterAll(func() {
 		err := Updater.CleanAll()
 		Expect(err).NotTo(HaveOccurred())
-		By("waiting for the router pod to rollout after removing the underlay")
+		By("waiting for all router pods to be ready after removing the underlay")
 		Eventually(func() error {
-			newRouters, err := openperouter.Get(cs, HostMode)
+			routers, err := openperouter.Get(cs, HostMode)
 			if err != nil {
 				return err
 			}
-			return openperouter.DaemonsetRolled(routers, newRouters)
+			return openperouter.AreReady(routers)
 		}, 2*time.Minute, time.Second).ShouldNot(HaveOccurred())
 	})
 
@@ -115,9 +118,9 @@ var _ = Describe("North/south traffic after FRR container restart", Ordered, fun
 		Expect(err).NotTo(HaveOccurred())
 
 		DeferCleanup(func() {
-			Expect(infra.LeafAConfig.RemovePrefixes()).To(Succeed())
-			Expect(infra.LeafBConfig.RemovePrefixes()).To(Succeed())
-			dumpIfFails(cs)
+			dumpIfFails(cs, testNamespace)
+			Expect(infra.LeafAConfig.Reset()).To(Succeed())
+			Expect(infra.LeafBConfig.Reset()).To(Succeed())
 			err := Updater.CleanButUnderlay()
 			Expect(err).NotTo(HaveOccurred())
 			err = k8s.DeleteNamespace(cs, testNamespace)
@@ -146,7 +149,7 @@ var _ = Describe("North/south traffic after FRR container restart", Ordered, fun
 		urlStr := url.Format("http://%s/clientip", hostPort)
 		Eventually(func(g Gomega) string {
 			By(fmt.Sprintf("trying to hit %s from hostA_red", firstPodIP))
-			res, err := hostARedExecutor.Exec("curl", "-sS", urlStr)
+			res, err := hostARedExecutor.Exec("curl", "-sS", "--max-time", "3", urlStr)
 			g.Expect(err).ToNot(HaveOccurred(), "curl %s failed: %s", hostPort, res)
 			clientIP, _, err := net.SplitHostPort(res)
 			g.Expect(err).ToNot(HaveOccurred())
@@ -164,15 +167,7 @@ var _ = Describe("North/south traffic after FRR container restart", Ordered, fun
 		frrExec := executor.ForPod(openperouter.Namespace, routerPod.Name, "frr")
 
 		By("killing the FRR container entrypoint process")
-		psOut, err := frrExec.Exec("pgrep", "-f", "/sbin/tini -- /usr/lib/frr/docker-start")
-
-		Expect(err).NotTo(HaveOccurred(), "failed to find FRR entrypoint PID")
-		pids := strings.Split(strings.TrimSpace(psOut), "\n")
-		Expect(pids).NotTo(BeEmpty(), "FRR entrypoint PID should not be empty")
-		frrPID := strings.TrimSpace(pids[0])
-		var output string
-		output, err = frrExec.Exec("kill", frrPID)
-		Expect(err).NotTo(HaveOccurred(), "failed to kill FRR process %q: %v", frrPID, output)
+		killFRREntrypoint(frrExec)
 
 		By("waiting for the FRR container to restart and become ready")
 		Eventually(func(g Gomega) []v1.PodCondition {

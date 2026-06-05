@@ -15,16 +15,9 @@ import (
 )
 
 type interfacesConfiguration struct {
-	targetNamespace    string
-	underlayFromMultus bool
-	nodeIndex          int
-	conversion.ApiConfigData
-}
-
-type UnderlayRemovedError struct{}
-
-func (n UnderlayRemovedError) Error() string {
-	return "no underlays configured"
+	targetNamespace string
+	nodeIndex       int
+	conversion.APIConfigData
 }
 
 func configureInterfaces(ctx context.Context, config interfacesConfiguration) error {
@@ -33,12 +26,15 @@ func configureInterfaces(ctx context.Context, config interfacesConfiguration) er
 		return fmt.Errorf("failed to check if target namespace %s has underlay: %w", config.targetNamespace, err)
 	}
 	if hasAlreadyUnderlay && len(config.Underlays) == 0 {
-		slog.InfoContext(ctx, "underlay removed, cleaning up VNIs")
+		slog.InfoContext(ctx, "underlay removed, cleaning up VNIs and underlay interfaces")
 		if err := hostnetwork.RemoveAllVNIs(config.targetNamespace); err != nil {
 			slog.Warn("failed to remove vnis after underlay removal", "err", err)
 		}
 		bridgerefresh.StopAllVNIs()
-		return UnderlayRemovedError{}
+		if err := hostnetwork.RemoveUnderlay(config.targetNamespace); err != nil {
+			slog.Warn("failed to remove underlay interfaces after underlay removal", "err", err)
+		}
+		return nil
 	}
 
 	if len(config.Underlays) == 0 {
@@ -47,13 +43,13 @@ func configureInterfaces(ctx context.Context, config interfacesConfiguration) er
 
 	slog.InfoContext(ctx, "configure interface start", "namespace", config.targetNamespace)
 	defer slog.InfoContext(ctx, "configure interface end", "namespace", config.targetNamespace)
-	apiConfig := conversion.ApiConfigData{
+	apiConfig := conversion.APIConfigData{
 		Underlays:     config.Underlays,
 		L3VNIs:        config.L3VNIs,
 		L2VNIs:        config.L2VNIs,
 		L3Passthrough: config.L3Passthrough,
 	}
-	hostConfig, err := conversion.APItoHostConfig(config.nodeIndex, config.targetNamespace, config.underlayFromMultus, apiConfig)
+	hostConfig, err := conversion.APItoHostConfig(config.nodeIndex, config.targetNamespace, apiConfig)
 	if err != nil {
 		return fmt.Errorf("failed to convert config to host configuration: %w", err)
 	}
@@ -123,9 +119,6 @@ func configureInterfaces(ctx context.Context, config interfacesConfiguration) er
 // nonRecoverableHostError tells whether the router pod
 // should be restarted instead of being reconfigured.
 func nonRecoverableHostError(e error) bool {
-	if errors.As(e, &UnderlayRemovedError{}) {
-		return true
-	}
 	underlayExistsError := hostnetwork.UnderlayExistsError("")
 	return errors.As(e, &underlayExistsError)
 }

@@ -5,6 +5,7 @@ package frrk8s
 import (
 	"context"
 	"fmt"
+	"time"
 
 	frrk8sapi "github.com/metallb/frr-k8s/api/v1beta1"
 	"github.com/openperouter/openperouter/api/v1alpha1"
@@ -14,6 +15,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/utils/ptr"
 )
 
 var (
@@ -24,21 +26,24 @@ var (
 // ConfigFromHostSession converts a HostSession object to FRRConfiguration objects.
 // Returns a slice with one configuration for each IP family (IPv4 and/or IPv6).
 func ConfigFromHostSession(hostsession v1alpha1.HostSession, name string, tweak ...func(*frrk8sapi.FRRConfiguration)) ([]frrk8sapi.FRRConfiguration, error) {
-	if hostsession.LocalCIDR.IPv4 == "" && hostsession.LocalCIDR.IPv6 == "" {
+	ipv4 := ptr.Deref(hostsession.LocalCIDR.IPv4, "")
+	ipv6 := ptr.Deref(hostsession.LocalCIDR.IPv6, "")
+
+	if ipv4 == "" && ipv6 == "" {
 		return nil, fmt.Errorf("LocalCIDR is required for HostSession %s", name)
 	}
 
 	var configs []frrk8sapi.FRRConfiguration
-	if hostsession.LocalCIDR.IPv4 != "" {
-		config, err := createFRRConfig(hostsession, name, hostsession.LocalCIDR.IPv4, ipfamily.IPv4, tweak...)
+	if ipv4 != "" {
+		config, err := createFRRConfig(hostsession, name, ipv4, ipfamily.IPv4, tweak...)
 		if err != nil {
 			return nil, err
 		}
 		configs = append(configs, config)
 	}
 
-	if hostsession.LocalCIDR.IPv6 != "" {
-		config, err := createFRRConfig(hostsession, name, hostsession.LocalCIDR.IPv6, ipfamily.IPv6, tweak...)
+	if ipv6 != "" {
+		config, err := createFRRConfig(hostsession, name, ipv6, ipfamily.IPv6, tweak...)
 		if err != nil {
 			return nil, err
 		}
@@ -55,23 +60,26 @@ func ConfigFromHostSession(hostsession v1alpha1.HostSession, name string, tweak 
 // ConfigFromHostSessionForIPFamily converts a HostSession object to FRRConfiguration objects for a specific IP family.
 // Returns a slice with one configuration for the specified IP family.
 func ConfigFromHostSessionForIPFamily(hostsession v1alpha1.HostSession, name string, family ipfamily.Family, tweak ...func(*frrk8sapi.FRRConfiguration)) (*frrk8sapi.FRRConfiguration, error) {
-	if hostsession.LocalCIDR.IPv4 == "" && hostsession.LocalCIDR.IPv6 == "" {
+	ipv4 := ptr.Deref(hostsession.LocalCIDR.IPv4, "")
+	ipv6 := ptr.Deref(hostsession.LocalCIDR.IPv6, "")
+
+	if ipv4 == "" && ipv6 == "" {
 		return nil, fmt.Errorf("LocalCIDR is required for HostSession %s", name)
 	}
 	if family == ipfamily.IPv4 {
-		if hostsession.LocalCIDR.IPv4 == "" {
+		if ipv4 == "" {
 			return nil, fmt.Errorf("IPv4 CIDR not provided for HostSession %s", name)
 		}
-		res, err := createFRRConfig(hostsession, name, hostsession.LocalCIDR.IPv4, family, tweak...)
+		res, err := createFRRConfig(hostsession, name, ipv4, family, tweak...)
 		if err != nil {
 			return nil, err
 		}
 		return &res, nil
 	}
-	if hostsession.LocalCIDR.IPv6 == "" {
+	if ipv6 == "" {
 		return nil, fmt.Errorf("IPv6 CIDR not provided for HostSession %s", name)
 	}
-	res, err := createFRRConfig(hostsession, name, hostsession.LocalCIDR.IPv6, family, tweak...)
+	res, err := createFRRConfig(hostsession, name, ipv6, family, tweak...)
 	if err != nil {
 		return nil, err
 	}
@@ -133,16 +141,24 @@ func createFRRConfig(hostsession v1alpha1.HostSession, name, cidr string, family
 			BGP: frrk8sapi.BGPConfig{
 				Routers: []frrk8sapi.Router{
 					{
-						ASN: hostsession.HostASN,
+						ASN: uint32(ptr.Deref(hostsession.HostASN, 0)), // #nosec G115
 						Neighbors: []frrk8sapi.Neighbor{
 							{
-								ASN:     hostsession.ASN,
+								ASN:     uint32(hostsession.ASN), // #nosec G115
 								Address: routerIP,
 								ToReceive: frrk8sapi.Receive{
 									Allowed: frrk8sapi.AllowedInPrefixes{
 										Mode: frrk8sapi.AllowAll,
 									},
 								},
+								// Tweak the ConnectTime of the FRR-K8s side - we need to do this because:
+								// - FRR changes are debounced, so if an FRR peer is deleted, then recreated in quick
+								//   succession, the same session remains up on FRR-K8s.
+								// - By default, FRR-K8s does not listen on port 179 and thus does not accept new
+								//   connections from the OpenPERouter. Only FRR-K8s can initiate a connection.
+								// - FRR-K8s will only try to reconnect after the ConnectTime (default 120 seconds).
+								// For further details, see https://github.com/openperouter/openperouter/issues/263
+								ConnectTime: &metav1.Duration{Duration: time.Second},
 							},
 						},
 					},

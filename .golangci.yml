@@ -5,16 +5,21 @@ linters:
   default: none
   enable:
     - copyloopvar
+    - depguard
     - dupl
     - errcheck
+    - forbidigo
     - ginkgolinter
     - goconst
+    - gocognit
     - gocyclo
     - govet
     - ineffassign
+    - kubeapilinter
     - lll
     - misspell
     - nakedret
+    - nestif
     - prealloc
     - revive
     - staticcheck
@@ -22,9 +27,43 @@ linters:
     - unparam
     - unused
   settings:
+    depguard:
+      rules:
+        no-generic-packages:
+          deny:
+            - pkg: '*/utils'
+              desc: "avoid generic 'utils' packages — use descriptive package names instead"
+            - pkg: '*/util'
+              desc: "avoid generic 'util' packages — use descriptive package names instead"
+            - pkg: '*/common'
+              desc: "avoid generic 'common' packages — use descriptive package names instead"
+            - pkg: '*/lib'
+              desc: "avoid generic 'lib' packages — use descriptive package names instead"
+            - pkg: '*/misc'
+              desc: "avoid generic 'misc' packages — use descriptive package names instead"
+            - pkg: '*/helpers'
+              desc: "avoid generic 'helpers' packages — use descriptive package names instead"
+    forbidigo:
+      forbid:
+        - pattern: 'time\.Sleep'
+          msg: "use polling or async assertions instead of time.Sleep"
+    gocognit:
+      min-complexity: 30
+    nestif:
+      min-complexity: 3
     revive:
       rules:
         - name: comment-spacings
+        - name: early-return
+        - name: var-naming
+        - name: unexported-return
+    custom:
+      kubeapilinter:
+        type: "module"
+        description: "Kube API Linter lints Kube like APIs based on API conventions and best practices."
+        settings:
+          linters: {}
+          lintersConfig: {}
   exclusions:
     generated: lax
     rules:
@@ -35,6 +74,12 @@ linters:
           - dupl
           - lll
         path: internal/*
+      - linters:
+          - kubeapilinter
+        path-except: "api/"
+      - linters:
+          - kubeapilinter
+        path: "api/static/"
     paths:
       - third_party$
       - builtin$

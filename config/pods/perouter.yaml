@@ -18,11 +18,14 @@ spec:
   template:
     metadata:
       annotations:
-        kubectl.kubernetes.io/default-container: router
+        kubectl.kubernetes.io/default-container: frr
       labels:
         control-plane: router
         app: router
     spec:
+      hostNetwork: true
+      terminationGracePeriodSeconds: 10
+      shareProcessNamespace: true
       containers:
       - name: frr
         securityContext:
@@ -38,20 +41,25 @@ spec:
             mountPath: /var/run/frr
           - name: frrconfig
             mountPath: /etc/frr
-        # The command is FRR's default entrypoint & waiting for the log file to appear and tailing it.
-        # If the log file isn't created in 60 seconds the tail fails and the container is restarted.
-        # This workaround is needed to have the frr logs as part of kubectl logs -c frr < k8s-frr-podname >.
+          - name: netns
+            mountPath: /var/run/netns
+            mountPropagation: HostToContainer
         command:
           - /bin/sh
           - -c
           - |
-            /sbin/tini -- /usr/lib/frr/docker-start &
-            attempts=0
-            until [[ -f /etc/frr/frr.log || $attempts -eq 60 ]]; do
+            TIMEOUT=60
+            WAITED=0
+            until [ -e /var/run/netns/perouter ]; do
+              echo "Waiting for named netns /var/run/netns/perouter..."
               sleep 1
-              attempts=$(( $attempts + 1 ))
+              WAITED=$((WAITED + 1))
+              if [ "$WAITED" -ge "$TIMEOUT" ]; then
+                echo "Timed out waiting for named netns after ${TIMEOUT}s"
+                exit 1
+              fi
             done
-            tail -f /etc/frr/frr.log
+            exec nsenter --net=/var/run/netns/perouter /sbin/tini -- /usr/lib/frr/docker-start
       - name: reloader
         image: router:latest
         imagePullPolicy: IfNotPresent
@@ -109,6 +117,9 @@ spec:
             type: DirectoryOrCreate
         - name: frrconfig
           emptyDir: {}
+        - name: netns
+          hostPath:
+            path: /var/run/netns
       initContainers:
         # Copies the initial config files with the right permissions to the shared volume.
         - name: cp-frr-files
@@ -121,5 +132,4 @@ spec:
             - name: frrconfig
               mountPath: /etc/frr
       serviceAccountName: perouter
-      terminationGracePeriodSeconds: 10
-      shareProcessNamespace: true
+

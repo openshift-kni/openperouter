@@ -21,7 +21,7 @@ spec:
   vrf: blue
   hostsession:
     asn: 64514
-    hostasn: 64515
+    hosttype: external
     localcidr:
       ipv4: 192.169.11.0/24
   vni: 200
@@ -33,10 +33,11 @@ metadata:
   namespace: openperouter-system
 spec:
   asn: 64514
-  evpn:
-    vtepcidr:  100.65.0.0/24
+  tunnelEndpoint:
+    cidrs:
+    - 100.65.0.0/24
   nics:
-    - toswitch
+    - toswitch1
   neighbors:
     - asn: 64512
       address: 192.168.11.2

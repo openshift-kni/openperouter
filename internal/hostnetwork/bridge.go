@@ -13,18 +13,25 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
-// setup bridge creates the bridge if not exists, and it enslaves it to the provided
-// vrf.
-func setupBridge(params VNIParams, vrf *netlink.Vrf) (*netlink.Bridge, error) {
+// setupBridge creates the bridge, optionally enslaves it to the provided
+// vrf, applies any bridge options, and brings the link up.
+func setupBridge(params VNIParams, vrf *netlink.Vrf, opts ...NetlinkOption) (*netlink.Bridge, error) {
 	name := BridgeName(params.VNI)
-	bridge, err := createBridge(name, vrf.Index)
+	bridge, err := createBridge(name)
 	if err != nil {
 		return nil, err
 	}
 
-	err = setAddrGenModeNone(bridge)
-	if err != nil {
-		return nil, fmt.Errorf("failed to set addr_gen_mode to 1 for %s: %w", bridge.Name, err)
+	if vrf != nil {
+		if err := ensureBridgeMaster(bridge, vrf.Index); err != nil {
+			return nil, err
+		}
+	}
+
+	for _, opt := range opts {
+		if err := opt(bridge); err != nil {
+			return nil, fmt.Errorf("failed to apply bridge option for %s: %w", bridge.Name, err)
+		}
 	}
 
 	err = linkSetUp(bridge)
@@ -34,17 +41,12 @@ func setupBridge(params VNIParams, vrf *netlink.Vrf) (*netlink.Bridge, error) {
 	return bridge, nil
 }
 
-// create bridge creates a bridge with the given name, enslaved
-// to the provided vrf.
-func createBridge(name string, vrfIndex int) (*netlink.Bridge, error) {
-
+func createBridge(name string) (*netlink.Bridge, error) {
 	toCreate := &netlink.Bridge{LinkAttrs: netlink.LinkAttrs{
-		Name:        name,
-		MasterIndex: vrfIndex,
+		Name: name,
 	}}
 
 	link, err := netlink.LinkByName(name)
-	// link does not exist, let's create it
 	if errors.As(err, &netlink.LinkNotFoundError{}) {
 		if err := netlink.LinkAdd(toCreate); err != nil {
 			return nil, fmt.Errorf("could not create bridge %s: %w", name, err)
@@ -56,11 +58,11 @@ func createBridge(name string, vrfIndex int) (*netlink.Bridge, error) {
 	}
 
 	bridge, ok := link.(*netlink.Bridge)
-	if ok && bridge.MasterIndex == vrfIndex { // link exists, nothing to do here
+	if ok {
 		return bridge, nil
 	}
 
-	// link exists but it's not a bridge, or wrong vrf. Let's delete and create
+	// link exists but it's not a bridge, delete and recreate
 	err = netlink.LinkDel(link)
 	if err != nil {
 		return nil, fmt.Errorf("failed to delete link %v: %w", link, err)
@@ -72,6 +74,17 @@ func createBridge(name string, vrfIndex int) (*netlink.Bridge, error) {
 	return toCreate, nil
 }
 
+func ensureBridgeMaster(bridge *netlink.Bridge, masterIndex int) error {
+	if bridge.MasterIndex == masterIndex {
+		return nil
+	}
+	if err := netlink.LinkSetMasterByIndex(bridge, masterIndex); err != nil {
+		return fmt.Errorf("could not enslave bridge %s to VRF (index %d): %w", bridge.Name, masterIndex, err)
+	}
+	bridge.MasterIndex = masterIndex
+	return nil
+}
+
 const (
 	macSize = 6
 )
@@ -81,11 +94,11 @@ var macHeader = []byte{0x00, 0xF3}
 // ensureBridgeFixedMacAddress sets a deterministic MAC address on the bridge based on the VNI.
 // It is idempotent: if the MAC is already correct, it skips the update to avoid
 // unnecessary RTM_NEWLINK events that can cause FRR to flush neighbor entries.
-func ensureBridgeFixedMacAddress(bridge netlink.Link, vni int) error {
+func ensureBridgeFixedMacAddress(bridge netlink.Link, vni int32) error {
 	macAddress := make([]byte, macSize)
 
 	buf := new(bytes.Buffer)
-	err := binary.Write(buf, binary.BigEndian, int32(vni+1))
+	err := binary.Write(buf, binary.BigEndian, vni+1)
 	if err != nil {
 		return err
 	}
@@ -105,19 +118,19 @@ func ensureBridgeFixedMacAddress(bridge netlink.Link, vni int) error {
 const bridgePrefix = "br-pe-"
 
 // BridgeName returns the PE bridge name for a given VNI.
-func BridgeName(vni int) string {
+func BridgeName(vni int32) string {
 	return fmt.Sprintf("%s%d", bridgePrefix, vni)
 }
 
-func vniFromBridgeName(name string) (int, error) {
+func vniFromBridgeName(name string) (int32, error) {
 	if !strings.HasPrefix(name, bridgePrefix) {
 		return 0, NotRouterInterfaceError{Name: name}
 	}
 
 	vni := strings.TrimPrefix(name, bridgePrefix)
-	res, err := strconv.Atoi(vni)
+	res, err := strconv.ParseInt(vni, 10, 32)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get vni for bridge %s", name)
 	}
-	return res, nil
+	return int32(res), nil
 }
