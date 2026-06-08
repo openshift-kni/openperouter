@@ -100,7 +100,7 @@ RUN dnf --nogpgcheck install --setopt=install_weak_deps=0 --nodocs -y \
 	glibc-minimal-langpack less shadow-utils tcpdump \
 	libedit libevent libmnl rdma-core libibverbs numactl json-c libcap \
 	libyang elfutils-libelf python3-pyelftools protobuf-c python3 readline catatonit
-RUN  ln -s /usr/libexec/podman/catatonit /sbin/tini
+RUN ln -s /usr/libexec/podman/catatonit /sbin/tini
 
 COPY --from=grout-builder /src/*.rpm /grout/
 RUN dnf --nogpgcheck install -y \
@@ -110,6 +110,7 @@ RUN dnf --nogpgcheck install -y \
     /grout/frr-debuginfo.x86_64.rpm \
     /grout/grout-debuginfo.x86_64.rpm \
     /grout/grout-frr-debuginfo.x86_64.rpm
+
 
 RUN . /etc/os-release && \
       if [ "$ID" = "rhel" ] || [ "$ID" = "ubi" ]; then \
@@ -124,6 +125,8 @@ COPY systemdmode/frrconfig/daemons /etc/frr/daemons
 COPY systemdmode/frrconfig/vtysh.conf /etc/frr/vtysh.conf
 COPY systemdmode/frrconfig/frr.conf /etc/frr/frr.conf
 COPY openshift/frr-docker-start /usr/lib/frr/docker-start
+
+RUN ln -s /usr/libexec/frr/frr-reload.py /usr/lib/frr/frr-reload.py
 
 RUN chmod 640 /etc/frr/* && chown -R frr:frr /etc/frr
 
