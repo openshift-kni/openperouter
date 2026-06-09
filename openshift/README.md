@@ -2,11 +2,11 @@
 
 First, register the subscription
 ```
-$ subscription-manager register --username ... --password ...
+$ subscription-manager register --force --username ... --password ...
 
 # or
 
-$ subscription-manager register --org ... --activationkey ...
+$ subscription-manager register --force --org ... --activationkey ...
 ```
 
 Then, build the image with
@@ -19,6 +19,7 @@ cp -r /etc/rhsm "$TMPDIR/rhsm"
 # Build the image
 podman build -v "$TMPDIR/entitlement:/run/secrets/etc-pki-entitlement:Z"  \
                -v "$TMPDIR/rhsm:/run/secrets/rhsm:Z" \
+               --build-arg BASE_IMAGE=registry.redhat.io/ubi10/ubi:10.1-1774545609 \
                -f Dockerfile.edge.openshift .
 ```
 

@@ -9,20 +9,6 @@
 # running "dnf repolist" to refresh the available repositories.
 #
 
-[rhel-10-for-x86_64-baseos-rpms]
-name = Red Hat Enterprise Linux 10 for x86_64 - BaseOS (RPMs)
-baseurl = https://cdn.redhat.com/content/dist/rhel10/$releasever/x86_64/baseos/os
-enabled = 1
-gpgcheck = 1
-gpgkey = file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
-sslverify = 1
-sslcacert = /etc/rhsm-host/ca/redhat-uep.pem
-sslclientkey = /etc/pki/entitlement-host/6163440309831782651-key.pem
-sslclientcert = /etc/pki/entitlement-host/6163440309831782651.pem
-sslverifystatus = 1
-metadata_expire = 86400
-enabled_metadata = 1
-
 [codeready-builder-for-rhel-10-x86_64-rpms]
 name = Red Hat CodeReady Linux Builder for RHEL 10 x86_64 (RPMs)
 baseurl = https://cdn.redhat.com/content/dist/rhel10/$releasever/x86_64/codeready-builder/os
@@ -31,8 +17,8 @@ gpgcheck = 1
 gpgkey = file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
 sslverify = 1
 sslcacert = /etc/rhsm-host/ca/redhat-uep.pem
-sslclientkey = /etc/pki/entitlement-host/6163440309831782651-key.pem
-sslclientcert = /etc/pki/entitlement-host/6163440309831782651.pem
+sslclientkey = /etc/pki/entitlement-host/5108038553199116594-key.pem
+sslclientcert = /etc/pki/entitlement-host/5108038553199116594.pem
 sslverifystatus = 1
 metadata_expire = 86400
 enabled_metadata = 0
@@ -45,8 +31,22 @@ gpgcheck = 1
 gpgkey = file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
 sslverify = 1
 sslcacert = /etc/rhsm-host/ca/redhat-uep.pem
-sslclientkey = /etc/pki/entitlement-host/6163440309831782651-key.pem
-sslclientcert = /etc/pki/entitlement-host/6163440309831782651.pem
+sslclientkey = /etc/pki/entitlement-host/5108038553199116594-key.pem
+sslclientcert = /etc/pki/entitlement-host/5108038553199116594.pem
+sslverifystatus = 1
+metadata_expire = 86400
+enabled_metadata = 1
+
+[rhel-10-for-x86_64-baseos-rpms]
+name = Red Hat Enterprise Linux 10 for x86_64 - BaseOS (RPMs)
+baseurl = https://cdn.redhat.com/content/dist/rhel10/$releasever/x86_64/baseos/os
+enabled = 1
+gpgcheck = 1
+gpgkey = file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+sslverify = 1
+sslcacert = /etc/rhsm-host/ca/redhat-uep.pem
+sslclientkey = /etc/pki/entitlement-host/5108038553199116594-key.pem
+sslclientcert = /etc/pki/entitlement-host/5108038553199116594.pem
 sslverifystatus = 1
 metadata_expire = 86400
 enabled_metadata = 1
