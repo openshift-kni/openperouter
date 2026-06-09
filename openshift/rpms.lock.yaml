@@ -935,6 +935,13 @@ arches:
     name: tcpdump
     evr: 14:4.99.4-10.el10
     sourcerpm: tcpdump-4.99.4-10.el10.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/appstream/os/Packages/w/wget-1.24.5-5.el10.x86_64.rpm
+    repoid: rhel-10-for-x86_64-appstream-rpms
+    size: 826720
+    checksum: sha256:a65c351b3ab332e93354a1292d1b5c6eac5aac802023bf23c30b189dec8cfcb7
+    name: wget
+    evr: 1.24.5-5.el10
+    sourcerpm: wget-1.24.5-5.el10.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/appstream/os/Packages/x/xkeyboard-config-2.41-3.el10.noarch.rpm
     repoid: rhel-10-for-x86_64-appstream-rpms
     size: 1028145
