@@ -99,7 +99,7 @@ RUN dnf --nogpgcheck install --setopt=install_weak_deps=0 --nodocs -y \
 	--releasever 10 \
 	glibc-minimal-langpack less shadow-utils tcpdump \
 	libedit libevent libmnl rdma-core libibverbs numactl json-c libcap \
-	libyang elfutils-libelf python3-pyelftools protobuf-c python3 readline catatonit \
+	libyang elfutils-libelf protobuf-c python3 readline catatonit \
   wget
 RUN ln -s /usr/libexec/podman/catatonit /sbin/tini
 
