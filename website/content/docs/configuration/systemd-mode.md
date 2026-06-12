@@ -75,6 +75,12 @@ underlays:
         address: 192.168.111.1
 ```
 
+### Deferring Startup
+
+If the controller should wait for external dependencies before starting, place an executable script at `/var/lib/openperouter/can_start.sh`. When present, it runs as an `ExecStartPre` step and the controller will not start until the script exits successfully.
+
+Depending on the CNI, the network configuration might need to be complete before the controller starts. For example, DNS resolution might need to be working, or specific network interfaces might need to be available. The script can poll for these conditions and exit with success (code 0) when ready, or exit with failure (non-zero) to prevent startup.
+
 ### Dynamic Reload
 
 Configuration files are watched for changes and dynamically reloaded at runtime. Updating a file triggers a reconciliation cycle without restarting the service.
