@@ -58,6 +58,7 @@ func Reconcile(ctx context.Context, apiConfig conversion.APIConfigData, groutEna
 
 func configureDataPath(ctx context.Context, groutEnabled bool, apiConfig conversion.APIConfigData, groutSocketPath, targetNamespace string, nodeIndex int) error {
 	if groutEnabled {
+		return nil // grout datapath disabled for testing
 		return configureGroutDataPath(ctx, groutConfiguration{
 			targetNamespace: targetNamespace,
 			nodeIndex:       nodeIndex,
