@@ -1,16 +1,26 @@
 FROM quay.io/konflux-ci/yq:latest@sha256:466005c667e6e9ea19fd4738275f71a13f89382f6233c581d5e952a41ccb3b42 AS builder
 
+ARG OPERATOR_IMAGE=""
+
 COPY --chown=yq:yq operator/bundle/manifests /manifests/
 COPY --chown=yq:yq operator/bundle/metadata /metadata/
 COPY --chown=yq:yq operator/bundle/overlay/ /overlay/
-COPY telco5g-konflux/scripts/bundle/konflux-bundle-overlay.sh /konflux-bundle-overlay.sh 
+COPY telco5g-konflux/scripts/bundle/konflux-bundle-overlay.sh /konflux-bundle-overlay.sh
 
-RUN /konflux-bundle-overlay.sh  \
-    --set-csv-file /manifests/openperouter-operator.clusterserviceversion.yaml \
-    --set-mapping-file /overlay/map_images.in.yaml \
-    --set-mapping-production \
-    --set-pinning-file /overlay/pin_images.in.yaml \
-    --set-release-file /overlay/release.in.yaml
+RUN if [ -n "$OPERATOR_IMAGE" ]; then \
+      yq -i '(.[] | select(.key == "operator")).target = "'"$OPERATOR_IMAGE"'"' /overlay/pin_images.in.yaml && \
+      /konflux-bundle-overlay.sh \
+        --set-csv-file /manifests/openperouter-operator.clusterserviceversion.yaml \
+        --set-pinning-file /overlay/pin_images.in.yaml \
+        --set-release-file /overlay/release.in.yaml; \
+    else \
+      /konflux-bundle-overlay.sh \
+        --set-csv-file /manifests/openperouter-operator.clusterserviceversion.yaml \
+        --set-mapping-file /overlay/map_images.in.yaml \
+        --set-mapping-production \
+        --set-pinning-file /overlay/pin_images.in.yaml \
+        --set-release-file /overlay/release.in.yaml; \
+    fi
 
 FROM scratch
 
