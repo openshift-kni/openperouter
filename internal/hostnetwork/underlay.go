@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	UnderlayLoopback = "lound"
+	loopbackName = "lo"
 )
 
 // underlayGroupID is the link group ID assigned to all underlay interfaces
@@ -24,13 +24,14 @@ const (
 const underlayGroupID = 4242
 
 type UnderlayParams struct {
-	UnderlayInterfaces []string            `json:"underlay_interfaces"`
-	TargetNS           string              `json:"target_ns"`
-	EVPN               *UnderlayEVPNParams `json:"evpn"`
+	UnderlayInterfaces []string                      `json:"underlay_interfaces"`
+	TargetNS           string                        `json:"target_ns"`
+	TunnelEndpoint     *UnderlayTunnelEndpointParams `json:"tunnel_endpoint"`
 }
 
-type UnderlayEVPNParams struct {
-	VtepIP string `json:"vtep_ip"`
+type UnderlayTunnelEndpointParams struct {
+	IPv4CIDR string `json:"ipv4_cidr"`
+	IPv6CIDR string `json:"ipv6_cidr"`
 }
 
 func SetupUnderlay(ctx context.Context, params UnderlayParams) error {
@@ -84,14 +85,19 @@ func SetupUnderlay(ctx context.Context, params UnderlayParams) error {
 		}
 	}
 
-	if params.EVPN == nil {
+	if params.TunnelEndpoint == nil {
 		return nil
 	}
 
-	if params.EVPN.VtepIP != "" {
-		if err := ensureLoopback(ctx, ns, params.EVPN.VtepIP); err != nil {
-			return err
-		}
+	vtepIPs := make([]string, 0, 2)
+	if ip := params.TunnelEndpoint.IPv4CIDR; ip != "" {
+		vtepIPs = append(vtepIPs, ip)
+	}
+	if ip := params.TunnelEndpoint.IPv6CIDR; ip != "" {
+		vtepIPs = append(vtepIPs, ip)
+	}
+	if err := ensureLoopback(ctx, ns, vtepIPs...); err != nil {
+		return err
 	}
 
 	return nil
@@ -103,26 +109,26 @@ func (e UnderlayExistsError) Error() string {
 	return string(e)
 }
 
-func ensureLoopback(ctx context.Context, ns netns.NsHandle, vtepIP string) error {
-	slog.DebugContext(ctx, "setup underlay", "step", "creating loopback interface")
-	defer slog.DebugContext(ctx, "setup underlay", "step", "loopback interface created")
+func ensureLoopback(ctx context.Context, ns netns.NsHandle, vtepIPs ...string) error {
+	slog.DebugContext(ctx, "setup underlay", "step", "setting up loopback interface")
+	defer slog.DebugContext(ctx, "setup underlay", "step", "loopback interface set up")
 
 	if err := netnamespace.In(ns, func() error {
-		loopback, err := netlink.LinkByName(UnderlayLoopback)
-		if errors.As(err, &netlink.LinkNotFoundError{}) {
-			slog.DebugContext(ctx, "setup underlay", "step", "creating loopback interface")
-			loopback = &netlink.Dummy{LinkAttrs: netlink.LinkAttrs{Name: UnderlayLoopback}}
-			if err := netlink.LinkAdd(loopback); err != nil {
-				return fmt.Errorf("assignVTEPToLoopback: failed to create loopback underlay - %w", err)
-			}
+		loopback, err := netlink.LinkByName(loopbackName)
+		if err != nil {
+			return fmt.Errorf("ensureLoopback: failed to retrieve %s, err: %w", loopbackName, err)
 		}
 
-		err = assignIPToInterface(loopback, vtepIP)
-		if err != nil {
-			return err
+		for _, vtepIP := range vtepIPs {
+			err = assignIPToInterface(loopback, vtepIP)
+			if err != nil {
+				return err
+			}
 		}
+		// The link is already set up during namespace creation. However, in order to be idempotent, do this here again,
+		// in case something external set the link to down.
 		if err := netlink.LinkSetUp(loopback); err != nil {
-			return fmt.Errorf("ensureLoopback: failed to bring up %s: %w", UnderlayLoopback, err)
+			return fmt.Errorf("ensureLoopback: failed to bring up %s: %w", loopbackName, err)
 		}
 
 		return nil
@@ -135,7 +141,7 @@ func ensureLoopback(ctx context.Context, ns netns.NsHandle, vtepIP string) error
 
 // RemoveUnderlay removes the underlay state from the named network namespace:
 // it resets the group ID on underlay NICs (so HasUnderlayInterface
-// returns false on the next reconcile) and deletes the VTEP loopback (lound).
+// returns false on the next reconcile) and clears all IP addresses from the VTEP loopback (lo).
 func RemoveUnderlay(targetNS string) error {
 	ns, err := netns.GetFromPath(targetNS)
 	if err != nil {
@@ -148,13 +154,8 @@ func RemoveUnderlay(targetNS string) error {
 	}()
 
 	return netnamespace.In(ns, func() error {
-		lound, err := netlink.LinkByName(UnderlayLoopback)
-		if err != nil {
-			if !errors.As(err, &netlink.LinkNotFoundError{}) {
-				return fmt.Errorf("failed to find %s: %w", UnderlayLoopback, err)
-			}
-		} else if err := netlink.LinkDel(lound); err != nil {
-			return fmt.Errorf("failed to delete %s: %w", UnderlayLoopback, err)
+		if err := clearNonDefaultLoopbackIPs(loopbackName); err != nil {
+			return err
 		}
 
 		links, err := netlink.LinkList()
@@ -237,4 +238,27 @@ func findUnderlayMTU(ns netns.NsHandle) (int, error) {
 		return 0, err
 	}
 	return minMTU, nil
+}
+
+func clearNonDefaultLoopbackIPs(intf string) error {
+	lo, err := netlink.LinkByName(intf)
+	if err != nil {
+		return fmt.Errorf("failed to find %s: %w", intf, err)
+	}
+
+	addresses, err := netlink.AddrList(lo, netlink.FAMILY_ALL)
+	if err != nil {
+		return fmt.Errorf("failed to list addresses on %s: %w", intf, err)
+	}
+
+	var errs []error
+	for _, address := range addresses {
+		if address.IP.IsLoopback() {
+			continue
+		}
+		if err := netlink.AddrDel(lo, &address); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return errors.Join(errs...)
 }
