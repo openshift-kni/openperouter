@@ -19,7 +19,7 @@
         "enabled": false
     },
     "tekton": {
-        "enabled": true,
+        "managerFilePatterns": [".tekton/**"],
         "includePaths": [
             ".tekton/**"
         ],
