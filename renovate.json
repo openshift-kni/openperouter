@@ -32,7 +32,7 @@
     "packageRules": [
         {
             "matchManagers": ["git-submodules"],
-            "matchFileNames": ["openshift/**"],
+            "matchPackageNames": ["openshift/**"],
             "enabled": false
         }
     ]
