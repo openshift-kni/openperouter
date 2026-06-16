@@ -185,11 +185,13 @@ var _ = Describe("Alpha: Named netns and kernel objects survive FRR crash", Orde
 		neighborIP, err := infra.NeighborIP(infra.KindLeaf, nodeName)
 		Expect(err).NotTo(HaveOccurred())
 		validateSessionWithNeighbor(
-			infra.KindLeaf,
-			nodeName,
 			executor.ForContainer(infra.KindLeaf),
-			neighborIP,
-			Established,
+			validationParameters{
+				fromName:    infra.KindLeaf,
+				toName:      nodeName,
+				neighborIP:  neighborIP,
+				established: Established,
+			},
 		)
 	})
 })
@@ -305,11 +307,13 @@ var _ = Describe("Beta: Named netns auto-rebuilds after deletion", Ordered, func
 			neighborIP, err := infra.NeighborIP(infra.KindLeaf, node.Name)
 			Expect(err).NotTo(HaveOccurred())
 			validateSessionWithNeighbor(
-				infra.KindLeaf,
-				node.Name,
 				leafExec,
-				neighborIP,
-				Established,
+				validationParameters{
+					fromName:    infra.KindLeaf,
+					toName:      node.Name,
+					neighborIP:  neighborIP,
+					established: Established,
+				},
 			)
 		}
 	})
@@ -397,11 +401,13 @@ var _ = Describe("Beta: Named netns auto-rebuilds after deletion", Ordered, func
 		neighborIP, err := infra.NeighborIP(infra.KindLeaf, nodes[0].Name)
 		Expect(err).NotTo(HaveOccurred())
 		validateSessionWithNeighbor(
-			infra.KindLeaf,
-			nodes[0].Name,
 			executor.ForContainer(infra.KindLeaf),
-			neighborIP,
-			Established,
+			validationParameters{
+				fromName:    infra.KindLeaf,
+				toName:      nodes[0].Name,
+				neighborIP:  neighborIP,
+				established: Established,
+			},
 		)
 
 		By("waiting for Type-5 prefix route to appear on the fabric before traffic check")
@@ -468,11 +474,13 @@ var _ = Describe("Beta: Named netns auto-rebuilds after deletion", Ordered, func
 		neighborIP, err = infra.NeighborIP(infra.KindLeaf, nodeName)
 		Expect(err).NotTo(HaveOccurred())
 		validateSessionWithNeighbor(
-			infra.KindLeaf,
-			nodeName,
 			executor.ForContainer(infra.KindLeaf),
-			neighborIP,
-			Established,
+			validationParameters{
+				fromName:    infra.KindLeaf,
+				toName:      nodeName,
+				neighborIP:  neighborIP,
+				established: Established,
+			},
 		)
 
 		By("waiting for Type-5 prefix route to appear on the fabric")
@@ -570,11 +578,13 @@ var _ = Describe("Beta: Named netns auto-rebuilds after deletion", Ordered, func
 			neighborIP, err := infra.NeighborIP(infra.KindLeaf, node.Name)
 			Expect(err).NotTo(HaveOccurred())
 			validateSessionWithNeighbor(
-				infra.KindLeaf,
-				node.Name,
 				leafExec,
-				neighborIP,
-				Established,
+				validationParameters{
+					fromName:    infra.KindLeaf,
+					toName:      node.Name,
+					neighborIP:  neighborIP,
+					established: Established,
+				},
 			)
 		}
 
@@ -612,11 +622,13 @@ var _ = Describe("Beta: Named netns auto-rebuilds after deletion", Ordered, func
 		neighborIP, err := infra.NeighborIP(infra.KindLeaf, nodeName)
 		Expect(err).NotTo(HaveOccurred())
 		validateSessionWithNeighbor(
-			infra.KindLeaf,
-			nodeName,
 			executor.ForContainer(infra.KindLeaf),
-			neighborIP,
-			Established,
+			validationParameters{
+				fromName:    infra.KindLeaf,
+				toName:      nodeName,
+				neighborIP:  neighborIP,
+				established: Established,
+			},
 		)
 
 		By("asserting stretched L2 disruption is within acceptable bounds during router pod deletion and recovery")
