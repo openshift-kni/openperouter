@@ -18,6 +18,7 @@ router bgp 64512
   
   
   
+  neighbor 2001:db8::1 disable-connected-check
 
   address-family ipv4 unicast
     neighbor 192.168.1.2 activate
@@ -59,10 +60,6 @@ router bgp 64512
   exit-address-family
 
   address-family l2vpn evpn
-    neighbor 192.168.1.2 activate
-    neighbor 192.168.1.2 allowas-in
-    neighbor 2001:db8::1 activate
-    neighbor 2001:db8::1 allowas-in
     advertise-all-vni
     advertise-svi-ip
   exit-address-family
