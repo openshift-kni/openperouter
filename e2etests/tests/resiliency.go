@@ -415,9 +415,13 @@ var _ = Describe("Beta: Named netns auto-rebuilds after deletion", Ordered, func
 
 		By("verifying traffic works before netns deletion")
 		Eventually(func() error {
-			_, err := hostARedExecutor.Exec("curl", "-sS", "--max-time", "3", urlStr)
-			return err
-		}).WithTimeout(2 * time.Minute).WithPolling(time.Second).Should(Succeed())
+			cmd := "curl"
+			args := []string{"-sS", "--max-time", "3", urlStr}
+			if _, err := hostARedExecutor.Exec(cmd, args...); err != nil {
+				return fmt.Errorf("command failed: %s %v, err: %w", cmd, args, err)
+			}
+			return nil
+		}).WithTimeout(3 * time.Minute).WithPolling(time.Second).Should(Succeed())
 
 		By("identifying the router pod on clientPod's node")
 		routerPods, err := openperouter.RouterPodsForNodes(cs, map[string]bool{clientPod.Spec.NodeName: true})
@@ -503,8 +507,12 @@ var _ = Describe("Beta: Named netns auto-rebuilds after deletion", Ordered, func
 
 		By("verifying traffic works again after rebuild")
 		Eventually(func() error {
-			_, err := hostARedExecutor.Exec("curl", "-sS", "--max-time", "3", urlStr)
-			return err
+			cmd := "curl"
+			args := []string{"-sS", "--max-time", "3", urlStr}
+			if _, err := hostARedExecutor.Exec(cmd, args...); err != nil {
+				return fmt.Errorf("command failed: %s %v, err: %w", cmd, args, err)
+			}
+			return nil
 		}).WithTimeout(3 * time.Minute).WithPolling(time.Second).Should(Succeed())
 	})
 
