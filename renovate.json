@@ -32,7 +32,11 @@
     "packageRules": [
         {
             "matchManagers": ["git-submodules"],
-            "matchPackageNames": ["openshift/**"],
+            "matchDepNames": ["openshift/**"],
+            "enabled": false
+        },
+        {
+            "matchFileNames": ["clab/**"],
             "enabled": false
         }
     ]
