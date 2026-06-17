@@ -25,6 +25,8 @@ spec:
     value: '{{revision}}'
   - name: output-image
     value: quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-bundle-5-0:on-pr-{{revision}}
+  - name: output-image-edge-bundle
+    value: quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-bundle-5-0:on-pr-edge-{{revision}}
   - name: image-expires-after
     value: 5d
   - name: build-platforms
@@ -45,6 +47,9 @@ spec:
   - name: build-args
     value:
     - OPERATOR_IMAGE=quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-5-0:on-pr-{{revision}}
+  - name: build-args-edge-bundle
+    value:
+    - OPERATOR_IMAGE=quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-edge-5-0:on-pr-{{revision}}
   - name: skip-sast-coverity
     value: 'true'
   pipelineSpec:
@@ -323,6 +328,105 @@ spec:
           value: build-image-index
         - name: bundle
           value: quay.io/konflux-ci/tekton-catalog/task-build-image-index:0.2@sha256:c7b0f7e1f743040d99a3532abbdfddc9484f80fd559a75171c97499c3eb5d163
+        - name: kind
+          value: task
+        resolver: bundles
+    - matrix:
+        params:
+        - name: PLATFORM
+          value:
+          - $(params.build-platforms)
+      name: build-images-edge-bundle
+      params:
+      - name: IMAGE
+        value: $(params.output-image-edge-bundle)
+      - name: DOCKERFILE
+        value: $(params.dockerfile)
+      - name: CONTEXT
+        value: $(params.path-context)
+      - name: HERMETIC
+        value: $(params.hermetic)
+      - name: PREFETCH_INPUT
+        value: $(params.prefetch-input)
+      - name: IMAGE_EXPIRES_AFTER
+        value: $(params.image-expires-after)
+      - name: COMMIT_SHA
+        value: $(tasks.clone-repository.results.commit)
+      - name: BUILD_ARGS
+        value:
+        - $(params.build-args-edge-bundle[*])
+      - name: BUILD_ARGS_FILE
+        value: $(params.build-args-file)
+      - name: PRIVILEGED_NESTED
+        value: $(params.privileged-nested)
+      - name: SOURCE_ARTIFACT
+        value: $(tasks.prefetch-dependencies.results.SOURCE_ARTIFACT)
+      - name: CACHI2_ARTIFACT
+        value: $(tasks.prefetch-dependencies.results.CACHI2_ARTIFACT)
+      - name: IMAGE_APPEND_PLATFORM
+        value: "true"
+      - name: LABELS
+        value:
+        - $(tasks.generate-labels.results.labels[*])
+      - name: BUILDAH_FORMAT
+        value: $(params.buildah-format)
+      - name: HTTP_PROXY
+        value: $(tasks.init.results.http-proxy)
+      - name: NO_PROXY
+        value: $(tasks.init.results.no-proxy)
+      runAfter:
+      - prefetch-dependencies
+      taskRef:
+        params:
+        - name: name
+          value: buildah-remote-oci-ta
+        - name: bundle
+          value: quay.io/konflux-ci/tekton-catalog/task-buildah-remote-oci-ta:0.9@sha256:a9ca472e297388d6ef8d1f51ee205abee6076aed7c5356ec0df84f14a2e78ad8
+        - name: kind
+          value: task
+        resolver: bundles
+    - name: build-image-index-edge-bundle
+      params:
+      - name: IMAGE
+        value: $(params.output-image-edge-bundle)
+      - name: COMMIT_SHA
+        value: $(tasks.clone-repository.results.commit)
+      - name: IMAGE_EXPIRES_AFTER
+        value: $(params.image-expires-after)
+      - name: ALWAYS_BUILD_INDEX
+        value: $(params.build-image-index)
+      - name: IMAGES
+        value:
+        - $(tasks.build-images-edge-bundle.results.IMAGE_REF[*])
+      - name: BUILDAH_FORMAT
+        value: $(params.buildah-format)
+      runAfter:
+      - build-images-edge-bundle
+      taskRef:
+        params:
+        - name: name
+          value: build-image-index
+        - name: bundle
+          value: quay.io/konflux-ci/tekton-catalog/task-build-image-index:0.2@sha256:c7b0f7e1f743040d99a3532abbdfddc9484f80fd559a75171c97499c3eb5d163
+        - name: kind
+          value: task
+        resolver: bundles
+    - name: apply-tags-edge-bundle
+      params:
+      - name: IMAGE_URL
+        value: $(tasks.build-image-index-edge-bundle.results.IMAGE_URL)
+      - name: IMAGE_DIGEST
+        value: $(tasks.build-image-index-edge-bundle.results.IMAGE_DIGEST)
+      - name: ADDITIONAL_TAGS
+        value: ["pr-edge-{{pull_request_number}}"]
+      runAfter:
+      - build-image-index-edge-bundle
+      taskRef:
+        params:
+        - name: name
+          value: apply-tags
+        - name: bundle
+          value: quay.io/konflux-ci/tekton-catalog/task-apply-tags:0.3@sha256:510b6d2a3b188adeb716e49566b57d611ab36bd69a2794b5ddfc11dbf014c2ca
         - name: kind
           value: task
         resolver: bundles
