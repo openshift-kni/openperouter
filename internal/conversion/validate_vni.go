@@ -156,16 +156,13 @@ func FilterUniqueVNIs(l3Vnis []v1alpha1.L3VNI, l2Vnis []v1alpha1.L2VNI) ([]v1alp
 	return validL3, validL2, errors.Join(allErrors...)
 }
 
-// validateL2VNI validates a single L2VNI's fields (VRF name, route targets, HostMaster, L2GatewayIPs).
+// validateL2VNI validates a single L2VNI's fields (VRF name, HostMaster, L2GatewayIPs).
 func validateL2VNI(l2Vni v1alpha1.L2VNI) error {
 	vni := vniFromL2VNI(l2Vni)
 	if hasVRF(l2Vni) {
 		if err := isValidInterfaceName(vni.vrfName); err != nil {
 			return fmt.Errorf("invalid vrf name for vni %q, vrf %q: %w", vni.name, vni.vrfName, err)
 		}
-	}
-	if err := ValidateRouteTargets(vni); err != nil {
-		return fmt.Errorf("invalid route targets for vni %q: %w", vni.name, err)
 	}
 	if l2Vni.Spec.HostMaster != nil {
 		if err := validateHostMaster(l2Vni.Name, l2Vni.Spec.HostMaster); err != nil {
