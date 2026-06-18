@@ -73,7 +73,7 @@ func validateUnderlay(underlay v1alpha1.Underlay) error {
 		return fmt.Errorf("underlay %s has duplicate neighbor interface names, "+
 			"only one peer is allowed per interface: %w", underlay.Name, err)
 	}
-	
+
 	if err := validateListenRanges(underlay.Spec.Neighbors); err != nil {
 		return fmt.Errorf("underlay %s: %w", underlay.Name, err)
 	}
@@ -140,7 +140,6 @@ func neighborAddressesOf(neighbors []v1alpha1.Neighbor) []string {
 			continue
 		}
 		res = append(res, *n.Address)
-<<<<<<< HEAD
 	}
 	return res
 }
@@ -152,8 +151,6 @@ func interfaceNamesOf(neighbors []v1alpha1.Neighbor) []string {
 			continue
 		}
 		res = append(res, *n.Interface)
-=======
->>>>>>> 866de2db (feat(webhook): validate underlay listen ranges)
 	}
 	return res
 }
