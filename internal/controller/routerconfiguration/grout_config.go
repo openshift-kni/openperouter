@@ -22,6 +22,9 @@ func newGroutConfigurator(groutSocketPath string) *groutConfigurator {
 }
 
 func (g *groutConfigurator) configure(ctx context.Context, config interfacesConfiguration) error {
+	if true {
+		return nil
+	}
 	groutClient := grout.NewClient(g.groutSocketPath)
 
 	hasAlreadyUnderlay, err := grout.HasUnderlayInterface(ctx, groutClient)
