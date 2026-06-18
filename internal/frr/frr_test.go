@@ -787,10 +787,7 @@ func TestPassthroughV4(t *testing.T) {
 
 	config := Config{
 		Underlay: UnderlayConfig{
-			MyASN: 64512,
-			TunnelEndpoint: &TunnelEndpoint{
-				IPv4CIDR: "100.64.0.1/32",
-			},
+			MyASN:    64512,
 			RouterID: "10.0.0.1",
 			Neighbors: []NeighborConfig{
 				{
@@ -826,10 +823,7 @@ func TestPassthroughDual(t *testing.T) {
 
 	config := Config{
 		Underlay: UnderlayConfig{
-			MyASN: 64512,
-			TunnelEndpoint: &TunnelEndpoint{
-				IPv4CIDR: "100.64.0.1/32",
-			},
+			MyASN:    64512,
 			RouterID: "10.0.0.1",
 			Neighbors: []NeighborConfig{
 				{
