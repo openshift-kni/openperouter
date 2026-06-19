@@ -247,6 +247,11 @@ func (in *L2VNISpec) DeepCopyInto(out *L2VNISpec) {
 		*out = new(int32)
 		**out = **in
 	}
+	if in.UnderlayAddressFamily != nil {
+		in, out := &in.UnderlayAddressFamily, &out.UnderlayAddressFamily
+		*out = new(string)
+		**out = **in
+	}
 	if in.HostMaster != nil {
 		in, out := &in.HostMaster, &out.HostMaster
 		*out = new(HostMaster)
@@ -457,6 +462,11 @@ func (in *L3VNISpec) DeepCopyInto(out *L3VNISpec) {
 	if in.VXLanPort != nil {
 		in, out := &in.VXLanPort, &out.VXLanPort
 		*out = new(int32)
+		**out = **in
+	}
+	if in.UnderlayAddressFamily != nil {
+		in, out := &in.UnderlayAddressFamily, &out.UnderlayAddressFamily
+		*out = new(string)
 		**out = **in
 	}
 	if in.HostSession != nil {
