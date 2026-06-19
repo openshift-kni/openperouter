@@ -85,6 +85,19 @@ Depending on the CNI, the network configuration might need to be complete before
 
 Configuration files are watched for changes and dynamically reloaded at runtime. Updating a file triggers a reconciliation cycle without restarting the service.
 
+### Kubernetes Visibility
+
+When a kubeconfig is available, the controller mirrors the static configuration to Kubernetes Custom Resources. Each statically-configured resource (underlay, L3VNI, L2VNI, L3Passthrough, RawFRRConfig) is created as a corresponding CR with a `openperouter.io/static-source` label. This makes the full cluster configuration visible via `kubectl`:
+
+```bash
+kubectl get underlays -n openperouter-system -l openperouter.io/static-source=true
+kubectl get l3vnis -n openperouter-system -l openperouter.io/static-source=true
+```
+
+The mirrored resources also go through webhook validation, ensuring that the static configuration is validated against the same rules as API-managed resources.
+
+The static files remain the source of truth: any external modification to the mirrored CRs is reverted on the next reconciliation cycle, and deleting a mirrored CR causes it to be recreated.
+
 ### Merging with API Server Configuration
 
 When a kubeconfig is available (exported by the hostbridge pod), configuration from the Kubernetes API server is merged with the file-based configuration. This allows managing part of the configuration via Kubernetes CRs while keeping the base overlay setup in static files that are applied at boot time.
