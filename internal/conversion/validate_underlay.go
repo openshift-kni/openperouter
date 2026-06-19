@@ -96,14 +96,10 @@ func validateUnderlayTunnelEndpoint(underlay *v1alpha1.Underlay) error {
 		return fmt.Errorf("underlay %s: tunnel endpoint CIDRs must be specified", underlay.Name)
 	}
 
-	af, err := ipfamily.ForCIDRStrings(cidrs...)
+	_, err := ipfamily.ForCIDRStrings(cidrs...)
 	if err != nil {
 		return fmt.Errorf("invalid tunnel endpoint CIDRs for underlay %s: %v - %w",
 			underlay.Name, cidrs, err)
-	}
-	if af != ipfamily.IPv4 && af != ipfamily.DualStack {
-		return fmt.Errorf("invalid tunnel endpoint CIDRs for underlay %s, no IPv4 CIDR found: %v",
-			underlay.Name, cidrs)
 	}
 	return nil
 }
