@@ -1802,7 +1802,7 @@ func TestAPItoFRR(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:      "underlay with IPv6 tunnel endpoints only is not supported",
+			name:      "underlay with IPv6 tunnel endpoints only",
 			nodeIndex: 0,
 			underlays: []v1alpha1.Underlay{
 				{
@@ -1815,7 +1815,21 @@ func TestAPItoFRR(t *testing.T) {
 						},
 					}},
 			},
-			wantErr: true,
+			vnis:          []v1alpha1.L3VNI{},
+			l2vnis:        []v1alpha1.L2VNI{},
+			l3Passthrough: []v1alpha1.L3Passthrough{},
+			want: frr.Config{
+				Underlay: frr.UnderlayConfig{
+					Neighbors: []frr.NeighborConfig{},
+					TunnelEndpoint: &frr.TunnelEndpoint{
+						IPv6CIDR: "2001:db8:192:168::/128",
+					},
+					RouterID: "10.0.0.1",
+				},
+				VNIs:        []frr.L3VNIConfig{},
+				BFDProfiles: []frr.BFDProfile{},
+			},
+			wantErr: false,
 		},
 	}
 
@@ -2108,6 +2122,66 @@ func TestAPItoFRRGracefulRestart(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestTunnelEndpointToFRRIPv6Only(t *testing.T) {
+	const (
+		ipv6TestCIDR = "2001:db8::/64"
+		ipv6TestVTEP = "2001:db8::/128"
+	)
+
+	underlay := v1alpha1.Underlay{
+		Spec: v1alpha1.UnderlaySpec{
+			TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+				CIDRs: []string{ipv6TestCIDR},
+			},
+		},
+	}
+
+	got, err := tunnelEndpointToFRR(underlay, 0)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got == nil {
+		t.Fatal("expected non-nil tunnel endpoint")
+	}
+	if got.IPv4CIDR != "" {
+		t.Errorf("IPv4CIDR = %q, want empty", got.IPv4CIDR)
+	}
+	if got.IPv6CIDR != ipv6TestVTEP {
+		t.Errorf("IPv6CIDR = %q, want %q", got.IPv6CIDR, ipv6TestVTEP)
+	}
+}
+
+func TestTunnelEndpointToFRRDualStack(t *testing.T) {
+	const (
+		ipv4TestCIDR = "10.0.0.0/24"
+		ipv4TestVTEP = "10.0.0.0/32"
+		ipv6TestCIDR = "2001:db8::/64"
+		ipv6TestVTEP = "2001:db8::/128"
+	)
+
+	underlay := v1alpha1.Underlay{
+		Spec: v1alpha1.UnderlaySpec{
+			TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+				CIDRs: []string{ipv4TestCIDR, ipv6TestCIDR},
+			},
+		},
+	}
+
+	got, err := tunnelEndpointToFRR(underlay, 0)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got == nil {
+		t.Fatal("expected non-nil tunnel endpoint")
+	}
+	if got.IPv4CIDR != ipv4TestVTEP {
+		t.Errorf("IPv4CIDR = %q, want %q", got.IPv4CIDR, ipv4TestVTEP)
+	}
+	if got.IPv6CIDR != ipv6TestVTEP {
+		t.Errorf("IPv6CIDR = %q, want %q", got.IPv6CIDR, ipv6TestVTEP)
 	}
 }
 

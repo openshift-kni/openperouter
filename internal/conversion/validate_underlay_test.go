@@ -238,6 +238,44 @@ func TestValidateUnderlay(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "valid IPv6-only tunnel endpoint",
+			underlay: v1alpha1.Underlay{
+				Spec: v1alpha1.UnderlaySpec{
+					TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+						CIDRs: []string{"2001:db8::1/128"},
+					},
+					Nics: []string{"eth0"},
+					ASN:  65001,
+					Neighbors: []v1alpha1.Neighbor{
+						{
+							ASN:     new(int64(65002)),
+							Address: new("2001:db8::2"),
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid dual-stack tunnel endpoint",
+			underlay: v1alpha1.Underlay{
+				Spec: v1alpha1.UnderlaySpec{
+					TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+						CIDRs: []string{"192.168.1.0/24", "2001:db8::1/128"},
+					},
+					Nics: []string{"eth0"},
+					ASN:  65001,
+					Neighbors: []v1alpha1.Neighbor{
+						{
+							ASN:     new(int64(65002)),
+							Address: new("192.168.1.1"),
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
