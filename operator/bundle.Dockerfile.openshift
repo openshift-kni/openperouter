@@ -34,6 +34,7 @@ LABEL com.redhat.component="openperouter-operator" \
     distribution-scope="public" \
     release="4.22" \
     url="https://github.com/openperouter/openperouter" \
+    cpe=cpe:/a:redhat:openshift:4.22::el9 \
     vendor="Red Hat, Inc."
 
 COPY --from=builder /manifests/ /manifests/
