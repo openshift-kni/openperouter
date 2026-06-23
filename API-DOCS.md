@@ -294,8 +294,8 @@ _Appears in:_
 | `vni` _integer_ | vni is the VXLan VNI to be used |  | Maximum: 1.6777215e+07 <br />Minimum: 1 <br />Required: \{\} <br /> |
 | `vxlanport` _integer_ | vxlanport is the port to be used for VXLan encapsulation. | 4789 | Optional: \{\} <br /> |
 | `hostsession` _[HostSession](#hostsession)_ | hostsession is the configuration for the host session. |  | Optional: \{\} <br /> |
-| `exportRTs` _string array_ | exportRTs are the Route Targets to be used for exporting routes.<br />RouteTarget defines a BGP Extended Community for route filtering. |  | Optional: \{\} <br /> |
-| `importRTs` _string array_ | importRTs are the Route Targets to be used for importing routes.<br />RouteTarget defines a BGP Extended Community for route filtering. |  | Optional: \{\} <br /> |
+| `exportRTs` _[RouteTarget](#routetarget) array_ | exportRTs are the Route Targets to be used for exporting routes.<br />RouteTarget defines a BGP Extended Community for route filtering. |  | MaxItems: 100 <br />MaxLength: 21 <br />Optional: \{\} <br /> |
+| `importRTs` _[RouteTarget](#routetarget) array_ | importRTs are the Route Targets to be used for importing routes.<br />RouteTarget defines a BGP Extended Community for route filtering. |  | MaxItems: 100 <br />MaxLength: 21 <br />Optional: \{\} <br /> |
 
 
 #### L3VNIStatus
@@ -454,6 +454,20 @@ RawFRRConfigStatus defines the observed state of RawFRRConfig.
 
 _Appears in:_
 - [RawFRRConfig](#rawfrrconfig)
+
+
+
+#### RouteTarget
+
+_Underlying type:_ _string_
+
+RouteTarget defines a BGP Extended Community for route filtering.
+
+_Validation:_
+- MaxLength: 21
+
+_Appears in:_
+- [L3VNISpec](#l3vnispec)
 
 
 
