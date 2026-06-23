@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"github.com/openperouter/openperouter/api/v1alpha1"
 	"github.com/openperouter/openperouter/e2etests/pkg/frr"
 	"github.com/openperouter/openperouter/e2etests/pkg/ipfamily"
 	"github.com/openperouter/openperouter/e2etests/pkg/networklayerprotocol"
@@ -96,8 +97,8 @@ type Neighbor struct {
 }
 
 type RouteTargets struct {
-	ImportRTs []string
-	ExportRTs []string
+	ImportRTs []v1alpha1.RouteTarget
+	ExportRTs []v1alpha1.RouteTarget
 }
 
 type Addresses struct {
