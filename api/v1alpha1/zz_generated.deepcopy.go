@@ -466,12 +466,12 @@ func (in *L3VNISpec) DeepCopyInto(out *L3VNISpec) {
 	}
 	if in.ExportRTs != nil {
 		in, out := &in.ExportRTs, &out.ExportRTs
-		*out = make([]string, len(*in))
+		*out = make([]RouteTarget, len(*in))
 		copy(*out, *in)
 	}
 	if in.ImportRTs != nil {
 		in, out := &in.ImportRTs, &out.ImportRTs
-		*out = make([]string, len(*in))
+		*out = make([]RouteTarget, len(*in))
 		copy(*out, *in)
 	}
 }

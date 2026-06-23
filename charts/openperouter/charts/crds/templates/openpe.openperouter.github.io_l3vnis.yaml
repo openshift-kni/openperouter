@@ -46,7 +46,11 @@ spec:
                   exportRTs are the Route Targets to be used for exporting routes.
                   RouteTarget defines a BGP Extended Community for route filtering.
                 items:
+                  description: RouteTarget defines a BGP Extended Community for route
+                    filtering.
+                  maxLength: 21
                   type: string
+                maxItems: 100
                 type: array
                 x-kubernetes-list-type: atomic
               hostsession:
@@ -115,7 +119,11 @@ spec:
                   importRTs are the Route Targets to be used for importing routes.
                   RouteTarget defines a BGP Extended Community for route filtering.
                 items:
+                  description: RouteTarget defines a BGP Extended Community for route
+                    filtering.
+                  maxLength: 21
                   type: string
+                maxItems: 100
                 type: array
                 x-kubernetes-list-type: atomic
               nodeSelector:
