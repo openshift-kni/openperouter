@@ -275,14 +275,17 @@ func passthroughToFRR(passthrough v1alpha1.L3Passthrough, nodeIndex int) (*frr.P
 // Otherwise, it derives veth IPs from the HostSession's local CIDR pool for the given node index
 // and creates a config per IP family (IPv4/IPv6), each with a local neighbor and the corresponding prefixes to advertise.
 func l3vniToFRR(vni v1alpha1.L3VNI, routerID string, underlayASN int64, nodeIndex int, opts ...L3VNIOption) ([]frr.L3VNIConfig, error) {
+	exportRTs := convertRTsToSliceOfStrings(vni.Spec.ExportRTs)
+	importRTs := convertRTsToSliceOfStrings(vni.Spec.ImportRTs)
+
 	if vni.Spec.HostSession == nil { // no neighbor, just the vni / vrf
 		cfg := frr.L3VNIConfig{
 			VNI:       vni.Spec.VNI,
 			VRF:       vni.Spec.VRF,
 			ASN:       underlayASN, // Since there is no session, the ASN is arbitrary
 			RouterID:  routerID,
-			ExportRTs: vni.Spec.ExportRTs,
-			ImportRTs: vni.Spec.ImportRTs,
+			ExportRTs: exportRTs,
+			ImportRTs: importRTs,
 		}
 		for _, opt := range opts {
 			if err := opt(&cfg); err != nil {
@@ -332,8 +335,8 @@ func l3vniToFRR(vni v1alpha1.L3VNI, routerID string, underlayASN int64, nodeInde
 				ID:   ipnet.IP.String(),
 				ASN:  hostASN,
 			},
-			ExportRTs:       vni.Spec.ExportRTs,
-			ImportRTs:       vni.Spec.ImportRTs,
+			ExportRTs:       exportRTs,
+			ImportRTs:       importRTs,
 			ToAdvertiseIPv4: toAdvertiseIPv4,
 			ToAdvertiseIPv6: toAdvertiseIPv6,
 		})
@@ -346,6 +349,18 @@ func l3vniToFRR(vni v1alpha1.L3VNI, routerID string, underlayASN int64, nodeInde
 		}
 	}
 	return configs, nil
+}
+
+// convertRTsToSliceOfStrings converts the provided routeTarget []v1alpha1.RouteTarget to slice of strings.
+// convertRTsToSliceOfStrings does not validate the provided routeTargets:
+// - for APItoFRR,  FilterValidL3VNIs -> validateL3VNI already did the validation
+// - in validate_vni.go, validation is done separately.
+func convertRTsToSliceOfStrings(routeTargets []v1alpha1.RouteTarget) []string {
+	strTargets := make([]string, len(routeTargets))
+	for i, rt := range routeTargets {
+		strTargets[i] = string(rt)
+	}
+	return strTargets
 }
 
 func neighborToFRR(n v1alpha1.Neighbor,

@@ -328,8 +328,8 @@ func vniFromL3VNI(l3vni v1alpha1.L3VNI) VNI {
 		name:      l3vni.Name,
 		vni:       uint32(l3vni.Spec.VNI),
 		vrfName:   l3vni.Spec.VRF,
-		exportRTs: l3vni.Spec.ExportRTs,
-		importRTs: l3vni.Spec.ImportRTs,
+		exportRTs: convertRTsToSliceOfStrings(l3vni.Spec.ExportRTs),
+		importRTs: convertRTsToSliceOfStrings(l3vni.Spec.ImportRTs),
 	}
 }
 
