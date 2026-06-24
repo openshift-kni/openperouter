@@ -912,7 +912,7 @@ var _ = Describe("Configuration Resiliency", Ordered, func() {
 				Spec: v1alpha1.L3VNISpec{
 					VRF:       "cascade",
 					VNI:       400,
-					ExportRTs: []string{"invalid-rt"},
+					ExportRTs: []v1alpha1.RouteTarget{"invalid-rt"},
 				},
 			}
 
