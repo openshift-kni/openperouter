@@ -2,4 +2,4 @@
 - key: operator
   source: quay.io/openperouter/router:main
   # TODO: update to 4.22 once the image is available
-  target: quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-4-22@sha256:5494045ec5c0fb51d1a296ad6626e957776799a47db21b28c10bb1405c029c9c
+  target: quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-4-22@sha256:4c6d8203201a30685dc489bce70a86e858f946481c335d1e7ba6aff0d0413576
