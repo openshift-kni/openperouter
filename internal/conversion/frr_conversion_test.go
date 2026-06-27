@@ -40,8 +40,8 @@ func TestAPItoFRR(t *testing.T) {
 				{
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
-						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: new("192.168.1.0/24"),
+						TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+							CIDRs: []string{"192.168.1.0/24"},
 						},
 						RouterIDCIDR: new("10.0.0.0/24"),
 						Neighbors:    []v1alpha1.Neighbor{{Address: new("192.168.1.1"), ASN: new(int64(65001))}},
@@ -54,8 +54,8 @@ func TestAPItoFRR(t *testing.T) {
 			want: frr.Config{
 				Underlay: frr.UnderlayConfig{
 					MyASN: 65000,
-					EVPN: &frr.UnderlayEvpn{
-						VTEP: "192.168.1.0/32",
+					TunnelEndpoint: &frr.TunnelEndpoint{
+						IPv4CIDR: "192.168.1.0/32",
 					},
 					RouterID: "10.0.0.1",
 					Neighbors: []frr.NeighborConfig{
@@ -82,8 +82,8 @@ func TestAPItoFRR(t *testing.T) {
 				{
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
-						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: new("192.168.1.0/24"),
+						TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+							CIDRs: []string{"192.168.1.0/24"},
 						},
 						RouterIDCIDR: new("10.0.0.0/24"),
 						Neighbors:    []v1alpha1.Neighbor{{Address: new("192.168.1.1"), Type: new("external")}},
@@ -96,8 +96,8 @@ func TestAPItoFRR(t *testing.T) {
 			want: frr.Config{
 				Underlay: frr.UnderlayConfig{
 					MyASN: 65000,
-					EVPN: &frr.UnderlayEvpn{
-						VTEP: "192.168.1.0/32",
+					TunnelEndpoint: &frr.TunnelEndpoint{
+						IPv4CIDR: "192.168.1.0/32",
 					},
 					RouterID: "10.0.0.1",
 					Neighbors: []frr.NeighborConfig{
@@ -124,8 +124,8 @@ func TestAPItoFRR(t *testing.T) {
 				{
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
-						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: new("192.168.1.0/24"),
+						TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+							CIDRs: []string{"192.168.1.0/24"},
 						},
 						RouterIDCIDR: new("10.0.0.0/24"),
 						Neighbors: []v1alpha1.Neighbor{
@@ -143,8 +143,8 @@ func TestAPItoFRR(t *testing.T) {
 			want: frr.Config{
 				Underlay: frr.UnderlayConfig{
 					MyASN: 65000,
-					EVPN: &frr.UnderlayEvpn{
-						VTEP: "192.168.1.0/32",
+					TunnelEndpoint: &frr.TunnelEndpoint{
+						IPv4CIDR: "192.168.1.0/32",
 					},
 					RouterID: "10.0.0.1",
 					Neighbors: []frr.NeighborConfig{
@@ -171,8 +171,8 @@ func TestAPItoFRR(t *testing.T) {
 				{
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
-						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: new("192.168.1.0/24"),
+						TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+							CIDRs: []string{"192.168.1.0/24"},
 						},
 						RouterIDCIDR: new("10.0.0.0/24"),
 						Neighbors: []v1alpha1.Neighbor{
@@ -190,8 +190,8 @@ func TestAPItoFRR(t *testing.T) {
 			want: frr.Config{
 				Underlay: frr.UnderlayConfig{
 					MyASN: 65000,
-					EVPN: &frr.UnderlayEvpn{
-						VTEP: "192.168.1.0/32",
+					TunnelEndpoint: &frr.TunnelEndpoint{
+						IPv4CIDR: "192.168.1.0/32",
 					},
 					RouterID: "10.0.0.1",
 					Neighbors: []frr.NeighborConfig{
@@ -218,8 +218,8 @@ func TestAPItoFRR(t *testing.T) {
 				{
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
-						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: new("192.168.1.0/24"),
+						TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+							CIDRs: []string{"192.168.1.0/24"},
 						},
 						RouterIDCIDR: new("10.0.0.0/24"),
 						Neighbors:    []v1alpha1.Neighbor{{Address: new("192.168.1.1"), ASN: new(int64(65001))}},
@@ -247,8 +247,8 @@ func TestAPItoFRR(t *testing.T) {
 			want: frr.Config{
 				Underlay: frr.UnderlayConfig{
 					MyASN: 65000,
-					EVPN: &frr.UnderlayEvpn{
-						VTEP: "192.168.1.0/32",
+					TunnelEndpoint: &frr.TunnelEndpoint{
+						IPv4CIDR: "192.168.1.0/32",
 					},
 					RouterID: "10.0.0.1",
 					Neighbors: []frr.NeighborConfig{
@@ -289,8 +289,8 @@ func TestAPItoFRR(t *testing.T) {
 				{
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
-						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: new("192.168.1.0/24"),
+						TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+							CIDRs: []string{"192.168.1.0/24"},
 						},
 						RouterIDCIDR: new("10.0.0.0/24"),
 						Neighbors: []v1alpha1.Neighbor{{
@@ -320,8 +320,8 @@ func TestAPItoFRR(t *testing.T) {
 			want: frr.Config{
 				Underlay: frr.UnderlayConfig{
 					MyASN: 65000,
-					EVPN: &frr.UnderlayEvpn{
-						VTEP: "192.168.1.0/32",
+					TunnelEndpoint: &frr.TunnelEndpoint{
+						IPv4CIDR: "192.168.1.0/32",
 					},
 					RouterID: "10.0.0.1",
 					Neighbors: []frr.NeighborConfig{
@@ -363,8 +363,8 @@ func TestAPItoFRR(t *testing.T) {
 				{
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
-						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: new("192.168.1.0/24"),
+						TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+							CIDRs: []string{"192.168.1.0/24"},
 						},
 						RouterIDCIDR: new("10.0.0.0/24"),
 						Neighbors:    []v1alpha1.Neighbor{{Address: new("192.168.1.1"), ASN: new(int64(65001))}},
@@ -393,8 +393,8 @@ func TestAPItoFRR(t *testing.T) {
 			want: frr.Config{
 				Underlay: frr.UnderlayConfig{
 					MyASN: 65000,
-					EVPN: &frr.UnderlayEvpn{
-						VTEP: "192.168.1.0/32",
+					TunnelEndpoint: &frr.TunnelEndpoint{
+						IPv4CIDR: "192.168.1.0/32",
 					},
 					RouterID: "10.0.0.1",
 					Neighbors: []frr.NeighborConfig{
@@ -448,8 +448,8 @@ func TestAPItoFRR(t *testing.T) {
 				{
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
-						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: new("192.168.1.0/24"),
+						TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+							CIDRs: []string{"192.168.1.0/24"},
 						},
 						RouterIDCIDR: new("10.0.0.0/24"),
 						Neighbors: []v1alpha1.Neighbor{
@@ -474,8 +474,8 @@ func TestAPItoFRR(t *testing.T) {
 			want: frr.Config{
 				Underlay: frr.UnderlayConfig{
 					MyASN: 65000,
-					EVPN: &frr.UnderlayEvpn{
-						VTEP: "192.168.1.0/32",
+					TunnelEndpoint: &frr.TunnelEndpoint{
+						IPv4CIDR: "192.168.1.0/32",
 					},
 					RouterID: "10.0.0.1",
 					Neighbors: []frr.NeighborConfig{
@@ -511,8 +511,8 @@ func TestAPItoFRR(t *testing.T) {
 				{
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
-						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: new("192.168.1.0/24"),
+						TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+							CIDRs: []string{"192.168.1.0/24"},
 						},
 						RouterIDCIDR: new("10.0.0.0/24"),
 						Neighbors: []v1alpha1.Neighbor{
@@ -531,8 +531,8 @@ func TestAPItoFRR(t *testing.T) {
 			want: frr.Config{
 				Underlay: frr.UnderlayConfig{
 					MyASN: 65000,
-					EVPN: &frr.UnderlayEvpn{
-						VTEP: "192.168.1.0/32",
+					TunnelEndpoint: &frr.TunnelEndpoint{
+						IPv4CIDR: "192.168.1.0/32",
 					},
 					RouterID: "10.0.0.1",
 					Neighbors: []frr.NeighborConfig{
@@ -561,8 +561,8 @@ func TestAPItoFRR(t *testing.T) {
 				{
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
-						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: new("192.168.1.0/24"),
+						TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+							CIDRs: []string{"192.168.1.0/24"},
 						},
 						RouterIDCIDR: new("10.0.0.0/24"),
 						Neighbors:    []v1alpha1.Neighbor{{Address: new("192.168.1.1"), ASN: new(int64(65001))}},
@@ -583,8 +583,8 @@ func TestAPItoFRR(t *testing.T) {
 			want: frr.Config{
 				Underlay: frr.UnderlayConfig{
 					MyASN: 65000,
-					EVPN: &frr.UnderlayEvpn{
-						VTEP: "192.168.1.0/32",
+					TunnelEndpoint: &frr.TunnelEndpoint{
+						IPv4CIDR: "192.168.1.0/32",
 					},
 					RouterID: "10.0.0.1",
 					Neighbors: []frr.NeighborConfig{
@@ -618,8 +618,8 @@ func TestAPItoFRR(t *testing.T) {
 				{
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
-						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: new("192.168.1.0/24"),
+						TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+							CIDRs: []string{"192.168.1.0/24"},
 						},
 						RouterIDCIDR: new("10.0.0.0/24"),
 						Neighbors:    []v1alpha1.Neighbor{{Address: new("192.168.1.1"), ASN: new(int64(65001))}},
@@ -649,8 +649,8 @@ func TestAPItoFRR(t *testing.T) {
 			want: frr.Config{
 				Underlay: frr.UnderlayConfig{
 					MyASN: 65000,
-					EVPN: &frr.UnderlayEvpn{
-						VTEP: "192.168.1.0/32",
+					TunnelEndpoint: &frr.TunnelEndpoint{
+						IPv4CIDR: "192.168.1.0/32",
 					},
 					RouterID: "10.0.0.1",
 					Neighbors: []frr.NeighborConfig{
@@ -693,8 +693,8 @@ func TestAPItoFRR(t *testing.T) {
 				{
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
-						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: new("192.168.1.0/24"),
+						TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+							CIDRs: []string{"192.168.1.0/24"},
 						},
 						RouterIDCIDR: new("10.0.0.0/24"),
 						Neighbors:    []v1alpha1.Neighbor{{Address: new("192.168.1.1"), ASN: new(int64(65001))}},
@@ -717,8 +717,8 @@ func TestAPItoFRR(t *testing.T) {
 			want: frr.Config{
 				Underlay: frr.UnderlayConfig{
 					MyASN: 65000,
-					EVPN: &frr.UnderlayEvpn{
-						VTEP: "192.168.1.0/32",
+					TunnelEndpoint: &frr.TunnelEndpoint{
+						IPv4CIDR: "192.168.1.0/32",
 					},
 					RouterID: "10.0.0.1",
 					Neighbors: []frr.NeighborConfig{
@@ -754,8 +754,8 @@ func TestAPItoFRR(t *testing.T) {
 				{
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
-						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: new("192.168.1.0/24"),
+						TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+							CIDRs: []string{"192.168.1.0/24"},
 						},
 						RouterIDCIDR: new("10.0.0.0/24"),
 						Neighbors:    []v1alpha1.Neighbor{{Address: new("192.168.1.1"), ASN: new(int64(65001))}},
@@ -783,8 +783,8 @@ func TestAPItoFRR(t *testing.T) {
 			want: frr.Config{
 				Underlay: frr.UnderlayConfig{
 					MyASN: 65000,
-					EVPN: &frr.UnderlayEvpn{
-						VTEP: "192.168.1.0/32",
+					TunnelEndpoint: &frr.TunnelEndpoint{
+						IPv4CIDR: "192.168.1.0/32",
 					},
 					RouterID: "10.0.0.1",
 					Neighbors: []frr.NeighborConfig{
@@ -825,8 +825,8 @@ func TestAPItoFRR(t *testing.T) {
 				{
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
-						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: new("192.168.1.0/24"),
+						TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+							CIDRs: []string{"192.168.1.0/24"},
 						},
 						RouterIDCIDR: new("10.0.0.0/24"),
 						Neighbors:    []v1alpha1.Neighbor{{Address: new("192.168.1.1"), ASN: new(int64(65001))}},
@@ -855,8 +855,8 @@ func TestAPItoFRR(t *testing.T) {
 			want: frr.Config{
 				Underlay: frr.UnderlayConfig{
 					MyASN: 65000,
-					EVPN: &frr.UnderlayEvpn{
-						VTEP: "192.168.1.0/32",
+					TunnelEndpoint: &frr.TunnelEndpoint{
+						IPv4CIDR: "192.168.1.0/32",
 					},
 					RouterID: "10.0.0.1",
 					Neighbors: []frr.NeighborConfig{
@@ -897,8 +897,8 @@ func TestAPItoFRR(t *testing.T) {
 				{
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
-						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: new("192.168.1.0/24"),
+						TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+							CIDRs: []string{"192.168.1.0/24"},
 						},
 						RouterIDCIDR: new("10.0.0.0/24"),
 						Neighbors:    []v1alpha1.Neighbor{{Address: new("192.168.1.1"), ASN: new(int64(65001))}},
@@ -927,8 +927,8 @@ func TestAPItoFRR(t *testing.T) {
 			want: frr.Config{
 				Underlay: frr.UnderlayConfig{
 					MyASN: 65000,
-					EVPN: &frr.UnderlayEvpn{
-						VTEP: "192.168.1.0/32",
+					TunnelEndpoint: &frr.TunnelEndpoint{
+						IPv4CIDR: "192.168.1.0/32",
 					},
 					RouterID: "10.0.0.1",
 					Neighbors: []frr.NeighborConfig{
@@ -1005,8 +1005,8 @@ func TestAPItoFRR(t *testing.T) {
 				{
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
-						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: new("192.168.1.0/24"),
+						TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+							CIDRs: []string{"192.168.1.0/24"},
 						},
 						RouterIDCIDR: new("10.0.0.0/24"),
 						Neighbors:    []v1alpha1.Neighbor{{Address: new("192.168.1.1"), ASN: new(int64(65001))}},
@@ -1032,8 +1032,8 @@ func TestAPItoFRR(t *testing.T) {
 			want: frr.Config{
 				Underlay: frr.UnderlayConfig{
 					MyASN: 65000,
-					EVPN: &frr.UnderlayEvpn{
-						VTEP: "192.168.1.0/32",
+					TunnelEndpoint: &frr.TunnelEndpoint{
+						IPv4CIDR: "192.168.1.0/32",
 					},
 					RouterID: "10.0.0.1",
 					Neighbors: []frr.NeighborConfig{
@@ -1074,8 +1074,8 @@ func TestAPItoFRR(t *testing.T) {
 				{
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
-						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: new("192.168.1.0/24"),
+						TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+							CIDRs: []string{"192.168.1.0/24"},
 						},
 						RouterIDCIDR: new("10.0.0.0/24"),
 						Neighbors:    []v1alpha1.Neighbor{{Address: new("192.168.1.1"), ASN: new(int64(65001))}},
@@ -1102,8 +1102,8 @@ func TestAPItoFRR(t *testing.T) {
 			want: frr.Config{
 				Underlay: frr.UnderlayConfig{
 					MyASN: 65000,
-					EVPN: &frr.UnderlayEvpn{
-						VTEP: "192.168.1.0/32",
+					TunnelEndpoint: &frr.TunnelEndpoint{
+						IPv4CIDR: "192.168.1.0/32",
 					},
 					RouterID: "10.0.0.1",
 					Neighbors: []frr.NeighborConfig{
@@ -1144,8 +1144,8 @@ func TestAPItoFRR(t *testing.T) {
 				{
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
-						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: new("192.168.1.0/24"),
+						TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+							CIDRs: []string{"192.168.1.0/24"},
 						},
 						RouterIDCIDR: new("10.0.0.0/24"),
 						Neighbors:    []v1alpha1.Neighbor{{Address: new("192.168.1.1"), ASN: new(int64(65001))}},
@@ -1172,8 +1172,8 @@ func TestAPItoFRR(t *testing.T) {
 			want: frr.Config{
 				Underlay: frr.UnderlayConfig{
 					MyASN: 65000,
-					EVPN: &frr.UnderlayEvpn{
-						VTEP: "192.168.1.0/32",
+					TunnelEndpoint: &frr.TunnelEndpoint{
+						IPv4CIDR: "192.168.1.0/32",
 					},
 					RouterID: "10.0.0.1",
 					Neighbors: []frr.NeighborConfig{
@@ -1400,8 +1400,8 @@ func TestAPItoFRR(t *testing.T) {
 				{
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
-						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: new("192.168.1.0/24"),
+						TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+							CIDRs: []string{"192.168.1.0/24"},
 						},
 						RouterIDCIDR: new("10.0.0.0/24"),
 						Neighbors: []v1alpha1.Neighbor{{
@@ -1423,8 +1423,8 @@ func TestAPItoFRR(t *testing.T) {
 				{
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
-						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: new("192.168.1.0/24"),
+						TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+							CIDRs: []string{"192.168.1.0/24"},
 						},
 						RouterIDCIDR: new("10.0.0.0/24"),
 						Neighbors: []v1alpha1.Neighbor{{
@@ -1446,8 +1446,8 @@ func TestAPItoFRR(t *testing.T) {
 				{
 					Spec: v1alpha1.UnderlaySpec{
 						ASN: 65000,
-						EVPN: &v1alpha1.EVPNConfig{
-							VTEPCIDR: new("192.168.1.0/24"),
+						TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+							CIDRs: []string{"192.168.1.0/24"},
 						},
 						RouterIDCIDR: new("10.0.0.0/24"),
 						Neighbors:    []v1alpha1.Neighbor{{Interface: new("test"), ASN: new(int64(65001))}},
@@ -1460,8 +1460,8 @@ func TestAPItoFRR(t *testing.T) {
 			want: frr.Config{
 				Underlay: frr.UnderlayConfig{
 					MyASN: 65000,
-					EVPN: &frr.UnderlayEvpn{
-						VTEP: "192.168.1.0/32",
+					TunnelEndpoint: &frr.TunnelEndpoint{
+						IPv4CIDR: "192.168.1.0/32",
 					},
 					RouterID: "10.0.0.1",
 					Neighbors: []frr.NeighborConfig{
@@ -1481,6 +1481,56 @@ func TestAPItoFRR(t *testing.T) {
 				Loglevel:    "debug",
 			},
 			wantErr: false,
+		},
+		{
+			name:      "underlay without evpn with dual-stack tunnel endpoints",
+			nodeIndex: 0,
+			underlays: []v1alpha1.Underlay{
+				{
+					Spec: v1alpha1.UnderlaySpec{
+						ASN:  65000,
+						Nics: []string{"eth0"},
+						TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+							CIDRs: []string{
+								"192.168.2.0/24",
+								"2001:db8:192:168::/64",
+							},
+						},
+					}},
+			},
+			vnis:          []v1alpha1.L3VNI{},
+			l2vnis:        []v1alpha1.L2VNI{},
+			l3Passthrough: []v1alpha1.L3Passthrough{},
+			want: frr.Config{
+				Underlay: frr.UnderlayConfig{
+					MyASN:     65000,
+					Neighbors: []frr.NeighborConfig{},
+					TunnelEndpoint: &frr.TunnelEndpoint{
+						IPv4CIDR: "192.168.2.0/32",
+						IPv6CIDR: "2001:db8:192:168::/128",
+					},
+					RouterID: "10.0.0.1",
+				},
+				VNIs:        []frr.L3VNIConfig{},
+				BFDProfiles: []frr.BFDProfile{},
+			},
+			wantErr: false,
+		},
+		{
+			name:      "underlay with IPv6 tunnel endpoints only is not supported",
+			nodeIndex: 0,
+			underlays: []v1alpha1.Underlay{
+				{
+					Spec: v1alpha1.UnderlaySpec{
+						Nics: []string{"eth0"},
+						TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+							CIDRs: []string{
+								"2001:db8:192:168::/64",
+							},
+						},
+					}},
+			},
+			wantErr: true,
 		},
 	}
 
@@ -1717,7 +1767,7 @@ func TestAPItoFRRGracefulRestart(t *testing.T) {
 			Neighbors: []v1alpha1.Neighbor{
 				{ASN: new(int64(64517)), Address: new("192.168.11.2")},
 			},
-			EVPN: &v1alpha1.EVPNConfig{VTEPCIDR: new("100.65.0.0/24")},
+			TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{CIDRs: []string{"100.65.0.0/24"}},
 		},
 	}
 
