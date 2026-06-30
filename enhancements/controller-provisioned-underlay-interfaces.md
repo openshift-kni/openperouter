@@ -96,6 +96,12 @@ As an operator whose network infrastructure requires specific IP
 assignments per router, I want to assign a deterministic static IP to
 each node's underlay interface from a single configuration.
 
+#### Story 7: DHCP-Managed Networks
+
+As an operator whose network uses DHCP for IP management, I want the
+router's underlay interface to obtain its IP via DHCP from the existing
+infrastructure, with a stable identity across restarts.
+
 ## Proposal
 
 ### Overview
@@ -127,7 +133,7 @@ table below.
 | Category | Plugins |
 |----------|---------|
 | Interface | `macvlan`, `ipvlan`, `vlan`, `host-device` |
-| IPAM | `static` |
+| IPAM | `dhcp`, `static` |
 
 ### API
 
@@ -251,6 +257,109 @@ interfaces:
 
 When `interfaceName` is omitted, it defaults to `net1`.
 
+##### CNI with DHCP and pinned MAC
+
+When the operator wants the router's underlay IP assigned by a DHCP server,
+the config uses `dhcp` IPAM. Because macvlan generates a random MAC on
+every CNI ADD invocation, the DHCP server would assign a different IP after
+each netns rebuild — breaking BGP sessions and EVPN routes. To ensure IP
+stability, the operator **must pin the MAC address** by passing a per-node
+MAC via `runtimeConfig.mac`.
+
+The macvlan plugin natively supports the `mac` capability
+([source](https://github.com/containernetworking/plugins/blob/33cc6bd63968280b330b00468afbb66161aaa6bd/plugins/main/macvlan/macvlan.go#L48)):
+it sets the MAC on the link **during interface creation**, before IPAM runs.
+The DHCP DISCOVER is sent with the pinned MAC — no plugin chaining with
+`tuning` is needed.
+
+This requires one Underlay per node (same pattern as static IPs):
+
+```yaml
+apiVersion: openpe.openperouter.github.io/v1alpha1
+kind: Underlay
+metadata:
+  name: underlay-worker-0
+spec:
+  nodeSelector:
+    matchLabels:
+      kubernetes.io/hostname: worker-0
+  asn: 64514
+  interfaces:
+    - type: CNI
+      cniDevice:
+        type: RawConfig
+        rawConfig:
+          cniVersion: "1.0.0"
+          name: macvlan-dhcp
+          plugins:
+            - type: macvlan
+              master: eth1
+              mode: bridge
+              capabilities:
+                mac: true
+              ipam:
+                type: dhcp
+        runtimeConfig:
+          mac: "02:42:c0:a8:01:0a"
+  tunnelEndpoint:
+    cidrs:
+      - "100.65.0.0/24"
+  neighbors:
+    - address: 192.168.1.1
+      asn: 65000
+```
+
+Repeat for each node with a different `nodeSelector` and MAC.
+
+###### Enabling CNI runtime parameters
+
+Some CNI use cases require runtime parameters that vary per node — for
+example, pinning a specific MAC address so the DHCP server assigns a
+stable IP. The Underlay spec supports this through two fields that work
+together:
+
+1. **`capabilities` in the plugin config** — declares which runtime
+   parameters the plugin accepts. The CNI specification requires plugins
+   to explicitly opt in to each capability. For example, to accept a MAC
+   address, the macvlan plugin config must include
+   `"capabilities": {"mac": true}`.
+
+2. **`runtimeConfig` in the Underlay spec** — passes the actual values.
+   The controller forwards this as `CapabilityArgs` to `libcni`, which
+   only delivers keys that the plugin declared in step 1. Undeclared
+   keys are silently stripped — the plugin never sees them.
+
+In the DHCP+MAC pinning example above, both pieces are present: the
+plugin config declares `"capabilities": {"mac": true}`, and
+`runtimeConfig` passes `"mac": "02:42:c0:a8:01:0a"`. Without the
+capability declaration, `libcni` would strip the `mac` key and macvlan
+would generate a random MAC on each invocation.
+
+Well-known capability keys include `ips`, `mac`, `bandwidth`,
+`portMappings`, `ipRanges`, and `deviceID`. See the
+[CNI conventions](https://www.cni.dev/docs/conventions/) for the full
+list. The controller enforces no schema on `runtimeConfig`.
+
+###### DHCP prerequisites
+
+**DHCP daemon:** The CNI `dhcp` IPAM plugin requires a DHCP daemon
+process running on each node (`dhcp daemon` or via systemd socket
+activation at `/run/cni/dhcp.sock`). See
+[CNI DHCP plugin docs](https://www.cni.dev/plugins/current/ipam/dhcp/)
+for setup.
+
+**Lease lifecycle across restarts:**
+- **Router pod restart (netns preserved):** The CNI cache survives on
+  the persistent hostPath. The controller skips re-invocation. The DHCP
+  daemon continues renewing the existing lease.
+- **Netns rebuild (CNI DEL + ADD):** The controller calls CNI DEL
+  (releases the DHCP lease), then CNI ADD. With a pinned MAC, the
+  server should assign the same IP (if using reservations or sticky
+  leases).
+- **DHCP daemon restart:** The daemon loses in-memory lease state. If
+  the lease expires before recovery, the IP may be lost. Mitigate with
+  systemd socket activation for automatic daemon restart.
+
 ### Risks and Mitigations
 
 | Risk | Mitigation |
@@ -260,6 +369,9 @@ When `interfaceName` is omitted, it defaults to `net1`.
 | CNI ADD is not idempotent (calling twice fails) | Controller checks `GetNetworkListCachedResult()` before `AddNetworkList()`. If cache is lost, existing interface detected via group ID. |
 | CNI DEL fails during teardown | DEL errors are logged but do not block teardown. CNI spec mandates plugins handle repeated DEL calls gracefully. |
 | `runtimeConfig` keys silently stripped by `libcni` | `libcni` only forwards keys the plugin declares in its `"capabilities"` block. Document prominently; consider logging a warning when `runtimeConfig` is set but the config has no capabilities. |
+| DHCP IPAM: macvlan random MAC causes IP instability | Document that DHCP with macvlan requires MAC pinning via `runtimeConfig.mac`. |
+| DHCP IPAM: DHCP daemon not running | CNI ADD fails immediately with a socket connection error. Document the daemon requirement. |
+| DHCP IPAM: lease expires during daemon downtime | Mitigate with systemd socket activation for fast daemon recovery and long lease times. |
 | Operator forgets to set the sub-struct matching the type | CEL validation rejects the resource at admission time. |
 | `containernetworking/cni` dependency version conflicts | Pin to `v1.2.x` in `go.mod`. This version targets CNI spec 1.0.0+ (required for CHECK support and capabilities filtering). Minimal transitive dependencies. |
 
@@ -396,7 +508,8 @@ underlay reconciliation mechanism:
   scratch.
 
 IPAM is fully delegated to the CNI plugin configured in the config. The
-controller extracts assigned IPs from the CNI result.
+controller extracts assigned IPs from the CNI result; common IPAM plugins
+include `static` and `dhcp`.
 
 ### Test Plan
 
@@ -425,6 +538,9 @@ controller extracts assigned IPs from the CNI result.
   - Macvlan with static IPAM (`static` with `addresses`):
     interface provisioned, IP assigned, end-to-end traffic flows
     through VXLAN tunnels and EVPN routes.
+  - Macvlan with DHCP IPAM and pinned MAC: correct MAC, correct IP,
+    end-to-end traffic flows through VXLAN tunnels and EVPN routes.
+  - DHCP without MAC pinning (negative): random MAC after rebuild.
 - **E2E tests — teardown**:
   - Underlay CR deletion: CNI DEL called, interface removed from router
     netns, IPAM resources released.
@@ -456,10 +572,11 @@ controller extracts assigned IPs from the CNI result.
 - Startup validation: embedded JSON parse, plugin binary existence.
 - Integration tests: CNI ADD/DEL, runtimeConfig/capability filtering,
   idempotency (cache hit), dual-stack IP extraction, error paths.
-- E2E tests: macvlan with static IPAM, persistence across restart.
+- E2E tests: static IPs, DHCP+MAC pinning, persistence across
+  restart.
 - Package (RPM/deb/tarball) bundles statically-linked CNI plugin
-  binaries: `macvlan`, `ipvlan`, `static`, which are made available
-  on the controller pod.
+  binaries: `macvlan`, `ipvlan`, `static`, `dhcp`, which are made
+  available on the controller pod.
 - Installation path: `/opt/openperouter/cni/bin/` (plugins).
 - Controller's `CNI_PATH` includes `/opt/openperouter/cni/bin/` by
   default.
