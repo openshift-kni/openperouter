@@ -90,6 +90,12 @@ As an operator on a network that limits the number of MAC addresses per
 port, I want the router's underlay interface to share the physical NIC's
 MAC address, so that only one MAC appears on the wire.
 
+#### Story 6: Per-Node Static IP Assignment
+
+As an operator whose network infrastructure requires specific IP
+assignments per router, I want to assign a deterministic static IP to
+each node's underlay interface from a single configuration.
+
 ## Proposal
 
 ### Overview
@@ -121,6 +127,7 @@ table below.
 | Category | Plugins |
 |----------|---------|
 | Interface | `macvlan`, `ipvlan`, `vlan`, `host-device` |
+| IPAM | `static` |
 
 ### API
 
@@ -154,6 +161,10 @@ interfaces:
           - type: macvlan
             master: eth1
             mode: bridge
+            ipam:
+              type: static
+              addresses:
+                - address: "192.168.1.10/24"
 ```
 
 ##### CNI with ipvlan
@@ -175,6 +186,48 @@ interfaces:
             mode: l2
 ```
 
+##### CNI with per-node static IP
+
+Because each node needs a different IP, the operator creates **one Underlay
+per node** with a `nodeSelector` targeting that node and the node-specific
+IP in the `static` IPAM `addresses` list:
+
+```yaml
+apiVersion: openpe.openperouter.github.io/v1alpha1
+kind: Underlay
+metadata:
+  name: underlay-worker-0
+spec:
+  nodeSelector:
+    matchLabels:
+      kubernetes.io/hostname: worker-0
+  asn: 64514
+  interfaces:
+    - type: CNI
+      cniDevice:
+        type: RawConfig
+        rawConfig:
+          cniVersion: "1.0.0"
+          name: macvlan-static
+          plugins:
+            - type: macvlan
+              master: eth1
+              mode: bridge
+              ipam:
+                type: static
+                addresses:
+                  - address: "192.168.1.10/24"
+  tunnelEndpoint:
+    cidrs:
+      - "100.65.0.0/24"
+  neighbors:
+    - address: 192.168.1.1
+      asn: 65000
+```
+
+Repeat for each node with a different `nodeSelector` and IP — only the
+`addresses` entry differs.
+
 ##### CNI with custom interface name
 
 ```yaml
@@ -189,6 +242,10 @@ interfaces:
           - type: macvlan
             master: eth1
             mode: bridge
+            ipam:
+              type: static
+              addresses:
+                - address: "192.168.1.10/24"
       interfaceName: underlay0
 ```
 
@@ -365,8 +422,9 @@ controller extracts assigned IPs from the CNI result.
   - CNI ADD fails → error propagated to status.
   - CNI DEL fails during teardown → logged, teardown continues.
 - **E2E tests — CNI provisioning**:
-  - Macvlan: interface provisioned in router netns, end-to-end
-    traffic flows through VXLAN tunnels and EVPN routes.
+  - Macvlan with static IPAM (`static` with `addresses`):
+    interface provisioned, IP assigned, end-to-end traffic flows
+    through VXLAN tunnels and EVPN routes.
 - **E2E tests — teardown**:
   - Underlay CR deletion: CNI DEL called, interface removed from router
     netns, IPAM resources released.
@@ -398,10 +456,10 @@ controller extracts assigned IPs from the CNI result.
 - Startup validation: embedded JSON parse, plugin binary existence.
 - Integration tests: CNI ADD/DEL, runtimeConfig/capability filtering,
   idempotency (cache hit), dual-stack IP extraction, error paths.
-- E2E tests: macvlan provisioning, persistence across restart.
+- E2E tests: macvlan with static IPAM, persistence across restart.
 - Package (RPM/deb/tarball) bundles statically-linked CNI plugin
-  binaries: `macvlan`, `ipvlan`, which are made available on the
-  controller pod.
+  binaries: `macvlan`, `ipvlan`, `static`, which are made available
+  on the controller pod.
 - Installation path: `/opt/openperouter/cni/bin/` (plugins).
 - Controller's `CNI_PATH` includes `/opt/openperouter/cni/bin/` by
   default.
