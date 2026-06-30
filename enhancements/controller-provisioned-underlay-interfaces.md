@@ -645,6 +645,21 @@ a `host-device` CNI plugin invocation. This would unify both
 provisioning paths under CNI. Must account for day-0 installs where the
 `host-device` plugin binary may not yet be present on the node.
 
+### Bonded Underlay (Link Aggregation)
+
+Operators whose infrastructure requires link aggregation for redundancy
+or bandwidth need a bond interface for the underlay. Moving a
+pre-existing host bond into the router netns via `NetworkDevice` is not
+possible — the bond's member interfaces remain in the host netns and the
+bond breaks.
+
+Integrate with
+[k8snetworkplumbingwg/bond-cni](https://github.com/k8snetworkplumbingwg/bond-cni)
+as an additional supported CNI interface plugin. With `bond-cni` invoked
+via `CNI` mode, the bond is created directly inside the router netns with
+its member interfaces already in place, so the BGP session survives a
+single link failure.
+
 ### NetworkDevice IPAM
 
 Add IPAM support for NetworkDevice mode by re-using the same
