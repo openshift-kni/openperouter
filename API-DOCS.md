@@ -40,22 +40,6 @@ _Appears in:_
 | `minimumTTL` _integer_ | minimumTTL configures, for multi hop sessions only, the minimum<br />expected TTL for an incoming BFD control packet. |  | Maximum: 254 <br />Minimum: 1 <br />Optional: \{\} <br /> |
 
 
-#### EVPNConfig
-
-
-
-EVPNConfig contains EVPN-VXLAN configuration for the underlay.
-
-
-
-_Appears in:_
-- [UnderlaySpec](#underlayspec)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `vtepCIDR` _string_ | vtepCIDR is the CIDR to be used to assign IPs to the local VTEP on each node.<br />A loopback interface will be created with an IP derived from this CIDR. |  | Optional: \{\} <br /> |
-
-
 #### FailedResource
 
 
@@ -490,6 +474,22 @@ _Appears in:_
 | `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v/#condition-v1-meta) array_ | conditions list of conditions. |  | Optional: \{\} <br /> |
 
 
+#### TunnelEndpointConfig
+
+
+
+TunnelEndpointConfig contains tunnel endpoint configuration for the underlay.
+
+
+
+_Appears in:_
+- [UnderlaySpec](#underlayspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `cidrs` _string array_ | cidrs is a list of CIDRs to be used to assign IPs to the local tunnel endpoint on<br />each node. A loopback interface will be created with IPs derived from<br />these CIDRs. Exactly one IPv4 CIDR is required, and an optional IPv6<br />CIDR may also be specified for dual-stack operation. |  | MaxItems: 2 <br />MinItems: 1 <br />Required: \{\} <br /> |
+
+
 #### Underlay
 
 
@@ -527,7 +527,7 @@ _Appears in:_
 | `routeridcidr` _string_ | routeridcidr is the ipv4 cidr to be used to assign a different routerID on each node. | 10.0.0.0/24 | Optional: \{\} <br /> |
 | `neighbors` _[Neighbor](#neighbor) array_ | neighbors is the list of external BGP neighbors to peer with.<br />Note: MaxItems=128 is arbitrarily chosen to keep total CEL cost low<br />Note: kubeapilinter complained about 'the struct has no required fields', but CEL enforces either/or choices<br />for Address and Interface.<br />Multiple neighbors are supported for connecting to multiple TOR switches<br />or establishing redundant BGP sessions. Each neighbor address must be unique.<br />At least one neighbor is required. |  | MaxItems: 128 <br />MinItems: 1 <br />Required: \{\} <br /> |
 | `nics` _string array_ | nics is the list of physical nics to move under the PERouter namespace to connect<br />to external routers. At least one NIC is required. |  | MinItems: 1 <br />items:MaxLength: 15 <br />items:Pattern: `^[a-zA-Z][a-zA-Z0-9._-]*$` <br />Required: \{\} <br /> |
-| `evpn` _[EVPNConfig](#evpnconfig)_ | evpn contains EVPN-VXLAN configuration for the underlay. |  | Optional: \{\} <br /> |
+| `tunnelEndpoint` _[TunnelEndpointConfig](#tunnelendpointconfig)_ | tunnelEndpoint contains tunnel endpoint configuration for the underlay. |  | Optional: \{\} <br /> |
 | `gracefulRestart` _[GracefulRestartConfig](#gracefulrestartconfig)_ | gracefulRestart configures BGP Graceful Restart behaviour.<br />When set, FRR advertises GR capability and preserves forwarding<br />state across restarts so that peers keep stale routes active.<br />Omit to disable graceful restart. |  | Optional: \{\} <br /> |
 
 

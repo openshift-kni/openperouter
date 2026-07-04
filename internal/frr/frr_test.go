@@ -28,8 +28,8 @@ func TestBasic(t *testing.T) {
 	config := Config{
 		Underlay: UnderlayConfig{
 			MyASN: 64512,
-			EVPN: &UnderlayEvpn{
-				VTEP: "100.64.0.1/32",
+			TunnelEndpoint: &TunnelEndpoint{
+				IPv4CIDR: "100.64.0.1/32",
 			},
 			RouterID: "10.0.0.1",
 			Neighbors: []NeighborConfig{
@@ -48,10 +48,9 @@ func TestBasic(t *testing.T) {
 				VNI:      100,
 				RouterID: "10.0.0.1",
 				LocalNeighbor: &NeighborConfig{
-					ASN:      mustNewPeerASNFromNumber(64513),
-					Addr:     "192.168.1.2",
-					ID:       "192.168.1.2",
-					IPFamily: ipfamily.IPv4,
+					ASN:  mustNewPeerASNFromNumber(64513),
+					Addr: "192.168.1.2",
+					ID:   "192.168.1.2",
 				},
 				ToAdvertiseIPv4: []string{
 					"192.169.10.2/24",
@@ -73,8 +72,8 @@ func TestBasicWithASNRT(t *testing.T) {
 	config := Config{
 		Underlay: UnderlayConfig{
 			MyASN: 64512,
-			EVPN: &UnderlayEvpn{
-				VTEP: "100.64.0.1/32",
+			TunnelEndpoint: &TunnelEndpoint{
+				IPv4CIDR: "100.64.0.1/32",
 			},
 			RouterID: "10.0.0.1",
 			Neighbors: []NeighborConfig{
@@ -120,8 +119,8 @@ func TestBasicWithIPRT(t *testing.T) {
 	config := Config{
 		Underlay: UnderlayConfig{
 			MyASN: 64512,
-			EVPN: &UnderlayEvpn{
-				VTEP: "100.64.0.1/32",
+			TunnelEndpoint: &TunnelEndpoint{
+				IPv4CIDR: "100.64.0.1/32",
 			},
 			RouterID: "10.0.0.1",
 			Neighbors: []NeighborConfig{
@@ -140,10 +139,9 @@ func TestBasicWithIPRT(t *testing.T) {
 				VNI:      100,
 				RouterID: "10.0.0.1",
 				LocalNeighbor: &NeighborConfig{
-					ASN:      mustNewPeerASNFromNumber(64513),
-					Addr:     "192.168.1.2",
-					ID:       "192.168.1.2",
-					IPFamily: ipfamily.IPv4,
+					ASN:  mustNewPeerASNFromNumber(64513),
+					Addr: "192.168.1.2",
+					ID:   "192.168.1.2",
 				},
 				ToAdvertiseIPv4: []string{
 					"192.169.10.2/24",
@@ -167,8 +165,8 @@ func TestExternal(t *testing.T) {
 	config := Config{
 		Underlay: UnderlayConfig{
 			MyASN: 64512,
-			EVPN: &UnderlayEvpn{
-				VTEP: "100.64.0.1/32",
+			TunnelEndpoint: &TunnelEndpoint{
+				IPv4CIDR: "100.64.0.1/32",
 			},
 			RouterID: "10.0.0.1",
 			Neighbors: []NeighborConfig{
@@ -187,10 +185,9 @@ func TestExternal(t *testing.T) {
 				VNI:      100,
 				RouterID: "10.0.0.1",
 				LocalNeighbor: &NeighborConfig{
-					ASN:      mustNewPeerASNFromType("external"),
-					Addr:     "192.168.1.2",
-					ID:       "192.168.1.2",
-					IPFamily: ipfamily.IPv4,
+					ASN:  mustNewPeerASNFromType("external"),
+					Addr: "192.168.1.2",
+					ID:   "192.168.1.2",
 				},
 				ToAdvertiseIPv4: []string{
 					"192.169.10.2/24",
@@ -212,8 +209,8 @@ func TestInternal(t *testing.T) {
 	config := Config{
 		Underlay: UnderlayConfig{
 			MyASN: 64512,
-			EVPN: &UnderlayEvpn{
-				VTEP: "100.64.0.1/32",
+			TunnelEndpoint: &TunnelEndpoint{
+				IPv4CIDR: "100.64.0.1/32",
 			},
 			RouterID: "10.0.0.1",
 			Neighbors: []NeighborConfig{
@@ -232,10 +229,9 @@ func TestInternal(t *testing.T) {
 				VNI:      100,
 				RouterID: "10.0.0.1",
 				LocalNeighbor: &NeighborConfig{
-					ASN:      mustNewPeerASNFromNumber(64512),
-					Addr:     "192.168.1.3",
-					ID:       "192.168.1.3",
-					IPFamily: ipfamily.IPv4,
+					ASN:  mustNewPeerASNFromNumber(64512),
+					Addr: "192.168.1.3",
+					ID:   "192.168.1.3",
 				},
 				ToAdvertiseIPv4: []string{
 					"192.169.10.2/24",
@@ -257,8 +253,8 @@ func TestDualStack(t *testing.T) {
 	config := Config{
 		Underlay: UnderlayConfig{
 			MyASN: 64512,
-			EVPN: &UnderlayEvpn{
-				VTEP: "100.64.0.1/32",
+			TunnelEndpoint: &TunnelEndpoint{
+				IPv4CIDR: "100.64.0.1/32",
 			},
 			RouterID: "10.0.0.1",
 			Neighbors: []NeighborConfig{
@@ -277,10 +273,9 @@ func TestDualStack(t *testing.T) {
 				VNI:      100,
 				RouterID: "10.0.0.1",
 				LocalNeighbor: &NeighborConfig{
-					ASN:      mustNewPeerASNFromNumber(64513),
-					Addr:     "192.168.1.2",
-					ID:       "192.168.1.2",
-					IPFamily: ipfamily.IPv4,
+					ASN:  mustNewPeerASNFromNumber(64513),
+					Addr: "192.168.1.2",
+					ID:   "192.168.1.2",
 				},
 				ToAdvertiseIPv4: []string{
 					"192.169.10.2/24",
@@ -305,8 +300,8 @@ func TestDualStackWithRT(t *testing.T) {
 	config := Config{
 		Underlay: UnderlayConfig{
 			MyASN: 64512,
-			EVPN: &UnderlayEvpn{
-				VTEP: "100.64.0.1/32",
+			TunnelEndpoint: &TunnelEndpoint{
+				IPv4CIDR: "100.64.0.1/32",
 			},
 			RouterID: "10.0.0.1",
 			Neighbors: []NeighborConfig{
@@ -325,10 +320,9 @@ func TestDualStackWithRT(t *testing.T) {
 				VNI:      100,
 				RouterID: "10.0.0.1",
 				LocalNeighbor: &NeighborConfig{
-					ASN:      mustNewPeerASNFromNumber(64513),
-					Addr:     "192.168.1.2",
-					ID:       "192.168.1.2",
-					IPFamily: ipfamily.IPv4,
+					ASN:  mustNewPeerASNFromNumber(64513),
+					Addr: "192.168.1.2",
+					ID:   "192.168.1.2",
 				},
 				ToAdvertiseIPv4: []string{
 					"192.169.10.2/24",
@@ -355,8 +349,8 @@ func TestIPv6Only(t *testing.T) {
 	config := Config{
 		Underlay: UnderlayConfig{
 			MyASN: 64512,
-			EVPN: &UnderlayEvpn{
-				VTEP: "100.64.0.1/32",
+			TunnelEndpoint: &TunnelEndpoint{
+				IPv4CIDR: "100.64.0.1/32",
 			},
 			RouterID: "10.0.0.1",
 			Neighbors: []NeighborConfig{
@@ -376,10 +370,9 @@ func TestIPv6Only(t *testing.T) {
 				VNI:      100,
 				RouterID: "10.0.0.1",
 				LocalNeighbor: &NeighborConfig{
-					ASN:      mustNewPeerASNFromNumber(64513),
-					Addr:     "2001:db8::2",
-					ID:       "2001:db8::2",
-					IPFamily: ipfamily.IPv6,
+					ASN:  mustNewPeerASNFromNumber(64513),
+					Addr: "2001:db8::2",
+					ID:   "2001:db8::2",
 				},
 				ToAdvertiseIPv6: []string{
 					"2001:db8::2/64",
@@ -401,8 +394,8 @@ func TestBGPUnnumbered(t *testing.T) {
 	config := Config{
 		Underlay: UnderlayConfig{
 			MyASN: 64512,
-			EVPN: &UnderlayEvpn{
-				VTEP: "100.64.0.1/32",
+			TunnelEndpoint: &TunnelEndpoint{
+				IPv4CIDR: "100.64.0.1/32",
 			},
 			RouterID: "10.0.0.1",
 			Neighbors: []NeighborConfig{
@@ -422,10 +415,9 @@ func TestBGPUnnumbered(t *testing.T) {
 				VNI:      100,
 				RouterID: "10.0.0.1",
 				LocalNeighbor: &NeighborConfig{
-					ASN:      mustNewPeerASNFromNumber(64512),
-					Addr:     "2001:db8::2",
-					ID:       "2001:db8::2",
-					IPFamily: ipfamily.IPv6,
+					ASN:  mustNewPeerASNFromNumber(64512),
+					Addr: "2001:db8::2",
+					ID:   "2001:db8::2",
 				},
 				ToAdvertiseIPv6: []string{
 					"2001:db8::2/64",
@@ -447,8 +439,8 @@ func TestIPv6OnlyWithRT(t *testing.T) {
 	config := Config{
 		Underlay: UnderlayConfig{
 			MyASN: 64512,
-			EVPN: &UnderlayEvpn{
-				VTEP: "100.64.0.1/32",
+			TunnelEndpoint: &TunnelEndpoint{
+				IPv4CIDR: "100.64.0.1/32",
 			},
 			RouterID: "10.0.0.1",
 			Neighbors: []NeighborConfig{
@@ -467,10 +459,9 @@ func TestIPv6OnlyWithRT(t *testing.T) {
 				VNI:      100,
 				RouterID: "10.0.0.1",
 				LocalNeighbor: &NeighborConfig{
-					ASN:      mustNewPeerASNFromNumber(64513),
-					Addr:     "2001:db8::2",
-					ID:       "2001:db8::2",
-					IPFamily: ipfamily.IPv6,
+					ASN:  mustNewPeerASNFromNumber(64513),
+					Addr: "2001:db8::2",
+					ID:   "2001:db8::2",
 				},
 				ToAdvertiseIPv6: []string{
 					"2001:db8::2/64",
@@ -506,8 +497,8 @@ func TestNoVNIs(t *testing.T) {
 	config := Config{
 		Underlay: UnderlayConfig{
 			MyASN: 64512,
-			EVPN: &UnderlayEvpn{
-				VTEP: "100.64.0.1/32",
+			TunnelEndpoint: &TunnelEndpoint{
+				IPv4CIDR: "100.64.0.1/32",
 			},
 			RouterID: "10.0.0.1",
 			Neighbors: []NeighborConfig{
@@ -534,8 +525,8 @@ func TestBFDEnabled(t *testing.T) {
 	config := Config{
 		Underlay: UnderlayConfig{
 			MyASN: 64512,
-			EVPN: &UnderlayEvpn{
-				VTEP: "100.64.0.1/32",
+			TunnelEndpoint: &TunnelEndpoint{
+				IPv4CIDR: "100.64.0.1/32",
 			},
 			RouterID: "10.0.0.1",
 			Neighbors: []NeighborConfig{
@@ -563,8 +554,8 @@ func TestBFDProfile(t *testing.T) {
 	config := Config{
 		Underlay: UnderlayConfig{
 			MyASN: 64512,
-			EVPN: &UnderlayEvpn{
-				VTEP: "100.64.0.1/32",
+			TunnelEndpoint: &TunnelEndpoint{
+				IPv4CIDR: "100.64.0.1/32",
 			},
 			RouterID: "10.0.0.1",
 			Neighbors: []NeighborConfig{
@@ -600,8 +591,8 @@ func TestL3VNIWithoutLocalNeighborAndAdvertise(t *testing.T) {
 		Underlay: UnderlayConfig{
 			MyASN:    64512,
 			RouterID: "10.0.0.1",
-			EVPN: &UnderlayEvpn{
-				VTEP: "100.64.0.1/32",
+			TunnelEndpoint: &TunnelEndpoint{
+				IPv4CIDR: "100.64.0.1/32",
 			},
 			Neighbors: []NeighborConfig{
 				{
@@ -636,8 +627,8 @@ func TestL3VNIWithLocalNeighborAndRedistributeConnected(t *testing.T) {
 		Underlay: UnderlayConfig{
 			MyASN:    64512,
 			RouterID: "10.0.0.1",
-			EVPN: &UnderlayEvpn{
-				VTEP: "100.64.0.1/32",
+			TunnelEndpoint: &TunnelEndpoint{
+				IPv4CIDR: "100.64.0.1/32",
 			},
 			Neighbors: []NeighborConfig{
 				{
@@ -655,10 +646,9 @@ func TestL3VNIWithLocalNeighborAndRedistributeConnected(t *testing.T) {
 				VNI:      100,
 				RouterID: "10.0.0.1",
 				LocalNeighbor: &NeighborConfig{
-					ASN:      mustNewPeerASNFromNumber(64513),
-					Addr:     "192.168.1.2",
-					ID:       "192.168.1.2",
-					IPFamily: ipfamily.IPv4,
+					ASN:  mustNewPeerASNFromNumber(64513),
+					Addr: "192.168.1.2",
+					ID:   "192.168.1.2",
 				},
 				ToAdvertiseIPv4: []string{
 					"192.169.10.2/24",
@@ -692,10 +682,9 @@ func TestPassthroughNoEVPN(t *testing.T) {
 		},
 		Passthrough: &PassthroughConfig{
 			LocalNeighborV4: &NeighborConfig{
-				ASN:      mustNewPeerASNFromNumber(64513),
-				Addr:     "192.168.1.3",
-				ID:       "192.168.1.3",
-				IPFamily: ipfamily.IPv4,
+				ASN:  mustNewPeerASNFromNumber(64513),
+				Addr: "192.168.1.3",
+				ID:   "192.168.1.3",
 			},
 			ToAdvertiseIPv4: []string{
 				"192.169.20.0/24",
@@ -729,10 +718,9 @@ func TestPassthroughExternal(t *testing.T) {
 		},
 		Passthrough: &PassthroughConfig{
 			LocalNeighborV4: &NeighborConfig{
-				ASN:      mustNewPeerASNFromType("external"),
-				Addr:     "192.168.1.3",
-				ID:       "192.168.1.3",
-				IPFamily: ipfamily.IPv4,
+				ASN:  mustNewPeerASNFromType("external"),
+				Addr: "192.168.1.3",
+				ID:   "192.168.1.3",
 			},
 			ToAdvertiseIPv4: []string{
 				"192.169.20.0/24",
@@ -754,8 +742,8 @@ func TestPassthroughV4(t *testing.T) {
 	config := Config{
 		Underlay: UnderlayConfig{
 			MyASN: 64512,
-			EVPN: &UnderlayEvpn{
-				VTEP: "100.64.0.1/32",
+			TunnelEndpoint: &TunnelEndpoint{
+				IPv4CIDR: "100.64.0.1/32",
 			},
 			RouterID: "10.0.0.1",
 			Neighbors: []NeighborConfig{
@@ -769,10 +757,9 @@ func TestPassthroughV4(t *testing.T) {
 		},
 		Passthrough: &PassthroughConfig{
 			LocalNeighborV4: &NeighborConfig{
-				ASN:      mustNewPeerASNFromNumber(64513),
-				Addr:     "192.168.1.3",
-				ID:       "192.168.1.3",
-				IPFamily: ipfamily.IPv4,
+				ASN:  mustNewPeerASNFromNumber(64513),
+				Addr: "192.168.1.3",
+				ID:   "192.168.1.3",
 			},
 			ToAdvertiseIPv4: []string{
 				"192.169.20.0/24",
@@ -794,8 +781,8 @@ func TestPassthroughDual(t *testing.T) {
 	config := Config{
 		Underlay: UnderlayConfig{
 			MyASN: 64512,
-			EVPN: &UnderlayEvpn{
-				VTEP: "100.64.0.1/32",
+			TunnelEndpoint: &TunnelEndpoint{
+				IPv4CIDR: "100.64.0.1/32",
 			},
 			RouterID: "10.0.0.1",
 			Neighbors: []NeighborConfig{
@@ -815,16 +802,14 @@ func TestPassthroughDual(t *testing.T) {
 		},
 		Passthrough: &PassthroughConfig{
 			LocalNeighborV4: &NeighborConfig{
-				ASN:      mustNewPeerASNFromNumber(64513),
-				Addr:     "192.168.1.3",
-				ID:       "192.168.1.3",
-				IPFamily: ipfamily.IPv4,
+				ASN:  mustNewPeerASNFromNumber(64513),
+				Addr: "192.168.1.3",
+				ID:   "192.168.1.3",
 			},
 			LocalNeighborV6: &NeighborConfig{
-				ASN:      mustNewPeerASNFromNumber(64513),
-				Addr:     "2001:db8:20::2",
-				ID:       "2001:db8:20::2",
-				IPFamily: ipfamily.IPv6,
+				ASN:  mustNewPeerASNFromNumber(64513),
+				Addr: "2001:db8:20::2",
+				ID:   "2001:db8:20::2",
 			},
 			ToAdvertiseIPv4: []string{
 				"192.169.20.0/24",
@@ -864,6 +849,35 @@ func TestRawConfig(t *testing.T) {
 		RawConfig: []RawFRRSnippet{
 			{Priority: new(int32(5)), Config: "ip prefix-list raw-low seq 10 permit 10.0.0.0/8"},
 			{Priority: new(int32(20)), Config: "ip prefix-list raw-high seq 10 permit 10.1.0.0/16"},
+		},
+	}
+	if err := ApplyConfig(context.Background(), &config, updater); err != nil {
+		t.Fatalf("Failed to apply config: %s", err)
+	}
+
+	testCheckConfigFile(t)
+}
+
+func TestTunnelEndpointConfig(t *testing.T) {
+	configFile := testSetup(t)
+	updater := testUpdater(configFile)
+
+	config := Config{
+		Underlay: UnderlayConfig{
+			MyASN:    64512,
+			RouterID: "10.0.0.1",
+			Neighbors: []NeighborConfig{
+				{
+					ASN:      mustNewPeerASNFromNumber(64513),
+					Addr:     "192.168.1.2",
+					ID:       "192.168.1.2",
+					IPFamily: ipfamily.IPv4,
+				},
+			},
+			TunnelEndpoint: &TunnelEndpoint{
+				IPv4CIDR: "192.168.10.1/24",
+				IPv6CIDR: "2001:db8:192:168::1/64",
+			},
 		},
 	}
 	if err := ApplyConfig(context.Background(), &config, updater); err != nil {
@@ -944,8 +958,8 @@ func TestGracefulRestart(t *testing.T) {
 	config := Config{
 		Underlay: UnderlayConfig{
 			MyASN: 64512,
-			EVPN: &UnderlayEvpn{
-				VTEP: "100.64.0.1/32",
+			TunnelEndpoint: &TunnelEndpoint{
+				IPv4CIDR: "100.64.0.1/32",
 			},
 			RouterID: "10.0.0.1",
 			Neighbors: []NeighborConfig{
@@ -976,8 +990,8 @@ func TestGracefulRestartCustomTimers(t *testing.T) {
 	config := Config{
 		Underlay: UnderlayConfig{
 			MyASN: 64512,
-			EVPN: &UnderlayEvpn{
-				VTEP: "100.64.0.1/32",
+			TunnelEndpoint: &TunnelEndpoint{
+				IPv4CIDR: "100.64.0.1/32",
 			},
 			RouterID: "10.0.0.1",
 			Neighbors: []NeighborConfig{

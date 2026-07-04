@@ -28,8 +28,9 @@ underlays:
     neighbors:
       - asn: 64512
         address: "192.168.11.2"
-    evpn:
-      vtepcidr: "100.65.0.0/24"
+    tunnelEndpoint:
+      cidrs:
+      - "100.65.0.0/24"
 l2vnis:
   - vni: 300
     hostmaster:
@@ -62,8 +63,9 @@ underlays:
     neighbors:
       - asn: 64512
         address: "192.168.11.2"
-    evpn:
-      vtepcidr: "100.65.0.0/24"
+    tunnelEndpoint:
+      cidrs:
+      - "100.65.0.0/24"
 l3vnis:
   - vrf: "red"
     vni: 100
@@ -92,8 +94,9 @@ underlays:
     neighbors:
       - asn: 64512
         address: "192.168.11.2"
-    evpn:
-      vtepcidr: "100.65.0.0/24"
+    tunnelEndpoint:
+      cidrs:
+      - "100.65.0.0/24"
 `)
 
 	apiConfig, err := readStaticConfigs(dir)
@@ -119,8 +122,9 @@ underlays:
     neighbors:
       - asn: 64512
         address: "192.168.11.2"
-    evpn:
-      vtepcidr: "100.65.0.0/24"
+    tunnelEndpoint:
+      cidrs:
+      - "100.65.0.0/24"
 l3vnis:
   - vrf: "red"
     vni: 100
@@ -159,8 +163,9 @@ underlays:
     neighbors:
       - asn: 64512
         address: "192.168.11.2"
-    evpn:
-      vtepcidr: "100.65.0.0/24"
+    tunnelEndpoint:
+      cidrs:
+      - "100.65.0.0/24"
 l2vnis:
   - vni: 300
     vxlanport: 5000
@@ -191,8 +196,9 @@ underlays:
     neighbors:
       - asn: 64512
         address: "192.168.11.2"
-    evpn:
-      vtepcidr: "100.65.0.0/24"
+    tunnelEndpoint:
+      cidrs:
+      - "100.65.0.0/24"
 `)
 
 	apiConfig, err := readStaticConfigs(dir)
@@ -216,8 +222,9 @@ underlays:
     neighbors:
       - asn: 64512
         address: "192.168.11.2"
-    evpn:
-      vtepcidr: "100.65.0.0/24"
+    tunnelEndpoint:
+      cidrs:
+      - "100.65.0.0/24"
 `)
 
 	writeYAMLFile(t, dir, "openpe_l2vni.yaml", `
@@ -278,7 +285,7 @@ func TestReadStaticConfigs_ExistingTestdata(t *testing.T) {
 							},
 						},
 					},
-					EVPN: &v1alpha1.EVPNConfig{VTEPCIDR: new("100.65.0.0/24")},
+					TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{CIDRs: []string{"100.65.0.0/24"}},
 				},
 			},
 		},
@@ -360,8 +367,9 @@ underlays:
     neighbors:
       - asn: 64512
         address: "192.168.11.2"
-    evpn:
-      vtepcidr: "100.65.0.0/24"
+    tunnelEndpoint:
+      cidrs:
+      - "100.65.0.0/24"
 l2vnis:
   - vni: 300
     hostmaster:
@@ -396,8 +404,9 @@ underlays:
     neighbors:
       - asn: 64512
         address: "192.168.11.2"
-    evpn:
-      vtepcidr: "100.65.0.0/24"
+    tunnelEndpoint:
+      cidrs:
+      - "100.65.0.0/24"
 l2vnis:
   - vni: 300
     hostmaster:
@@ -436,8 +445,9 @@ underlays:
     neighbors:
       - asn: 64512
         address: "192.168.11.2"
-    evpn:
-      vtepcidr: "100.65.0.0/24"
+    tunnelEndpoint:
+      cidrs:
+      - "100.65.0.0/24"
 l2vnis:
   - vni: 300
     hostmaster:
@@ -473,8 +483,9 @@ underlays:
     neighbors:
       - asn: 64512
         address: "192.168.11.2"
-    evpn:
-      vtepcidr: "100.65.0.0/24"
+    tunnelEndpoint:
+      cidrs:
+      - "100.65.0.0/24"
 l2vnis:
   - vni: 300
     hostmaster:

@@ -56,12 +56,37 @@ func DeleteNamedNetns(nodeName string) error {
 }
 
 // UnderlayConfigured checks whether the underlay is configured inside
-// the perouter netns on nodeName by looking for the VTEP loopback (lound).
-// RemoveUnderlay deletes lound when tearing down the underlay.
-func UnderlayConfigured(nodeName string) bool {
+// the perouter netns on nodeName by looking for any IP addresses other than
+// the default loopback interfaces on the VTEP loopback (lo), and by checking
+// that `lo` is up.
+func UnderlayConfigured(nodeName string) (bool, error) {
 	exec := executor.ForContainer(nodeName)
-	_, err := exec.Exec("ip", "netns", "exec", namedNetns, "ip", "link", "show", "lound")
-	return err == nil
+
+	out, err := exec.Exec("ip", "netns", "list")
+	if err != nil {
+		return false, err
+	}
+	if !strings.Contains(out, namedNetns) {
+		return false, nil
+	}
+
+	out, err = exec.Exec("ip", "netns", "exec", namedNetns, "ip", "-o", "link", "show", "dev", "lo")
+	if err != nil {
+		return false, err
+	}
+	if !strings.Contains(out, "LOOPBACK,UP,LOWER_UP") {
+		return false, nil
+	}
+
+	out, err = exec.Exec("ip", "netns", "exec", namedNetns, "ip", "address", "show", "dev", "lo", "scope", "global")
+	if err != nil {
+		return false, err
+	}
+	if len(strings.TrimSpace(out)) > 0 {
+		return true, nil
+	}
+
+	return false, nil
 }
 
 // UnderlayVethExists checks whether the toswitch interfaces exist on nodeName,

@@ -84,11 +84,11 @@ func APItoFRR(config APIConfigData, nodeIndex int, logLevel string) (frr.Config,
 
 	applyGracefulRestart(&underlayConfig, underlay.Spec.GracefulRestart)
 
-	evpn, err := evpnToFRR(underlay, nodeIndex)
+	tunnelEndpoint, err := tunnelEndpointToFRR(underlay, nodeIndex)
 	if err != nil {
 		return frr.Config{}, err
 	}
-	underlayConfig.EVPN = evpn
+	underlayConfig.TunnelEndpoint = tunnelEndpoint
 
 	vniConfigs, err := vniConfigsToFRR(config.L3VNIs, config.L2VNIs, routerID, underlay.Spec.ASN, nodeIndex)
 	if err != nil {
@@ -151,19 +151,33 @@ func applyGracefulRestart(config *frr.UnderlayConfig, gr *v1alpha1.GracefulResta
 	}
 }
 
-func evpnToFRR(underlay v1alpha1.Underlay, nodeIndex int) (*frr.UnderlayEvpn, error) {
-	if underlay.Spec.EVPN == nil {
+func tunnelEndpointToFRR(underlay v1alpha1.Underlay, nodeIndex int) (*frr.TunnelEndpoint, error) {
+	if underlay.Spec.TunnelEndpoint == nil {
 		return nil, nil
 	}
-	evpn := &frr.UnderlayEvpn{}
-	if vtepCIDR := ptr.Deref(underlay.Spec.EVPN.VTEPCIDR, ""); vtepCIDR != "" {
-		vtepIP, err := ipam.VTEPIp(vtepCIDR, nodeIndex)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get vtep ip, cidr %s, nodeIndex %d: %w", vtepCIDR, nodeIndex, err)
+	tunnelEndpoint := &frr.TunnelEndpoint{}
+	for _, cidr := range underlay.Spec.TunnelEndpoint.CIDRs {
+		af := ipfamily.ForCIDRString(cidr)
+		if af == ipfamily.Unknown {
+			return nil, fmt.Errorf("failed to determine address family for CIDR %q", cidr)
 		}
-		evpn.VTEP = vtepIP.String()
+
+		ip, err := ipam.VTEPIp(cidr, nodeIndex)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get vtep ip, cidr %s, nodeIndex %d: %w", cidr, nodeIndex, err)
+		}
+
+		if af == ipfamily.IPv4 {
+			tunnelEndpoint.IPv4CIDR = ip.String()
+			continue
+		}
+		tunnelEndpoint.IPv6CIDR = ip.String()
 	}
-	return evpn, nil
+	if tunnelEndpoint.IPv4CIDR == "" {
+		return nil, fmt.Errorf("no IPv4 CIDR found after conversion from tunnel endpoint CIDRs: %v",
+			underlay.Spec.TunnelEndpoint.CIDRs)
+	}
+	return tunnelEndpoint, nil
 }
 
 func vniConfigsToFRR(l3vnis []v1alpha1.L3VNI, l2vnis []v1alpha1.L2VNI, routerID string, underlayASN int64, nodeIndex int) ([]frr.L3VNIConfig, error) {
@@ -489,7 +503,7 @@ func vrfsWithL2Gateways(l2vnis []v1alpha1.L2VNI) map[string][]string {
 	res := make(map[string][]string)
 	for _, l2vni := range l2vnis {
 		if len(l2vni.Spec.L2GatewayIPs) > 0 {
-			res[l2vni.VRFName()] = l2vni.Spec.L2GatewayIPs
+			res[*l2vni.Spec.VRF] = l2vni.Spec.L2GatewayIPs
 		}
 	}
 	return res

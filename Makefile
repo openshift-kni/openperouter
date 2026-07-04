@@ -3,6 +3,7 @@ IMG_TAG ?= main
 IMG_REPO ?= quay.io/openperouter
 IMG_NAME ?= router
 IMG ?= $(IMG_REPO)/$(IMG_NAME):$(IMG_TAG)
+DOCKERFILE ?= Dockerfile
 NAMESPACE ?= "openperouter-system"
 LOGLEVEL ?= "info"
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
@@ -90,7 +91,7 @@ vet: ## Run go vet against code.
 	go vet ./...
 
 .PHONY: test
-test: fmt vet envtest $(LOCALBIN) ## Run tests.
+test: fmt vet envtest $(LOCALBIN) kind-node-image-build ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $$(go list ./... | grep -v e2etest) -coverprofile cover.out
 	@RUNASROOT_TESTS=""; \
 	for pkg in $$(grep -rl "//go:build runasroot" --include="*_test.go" $$(go list -f '{{.Dir}}' ./...) | xargs -I{} dirname {} | sort -u); do \
@@ -122,9 +123,9 @@ BRANCH = $(shell git rev-parse --abbrev-ref HEAD)
 .PHONY: docker-build
 docker-build: ## Build docker image with the manager.
 	@if [ "$(CONTAINER_ENGINE)" = "podman" ]; then \
-		sudo $(CONTAINER_ENGINE) build  -t ${IMG} .; \
+		sudo $(CONTAINER_ENGINE) build  -t ${IMG} -f ${DOCKERFILE} .; \
 	else \
-		$(CONTAINER_ENGINE) build -t ${IMG} .; \
+		$(CONTAINER_ENGINE) build -t ${IMG} -f ${DOCKERFILE} .; \
 	fi
 
 
@@ -426,8 +427,7 @@ bumplicense:
 .PHONY: checkuncommitted
 CSV_FILE = operator/bundle/manifests/openperouter-operator.clusterserviceversion.yaml
 checkuncommitted:
-	git diff --exit-code -I'^    createdAt: ' -- $(CSV_FILE)
-	git diff --exit-code -- ':!$(CSV_FILE)'
+	git diff --exit-code
 
 .PHONY: bumpall
 bumpall: bumplicense manifests
@@ -461,7 +461,7 @@ generate-all-in-one: manifests kustomize ## Create manifests
 
 .PHONY: helm-docs
 helm-docs:
-	docker run --rm -v $$(pwd):/app -w /app jnorwood/helm-docs:$(HELM_DOCS_VERSION) helm-docs
+	$(CONTAINER_ENGINE) run --rm -v $$(pwd):/app -w /app jnorwood/helm-docs:$(HELM_DOCS_VERSION) helm-docs
 
 .PHONY: api-docs
 api-docs: crd-ref-docs
@@ -591,6 +591,7 @@ bundle: manifests kustomize operator-sdk ## Generate bundle manifests and metada
 	cd operator/config/pods && $(KUSTOMIZE) edit set image controller=$(IMG)
 	cd operator/config/webhook/backend && $(KUSTOMIZE) edit set image controller=$(IMG)
 	cd operator && $(KUSTOMIZE) build config/default | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS) --extra-service-accounts "controller,perouter" --package openperouter-operator
+	hack/restore-csv-timestamp.sh $(CSV_FILE)
 	cd operator && $(OPERATOR_SDK) bundle validate ./bundle
 
 .PHONY: bundle-build
@@ -664,3 +665,12 @@ deploy-olm: operator-sdk ## deploys OLM on the cluster
 
 build-and-push-bundle-images: bundle-build bundle-push catalog-build catalog-push
 
+.PHONY: grout-deploy-helm
+grout-deploy-helm: IMG_TAG=main-grout
+grout-deploy-helm: HELM_ARGS=--set openperouter.grout.enabled=true
+grout-deploy-helm: helm kind deploy-cluster load-on-kind deploy-helm 
+
+.PHONY: grout-docker-build
+grout-docker-build: IMG_TAG=main-grout
+grout-docker-build: DOCKERFILE=Dockerfile.grout
+grout-docker-build: docker-build

@@ -41,8 +41,8 @@ var singleSessionUnderlay = v1alpha1.Underlay{
 				Address: new("192.168.11.2"),
 			},
 		},
-		EVPN: &v1alpha1.EVPNConfig{
-			VTEPCIDR: ptr.To("100.65.0.0/24"),
+		TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+			CIDRs: []string{"100.65.0.0/24"},
 		},
 	},
 }

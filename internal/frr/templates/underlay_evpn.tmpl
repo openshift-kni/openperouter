@@ -1,7 +1,12 @@
 {{ define "underlayevpn"}}
-{{- if .Underlay.EVPN.VTEP }}
+{{- if .Underlay.TunnelEndpoint.IPv4CIDR }}
   address-family ipv4 unicast
-    network {{ .Underlay.EVPN.VTEP }}
+    network {{ .Underlay.TunnelEndpoint.IPv4CIDR }}
+  exit-address-family
+{{ end }}
+{{- if .Underlay.TunnelEndpoint.IPv6CIDR }}
+  address-family ipv6 unicast
+    network {{ .Underlay.TunnelEndpoint.IPv6CIDR }}
   exit-address-family
 {{ end }}
   address-family l2vpn evpn

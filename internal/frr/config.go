@@ -43,12 +43,13 @@ type UnderlayConfig struct {
 	MyASN           int64
 	RouterID        string
 	Neighbors       []NeighborConfig
-	EVPN            *UnderlayEvpn
+	TunnelEndpoint  *TunnelEndpoint
 	GracefulRestart *GracefulRestart
 }
 
-type UnderlayEvpn struct {
-	VTEP string
+type TunnelEndpoint struct {
+	IPv4CIDR string
+	IPv6CIDR string
 }
 
 type PassthroughConfig struct {
