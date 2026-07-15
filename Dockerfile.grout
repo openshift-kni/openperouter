@@ -71,9 +71,9 @@ RUN groupadd -r -g 92 frr && \
     groupadd -r -g 102 frrvty && \
     usermod -a -G frrvty frr
 
-ADD https://github.com/DPDK/grout/releases/download/v0.16.0/frr.x86_64.rpm /tmp/
-ADD https://github.com/DPDK/grout/releases/download/v0.16.0/grout-frr.x86_64.rpm /tmp/
-ADD https://github.com/DPDK/grout/releases/download/v0.16.0/grout.x86_64.rpm /tmp/
+ADD https://github.com/DPDK/grout/releases/download/v0.16.2/frr.x86_64.rpm /tmp/
+ADD https://github.com/DPDK/grout/releases/download/v0.16.2/grout-frr.x86_64.rpm /tmp/
+ADD https://github.com/DPDK/grout/releases/download/v0.16.2/grout.x86_64.rpm /tmp/
 
 RUN dnf install -y /tmp/*.rpm && dnf clean all && rm -rf /tmp/*.rpm
 
