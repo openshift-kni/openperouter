@@ -21,7 +21,7 @@ spec:
   vrf: blue
   hostSession:
     asn: 64514
-    hostType: external
+    hostType: External
     localCIDR:
       ipv4: 192.169.11.0/24
   vni: 200
