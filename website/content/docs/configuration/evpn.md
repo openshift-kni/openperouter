@@ -163,7 +163,7 @@ L2VNIs provide Layer 2 connectivity across nodes using EVPN tunnels. Unlike L3VN
 | `routingDomain.l3vpn.name` | string | metadata.name of the L3VPN that provides the routing domain | Yes (when type is `L3VPN`) |
 | `gatewayIPs` | string array | IP addresses in CIDR notation for the distributed anycast gateway. Cannot be set without routingDomain. Max 2 (one IPv4, one IPv6). | No |
 | `underlayAddressFamily` | string | VTEP address family for this VNI (`ipv4` or `ipv6`). Defaults to available family (IPv4 preferred in dual-stack). | No |
-| `hostMaster.type` | string | Type of host interface management (`linux-bridge` or `ovs-bridge`) | Yes |
+| `hostMaster.type` | string | Type of host interface management (`LinuxBridge` or `OVSBridge`) | Yes |
 | `hostMaster.linuxBridge.lifecycle` | string | How the Linux bridge is provisioned (`Managed` or `External`) | Yes |
 | `hostMaster.linuxBridge.name` | string | Name of the Linux bridge to attach to. Only valid when `External` | Only when `External` |
 | `hostMaster.ovsBridge.lifecycle` | string | How the OVS bridge is provisioned (`Managed` or `External`) | Yes |
@@ -185,7 +185,7 @@ spec:
     l3vni:
       name: red
   hostMaster:
-    type: linux-bridge
+    type: LinuxBridge
     linuxBridge:
       lifecycle: Managed
 ```

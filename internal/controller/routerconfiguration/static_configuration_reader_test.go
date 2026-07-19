@@ -38,7 +38,7 @@ underlays:
 l2vnis:
   - vni: 300
     hostMaster:
-      type: linux-bridge
+      type: LinuxBridge
       linuxBridge:
         lifecycle: External
         name: "br-storage"
@@ -142,7 +142,7 @@ l3vnis:
 l2vnis:
   - vni: 300
     hostMaster:
-      type: linux-bridge
+      type: LinuxBridge
       linuxBridge:
         lifecycle: External
         name: "br-storage"
@@ -184,7 +184,7 @@ l2vnis:
   - vni: 300
     vxlanPort: 5000
     hostMaster:
-      type: linux-bridge
+      type: LinuxBridge
       linuxBridge:
         lifecycle: External
         name: "br-storage"
@@ -250,7 +250,7 @@ underlays:
 l2vnis:
   - vni: 300
     hostMaster:
-      type: linux-bridge
+      type: LinuxBridge
       linuxBridge:
         lifecycle: External
         name: "br-storage"
@@ -534,7 +534,7 @@ underlays:
 l2vnis:
   - vni: 300
     hostMaster:
-      type: linux-bridge
+      type: LinuxBridge
       linuxBridge:
         name: "mybr"
         lifecycle: Managed
@@ -703,7 +703,7 @@ underlays:
 l2vnis:
   - vni: 300
     hostMaster:
-      type: linux-bridge
+      type: LinuxBridge
       linuxBridge:
         name: "mybr"
         lifecycle: Managed
@@ -746,7 +746,7 @@ underlays:
 l2vnis:
   - vni: 300
     hostMaster:
-      type: linux-bridge
+      type: LinuxBridge
       linuxBridge:
         name: "mybr"
         lifecycle: Managed
@@ -786,7 +786,7 @@ underlays:
 l2vnis:
   - vni: 300
     hostMaster:
-      type: linux-bridge
+      type: LinuxBridge
       linuxBridge:
         name: "mybr"
         lifecycle: Managed

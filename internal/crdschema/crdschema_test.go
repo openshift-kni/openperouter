@@ -179,7 +179,7 @@ func TestApplyDefaultsPreservation(t *testing.T) {
 			gvk:  l2vniGVK,
 			obj: newUnstructured("L2VNI", map[string]any{
 				"hostMaster": map[string]any{
-					"type":        "linux-bridge",
+					"type":        "LinuxBridge",
 					"linuxBridge": map[string]any{"lifecycle": "Managed"},
 				},
 			}),
@@ -210,7 +210,7 @@ func TestApplyDefaultsCombinedAndEdgeCases(t *testing.T) {
 	t.Run("multiple defaults applied at once for L2VNI", func(t *testing.T) {
 		obj := newUnstructured("L2VNI", map[string]any{
 			"hostMaster": map[string]any{
-				"type":        "linux-bridge",
+				"type":        "LinuxBridge",
 				"linuxBridge": map[string]any{"lifecycle": "External", "name": "br0"},
 			},
 		})
@@ -388,7 +388,7 @@ func TestValidateSuccessful(t *testing.T) {
 			obj: newUnstructured("L2VNI", map[string]any{
 				"vni": int64(100),
 				"hostMaster": map[string]any{
-					"type": "linux-bridge",
+					"type": "LinuxBridge",
 					"linuxBridge": map[string]any{
 						"name":      "br0",
 						"lifecycle": "External",
@@ -402,7 +402,7 @@ func TestValidateSuccessful(t *testing.T) {
 			obj: newUnstructured("L2VNI", map[string]any{
 				"vni": int64(100),
 				"hostMaster": map[string]any{
-					"type": "linux-bridge",
+					"type": "LinuxBridge",
 					"linuxBridge": map[string]any{
 						"lifecycle": "Managed",
 					},
@@ -415,7 +415,7 @@ func TestValidateSuccessful(t *testing.T) {
 			obj: newUnstructured("L2VNI", map[string]any{
 				"vni": int64(100),
 				"hostMaster": map[string]any{
-					"type": "linux-bridge",
+					"type": "LinuxBridge",
 					"linuxBridge": map[string]any{
 						"lifecycle": "Managed",
 					},
@@ -497,7 +497,7 @@ func TestValidateFailure(t *testing.T) {
 			gvk:  l2vniGVK,
 			obj: newUnstructured("L2VNI", map[string]any{
 				"hostMaster": map[string]any{
-					"type": "linux-bridge",
+					"type": "LinuxBridge",
 					"linuxBridge": map[string]any{
 						"name":      "br0",
 						"lifecycle": "Managed",
@@ -511,7 +511,7 @@ func TestValidateFailure(t *testing.T) {
 			gvk:  l2vniGVK,
 			obj: newUnstructured("L2VNI", map[string]any{
 				"hostMaster": map[string]any{
-					"type": "linux-bridge",
+					"type": "LinuxBridge",
 					"linuxBridge": map[string]any{
 						"lifecycle": "External",
 					},
@@ -524,7 +524,7 @@ func TestValidateFailure(t *testing.T) {
 			gvk:  l2vniGVK,
 			obj: newUnstructured("L2VNI", map[string]any{
 				"hostMaster": map[string]any{
-					"type": "ovs-bridge",
+					"type": "OVSBridge",
 					"ovsBridge": map[string]any{
 						"name":      "br0",
 						"lifecycle": "Managed",
@@ -538,7 +538,7 @@ func TestValidateFailure(t *testing.T) {
 			gvk:  l2vniGVK,
 			obj: newUnstructured("L2VNI", map[string]any{
 				"hostMaster": map[string]any{
-					"type": "linux-bridge",
+					"type": "LinuxBridge",
 					"ovsBridge": map[string]any{
 						"lifecycle": "Managed",
 					},
@@ -551,7 +551,7 @@ func TestValidateFailure(t *testing.T) {
 			gvk:  l2vniGVK,
 			obj: newUnstructured("L2VNI", map[string]any{
 				"hostMaster": map[string]any{
-					"type": "ovs-bridge",
+					"type": "OVSBridge",
 					"linuxBridge": map[string]any{
 						"lifecycle": "Managed",
 					},
@@ -801,7 +801,7 @@ func TestValidateMultipleErrors(t *testing.T) {
 	t.Run("LinuxBridge both name and Managed lifecycle plus type mismatch", func(t *testing.T) {
 		obj := newUnstructured("L2VNI", map[string]any{
 			"hostMaster": map[string]any{
-				"type": "ovs-bridge",
+				"type": "OVSBridge",
 				"linuxBridge": map[string]any{
 					"name":      "br0",
 					"lifecycle": "Managed",

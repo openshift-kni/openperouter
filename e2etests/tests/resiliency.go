@@ -54,7 +54,7 @@ var _ = Describe("Alpha: Named netns and kernel objects survive FRR crash", Orde
 			RoutingDomain: l3vniRoutingDomain("red"),
 			VNI:           110,
 			HostMaster: &v1alpha1.HostMaster{
-				Type: "linux-bridge",
+				Type: "LinuxBridge",
 				LinuxBridge: &v1alpha1.LinuxBridgeConfig{
 					Lifecycle: v1alpha1.BridgeLifecycleManaged,
 				},
@@ -242,7 +242,7 @@ var _ = Describe("Beta: Named netns auto-rebuilds after deletion", Ordered, func
 			RoutingDomain: l3vniRoutingDomain("red"),
 			VNI:           110,
 			HostMaster: &v1alpha1.HostMaster{
-				Type: "linux-bridge",
+				Type: "LinuxBridge",
 				LinuxBridge: &v1alpha1.LinuxBridgeConfig{
 					Lifecycle: v1alpha1.BridgeLifecycleManaged,
 				},
