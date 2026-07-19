@@ -25,7 +25,7 @@ underlays:
       level: 1
       interfaces:
         - name: toswitch1
-          ipFamily: ipv6
+          ipFamily: IPv6
     srv6:
       encapBehavior: "H.Encaps.Red"
       locator:
