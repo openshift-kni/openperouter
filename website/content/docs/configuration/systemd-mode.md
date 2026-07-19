@@ -82,7 +82,7 @@ l2vnis:
       l3vni:
         name: red
     hostMaster:
-      type: linux-bridge
+      type: LinuxBridge
       linuxBridge:
         name: br-storage
 ```

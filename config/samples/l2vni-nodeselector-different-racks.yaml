@@ -15,7 +15,7 @@ spec:
     l3vni:
       name: storage
   hostMaster:
-    type: linux-bridge
+    type: LinuxBridge
     linuxBridge:
       lifecycle: External
       name: br-storage
@@ -38,7 +38,7 @@ spec:
     l3vni:
       name: storage
   hostMaster:
-    type: linux-bridge
+    type: LinuxBridge
     linuxBridge:
       lifecycle: External
       name: br-storage

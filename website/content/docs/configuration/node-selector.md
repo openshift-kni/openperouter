@@ -231,7 +231,7 @@ spec:
     l3vni:
       name: tenant-a-vni
   hostMaster:
-    type: linux-bridge
+    type: LinuxBridge
     linuxBridge:
       lifecycle: Managed
   gatewayIPs:

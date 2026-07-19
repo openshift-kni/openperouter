@@ -84,7 +84,7 @@ spec:
     l3vpn:
       name: red
   hostMaster:
-    type: linux-bridge
+    type: LinuxBridge
     linuxBridge:
       lifecycle: Managed
   gatewayIPs: ["192.170.1.1/24"]

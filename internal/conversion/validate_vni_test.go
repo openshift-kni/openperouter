@@ -185,7 +185,7 @@ func TestFilterValidL2VNIs(t *testing.T) {
 					Spec: v1alpha1.L2VNISpec{
 						VNI: 1001,
 						HostMaster: &v1alpha1.HostMaster{
-							Type: "linux-bridge",
+							Type: "LinuxBridge",
 							LinuxBridge: &v1alpha1.LinuxBridgeConfig{
 								Name: new("invalid-hostmaster-name-with-dashes"),
 							},
@@ -204,7 +204,7 @@ func TestFilterValidL2VNIs(t *testing.T) {
 					Spec: v1alpha1.L2VNISpec{
 						VNI: 1001,
 						HostMaster: &v1alpha1.HostMaster{
-							Type: "linux-bridge",
+							Type: "LinuxBridge",
 							LinuxBridge: &v1alpha1.LinuxBridgeConfig{
 								Name: new("validhostmaster"),
 							},
@@ -223,7 +223,7 @@ func TestFilterValidL2VNIs(t *testing.T) {
 					Spec: v1alpha1.L2VNISpec{
 						VNI: 1001,
 						HostMaster: &v1alpha1.HostMaster{
-							Type: "linux-bridge",
+							Type: "LinuxBridge",
 							LinuxBridge: &v1alpha1.LinuxBridgeConfig{
 								Lifecycle: v1alpha1.BridgeLifecycleManaged,
 							},

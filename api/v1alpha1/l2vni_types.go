@@ -21,8 +21,8 @@ import (
 )
 
 const (
-	LinuxBridge = "linux-bridge"
-	OVSBridge   = "ovs-bridge"
+	LinuxBridge = "LinuxBridge"
+	OVSBridge   = "OVSBridge"
 
 	// RoutingDomainTypeL3VNI selects an L3VNI as the routing domain provider.
 	RoutingDomainTypeL3VNI = "L3VNI"
@@ -174,18 +174,18 @@ type OVSBridgeConfig struct {
 	Name *string `json:"name,omitempty"`
 }
 
-// +kubebuilder:validation:XValidation:rule="(self.type == 'linux-bridge' && has(self.linuxBridge) && !has(self.ovsBridge)) || (self.type == 'ovs-bridge' && has(self.ovsBridge) && !has(self.linuxBridge))",message="type/config mismatch: 'linux-bridge' requires linuxBridge field, 'ovs-bridge' requires ovsBridge field"
+// +kubebuilder:validation:XValidation:rule="(self.type == 'LinuxBridge' && has(self.linuxBridge) && !has(self.ovsBridge)) || (self.type == 'OVSBridge' && has(self.ovsBridge) && !has(self.linuxBridge))",message="type/config mismatch: 'LinuxBridge' requires linuxBridge field, 'OVSBridge' requires ovsBridge field"
 type HostMaster struct {
-	// type of the host interface. Supported values: "linux-bridge", "ovs-bridge".
-	// +kubebuilder:validation:Enum=linux-bridge;ovs-bridge
+	// type of the host interface. Supported values: "LinuxBridge", "OVSBridge".
+	// +kubebuilder:validation:Enum=LinuxBridge;OVSBridge
 	// +required
 	Type string `json:"type,omitempty"`
 
-	// linuxBridge configuration. Must be set when Type is "linux-bridge".
+	// linuxBridge configuration. Must be set when Type is "LinuxBridge".
 	// +optional
 	LinuxBridge *LinuxBridgeConfig `json:"linuxBridge,omitempty"`
 
-	// ovsBridge configuration. Must be set when Type is "ovs-bridge".
+	// ovsBridge configuration. Must be set when Type is "OVSBridge".
 	// +optional
 	OVSBridge *OVSBridgeConfig `json:"ovsBridge,omitempty"`
 }
