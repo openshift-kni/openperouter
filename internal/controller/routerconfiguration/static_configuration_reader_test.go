@@ -571,7 +571,7 @@ underlays:
       level: 1
       interfaces:
         - name: toswitch1
-          ipFamily: ipv6
+          ipFamily: IPv6
     srv6:
       locator:
         basePrefix: "fd00:0:32::/48"
@@ -647,7 +647,7 @@ underlays:
       level: 1
       interfaces:
         - name: toswitch1
-          ipFamily: ipv6
+          ipFamily: IPv6
     srv6:
       locator:
         basePrefix: "fd00:0:32::/48"
