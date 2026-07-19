@@ -344,8 +344,8 @@ spec:
                       hostType is the AS type of the BGP speaking component running in the
                       default network namespace. Either HostASN or HostType must be set.
                     enum:
-                    - external
-                    - internal
+                    - External
+                    - Internal
                     type: string
                   localCIDR:
                     description: |-
@@ -522,8 +522,8 @@ spec:
                       hostType is the AS type of the BGP speaking component running in the
                       default network namespace. Either HostASN or HostType must be set.
                     enum:
-                    - external
-                    - internal
+                    - External
+                    - Internal
                     type: string
                   localCIDR:
                     description: |-
@@ -743,8 +743,8 @@ spec:
                       hostType is the AS type of the BGP speaking component running in the
                       default network namespace. Either HostASN or HostType must be set.
                     enum:
-                    - external
-                    - internal
+                    - External
+                    - Internal
                     type: string
                   localCIDR:
                     description: |-
@@ -1650,8 +1650,8 @@ spec:
                       description: type is the AS type of the neighbor. Either ASN
                         or Type must be set.
                       enum:
-                      - external
-                      - internal
+                      - External
+                      - Internal
                       type: string
                   type: object
                   x-kubernetes-validations:
