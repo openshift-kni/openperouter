@@ -10,6 +10,7 @@ import (
 	"maps"
 	"slices"
 
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -49,12 +50,6 @@ func Reconcile(ctx context.Context, apiConfig conversion.APIConfigData, nodeInde
 	validL3VPNs, err = conversion.FilterValidL3VPNs(apiConfig.L3VPNs)
 	resourceErrors = append(resourceErrors, err)
 
-	if err := conversion.DetectMutuallyExclusiveOverlays(validL3VNIs, validL3VPNs); err != nil {
-		validL3VNIs = []v1alpha1.L3VNI{}
-		validL3VPNs = []v1alpha1.L3VPN{}
-		resourceErrors = append(resourceErrors, err)
-	}
-
 	if conversion.HasMissingSRv6ForL3VPNs(apiConfig.Underlays, validL3VPNs) {
 		resourceErrors = append(
 			resourceErrors,
@@ -67,24 +62,23 @@ func Reconcile(ctx context.Context, apiConfig conversion.APIConfigData, nodeInde
 	validL2VNIs, err = conversion.FilterValidL2VNIs(apiConfig.L2VNIs)
 	resourceErrors = append(resourceErrors, err)
 
-	var vnis map[int32]string
-	validL3VNIs, vnis, err = conversion.FilterUniqueL3VNIs(validL3VNIs)
+	var allocatedRDAssignedNumberToOwner map[int32]string
+	validL3VNIs, allocatedRDAssignedNumberToOwner, err = conversion.FilterUniqueL3VNIs(validL3VNIs)
 	resourceErrors = append(resourceErrors, err)
 
-	var rdAssignedNumbers map[int32]string
-	validL3VPNs, rdAssignedNumbers, err = conversion.FilterUniqueL3VPNs(validL3VPNs)
+	var allocatedRDAssignedNumberToVPN map[int32]string
+	validL3VPNs, allocatedRDAssignedNumberToVPN, err = conversion.FilterUniqueL3VPNs(validL3VPNs, allocatedRDAssignedNumberToOwner)
 	resourceErrors = append(resourceErrors, err)
-	// TODO: This is safe today, but may cause issues when we change to per-VRF mutual exclusivity
-	// for L3VNI and L3VPN.
-	maps.Copy(vnis, rdAssignedNumbers)
+	maps.Copy(allocatedRDAssignedNumberToOwner, allocatedRDAssignedNumberToVPN)
 
-	validL2VNIs, err = conversion.FilterUniqueL2VNIs(validL2VNIs, vnis)
+	validL2VNIs, err = conversion.FilterUniqueL2VNIs(validL2VNIs, allocatedRDAssignedNumberToOwner)
 	resourceErrors = append(resourceErrors, err)
 
-	validL3VNIs, err = conversion.FilterUniqueVRFsForL3VNIs(validL3VNIs)
+	var vrfToVNI map[string]types.NamespacedName
+	validL3VNIs, vrfToVNI, err = conversion.FilterUniqueVRFsForL3VNIs(validL3VNIs)
 	resourceErrors = append(resourceErrors, err)
 
-	validL3VPNs, err = conversion.FilterUniqueVRFsForL3VPNs(validL3VPNs)
+	validL3VPNs, err = conversion.FilterUniqueVRFsForL3VPNs(validL3VPNs, vrfToVNI)
 	resourceErrors = append(resourceErrors, err)
 
 	validL2VNIs, err = filterL2VNIsWithInvalidRoutingDomain(validL2VNIs, validL3VNIs, validL3VPNs)
