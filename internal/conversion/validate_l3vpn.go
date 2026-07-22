@@ -38,14 +38,17 @@ func FilterValidL3VPNs(l3vpns []v1alpha1.L3VPN) ([]v1alpha1.L3VPN, error) {
 // FilterUniqueL3VPNs removes L3VPNs with duplicate RD assigned numbers. It returns
 // the filtered L3VPNs as well as a map containing the unique RD assigned numbers
 // and the name of the corresponding L3VPN.
-func FilterUniqueL3VPNs(l3Vpns []v1alpha1.L3VPN) ([]v1alpha1.L3VPN, map[int32]string, error) {
-	existingRDAssignedNumber := map[int32]string{}
+// L3VPNs that collide with an existing VNI from FilterUniqueL3VNIs are
+// discarded, too.
+func FilterUniqueL3VPNs(l3Vpns []v1alpha1.L3VPN, allocatedRDAssignedNumberToOwner map[int32]string,
+) ([]v1alpha1.L3VPN, map[int32]string, error) {
+	allocatedRDAssignedNumberToVPN := map[int32]string{}
 	reason := v1alpha1.FailedResourceReasonValidationFailed
 	var allErrors []error
 
 	var validL3VPN []v1alpha1.L3VPN
 	for _, l3 := range l3Vpns {
-		if existing, duplicateFound := existingRDAssignedNumber[l3.Spec.RDAssignedNumber]; duplicateFound {
+		if existing, duplicateFound := allocatedRDAssignedNumberToVPN[l3.Spec.RDAssignedNumber]; duplicateFound {
 			allErrors = append(allErrors, &openpeerrors.ResourceError{
 				Obj: v1alpha1.FailedResource{
 					Kind: "L3VPN", Name: l3.Name, Reason: reason,
@@ -54,21 +57,32 @@ func FilterUniqueL3VPNs(l3Vpns []v1alpha1.L3VPN) ([]v1alpha1.L3VPN, map[int32]st
 			})
 			continue
 		}
-		existingRDAssignedNumber[l3.Spec.RDAssignedNumber] = "L3VPN/" + l3.Name
+		if vniName, duplicateFound := allocatedRDAssignedNumberToOwner[l3.Spec.RDAssignedNumber]; duplicateFound {
+			allErrors = append(allErrors, &openpeerrors.ResourceError{
+				Obj: v1alpha1.FailedResource{
+					Kind: "L3VPN", Name: l3.Name, Reason: reason,
+					Message: fmt.Sprintf("duplicate rdAssignedNumber %d cannot be the same as VNI in: %s",
+						l3.Spec.RDAssignedNumber, vniName),
+				},
+			})
+			continue
+		}
+		allocatedRDAssignedNumberToVPN[l3.Spec.RDAssignedNumber] = "L3VPN/" + l3.Name
 		validL3VPN = append(validL3VPN, l3)
 	}
 
-	return validL3VPN, existingRDAssignedNumber, errors.Join(allErrors...)
+	return validL3VPN, allocatedRDAssignedNumberToVPN, errors.Join(allErrors...)
 }
 
 // FilterUniqueVRFsForL3VPNs checks VRF uniqueness among L3VPNs and returns the valid
-// L3VPNs alongside per-resource errors for duplicates.
-func FilterUniqueVRFsForL3VPNs(l3vpns []v1alpha1.L3VPN) ([]v1alpha1.L3VPN, error) {
+// L3VPNs alongside per-resource errors for duplicates. It also receives a list of
+// VRF to L3VNI mappings to flag conflicts with those resources.
+func FilterUniqueVRFsForL3VPNs(l3vpns []v1alpha1.L3VPN, vrfToVNI map[string]types.NamespacedName) ([]v1alpha1.L3VPN, error) {
 	reason := v1alpha1.FailedResourceReasonValidationFailed
 	var allErrors []error
 
 	vrfToVPN := map[string]types.NamespacedName{}
-	var valid []v1alpha1.L3VPN
+	var validL3VPNs []v1alpha1.L3VPN
 	for _, l3vpn := range l3vpns {
 		namespaceName := types.NamespacedName{Namespace: l3vpn.Namespace, Name: l3vpn.Name}
 		if existing, duplicateFound := vrfToVPN[l3vpn.Spec.VRF]; duplicateFound {
@@ -80,44 +94,20 @@ func FilterUniqueVRFsForL3VPNs(l3vpns []v1alpha1.L3VPN) ([]v1alpha1.L3VPN, error
 			})
 			continue
 		}
+		if existing, duplicateFound := vrfToVNI[l3vpn.Spec.VRF]; duplicateFound {
+			allErrors = append(allErrors, &openpeerrors.ResourceError{
+				Obj: v1alpha1.FailedResource{
+					Kind: "L3VPN", Name: l3vpn.Name, Reason: reason,
+					Message: fmt.Sprintf("conflict with L3VNI %q detected in VRF %q", existing, l3vpn.Spec.VRF),
+				},
+			})
+			continue
+		}
 		vrfToVPN[l3vpn.Spec.VRF] = namespaceName
-		valid = append(valid, l3vpn)
+		validL3VPNs = append(validL3VPNs, l3vpn)
 	}
 
-	return valid, errors.Join(allErrors...)
-}
-
-// DetectMutuallyExclusiveOverlays returns a joined error for each conflicting resource if L3VNIs and L3VPNs
-// coexist.
-// TODO: This is a shortcut. We do not want L3VNIs and L3VPNs coexisting inside the same VRF. But across different
-// VRFs, this should work, in theory, subject to testing, and must be changed in the future.
-func DetectMutuallyExclusiveOverlays(l3vnis []v1alpha1.L3VNI, l3vpns []v1alpha1.L3VPN) error {
-	if len(l3vnis) == 0 || len(l3vpns) == 0 {
-		return nil
-	}
-
-	var errs []error
-	for _, l3vni := range l3vnis {
-		errs = append(errs, &openpeerrors.ResourceError{
-			Obj: v1alpha1.FailedResource{
-				Kind:    v1alpha1.FailedResourceKind("L3VNI"),
-				Name:    l3vni.Name,
-				Reason:  v1alpha1.FailedResourceReasonValidationFailed,
-				Message: "cannot specify L3VNI resources and L3VPN resources at the same time",
-			},
-		})
-	}
-	for _, l3vpn := range l3vpns {
-		errs = append(errs, &openpeerrors.ResourceError{
-			Obj: v1alpha1.FailedResource{
-				Kind:    v1alpha1.FailedResourceKind("L3VPN"),
-				Name:    l3vpn.Name,
-				Reason:  v1alpha1.FailedResourceReasonValidationFailed,
-				Message: "cannot specify L3VPN resources and L3VNI resources at the same time",
-			},
-		})
-	}
-	return errors.Join(errs...)
+	return validL3VPNs, errors.Join(allErrors...)
 }
 
 // ValidateSRv6ForNodes returns an error if, for any node, the L3VPN resources are present without

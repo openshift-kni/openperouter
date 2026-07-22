@@ -86,7 +86,8 @@ func FilterValidL2VNIs(l2Vnis []v1alpha1.L2VNI) ([]v1alpha1.L2VNI, error) {
 }
 
 // FilterUniqueL3VNIs removes L3VNIs with duplicate VNI numbers. It returns
-// the filtered L3VNIs as well as a map containing the unique VNI numbers and the
+// the filtered L3VNIs as well as a map containing the unique VNI numbers
+// (which is also the allocated Route Distinguisher Assigned Number) and the
 // name of the corresponding L3VNI.
 func FilterUniqueL3VNIs(l3Vnis []v1alpha1.L3VNI) ([]v1alpha1.L3VNI, map[int32]string, error) {
 	existingVNIs := map[int32]string{}
@@ -95,7 +96,7 @@ func FilterUniqueL3VNIs(l3Vnis []v1alpha1.L3VNI) ([]v1alpha1.L3VNI, map[int32]st
 
 	var validL3VNI []v1alpha1.L3VNI
 	for _, l3 := range l3Vnis {
-		if existing, ok := existingVNIs[l3.Spec.VNI]; ok {
+		if existing, duplicateFound := existingVNIs[l3.Spec.VNI]; duplicateFound {
 			allErrors = append(allErrors, &openpeerrors.ResourceError{
 				Obj: v1alpha1.FailedResource{
 					Kind: "L3VNI", Name: l3.Name, Reason: reason,
@@ -112,14 +113,18 @@ func FilterUniqueL3VNIs(l3Vnis []v1alpha1.L3VNI) ([]v1alpha1.L3VNI, map[int32]st
 }
 
 // FilterUniqueL2VNIs removes L2VNIs with duplicate VNI numbers.
-// L2VNIs that collide with an existing VNI or RDAssignedNumber are discarded.
-func FilterUniqueL2VNIs(l2Vnis []v1alpha1.L2VNI, existingVNIs map[int32]string) ([]v1alpha1.L2VNI, error) {
+// L2VNIs that collide with an existing L3VNI or L3VPN Route Distinguisher
+// AssignedNumber are discarded.
+func FilterUniqueL2VNIs(
+	l2Vnis []v1alpha1.L2VNI,
+	allocatedRDAssignedNumberToOwner map[int32]string,
+) ([]v1alpha1.L2VNI, error) {
 	reason := v1alpha1.FailedResourceReasonValidationFailed
 	var allErrors []error
 
 	var validL2 []v1alpha1.L2VNI
 	for _, l2 := range l2Vnis {
-		if existing, ok := existingVNIs[l2.Spec.VNI]; ok {
+		if existing, duplicateFound := allocatedRDAssignedNumberToOwner[l2.Spec.VNI]; duplicateFound {
 			allErrors = append(allErrors, &openpeerrors.ResourceError{
 				Obj: v1alpha1.FailedResource{
 					Kind: "L2VNI", Name: l2.Name, Reason: reason,
@@ -128,7 +133,7 @@ func FilterUniqueL2VNIs(l2Vnis []v1alpha1.L2VNI, existingVNIs map[int32]string) 
 			})
 			continue
 		}
-		existingVNIs[l2.Spec.VNI] = "L2VNI/" + l2.Name
+		allocatedRDAssignedNumberToOwner[l2.Spec.VNI] = "L2VNI/" + l2.Name
 		validL2 = append(validL2, l2)
 	}
 
@@ -194,32 +199,33 @@ func validateOverlayResourcesForNode(node corev1.Node, l2vnis []v1alpha1.L2VNI, 
 		return fmt.Errorf("failed to validate l2vnis for node %q: %w", node.Name, err)
 	}
 
-	var vnis map[int32]string
-	validL3VNIs, vnis, err = FilterUniqueL3VNIs(validL3VNIs)
+	var allocatedRDAssignedNumberToOwner map[int32]string
+	validL3VNIs, allocatedRDAssignedNumberToOwner, err = FilterUniqueL3VNIs(validL3VNIs)
 	if err != nil {
 		return fmt.Errorf("duplicate L3VNIs found for node %q: %w", node.Name, err)
 	}
 
-	var rdAssignedNumbers map[int32]string
-	validL3VPNs, rdAssignedNumbers, err = FilterUniqueL3VPNs(validL3VPNs)
+	var allocatedRDAssignedNumberToVPN map[int32]string
+	validL3VPNs, allocatedRDAssignedNumberToVPN, err = FilterUniqueL3VPNs(validL3VPNs, allocatedRDAssignedNumberToOwner)
 	if err != nil {
 		return fmt.Errorf("duplicate L3VPNs found for node %q: %w", node.Name, err)
 	}
-	maps.Copy(vnis, rdAssignedNumbers)
+	maps.Copy(allocatedRDAssignedNumberToOwner, allocatedRDAssignedNumberToVPN)
 
-	validL2VNIs, err = FilterUniqueL2VNIs(validL2VNIs, vnis)
+	validL2VNIs, err = FilterUniqueL2VNIs(validL2VNIs, allocatedRDAssignedNumberToOwner)
 	if err != nil {
 		return fmt.Errorf("duplicate VNIs found in L2VNIs for node %q: %w", node.Name, err)
 	}
 
-	validL3VNIs, err = FilterUniqueVRFsForL3VNIs(validL3VNIs)
+	var vrfToVNI map[string]types.NamespacedName
+	validL3VNIs, vrfToVNI, err = FilterUniqueVRFsForL3VNIs(validL3VNIs)
 	if err != nil {
-		return fmt.Errorf("duplicate L3VNI VRFs found for node %q: %w", node.Name, err)
+		return fmt.Errorf("duplicate L3VNIs found in VRFs for node %q: %w", node.Name, err)
 	}
 
-	validL3VPNs, err = FilterUniqueVRFsForL3VPNs(validL3VPNs)
+	validL3VPNs, err = FilterUniqueVRFsForL3VPNs(validL3VPNs, vrfToVNI)
 	if err != nil {
-		return fmt.Errorf("duplicate L3VPN VRFs found for node %q: %w", node.Name, err)
+		return fmt.Errorf("duplicate L3VPNs found in VRFs for node %q: %w", node.Name, err)
 	}
 
 	_, _, _, err = FilterValidVRFSubnets(validL3VNIs, validL3VPNs, validL2VNIs)
@@ -231,30 +237,30 @@ func validateOverlayResourcesForNode(node corev1.Node, l2vnis []v1alpha1.L2VNI, 
 }
 
 // FilterUniqueVRFsForL3VNIs checks VRF uniqueness among L3VNIs and returns the valid
-// L3VNIs alongside per-resource errors for duplicates.
-func FilterUniqueVRFsForL3VNIs(l3Vnis []v1alpha1.L3VNI) ([]v1alpha1.L3VNI, error) {
+// L3VNIs alongside per-resource errors for duplicates. Collects and returns
+// VRFs used by L3VNIs for duplicate detection by FilterUniqueVRFsForL3VPNs.
+func FilterUniqueVRFsForL3VNIs(l3vnis []v1alpha1.L3VNI) ([]v1alpha1.L3VNI, map[string]types.NamespacedName, error) {
 	reason := v1alpha1.FailedResourceReasonValidationFailed
 	var allErrors []error
 
 	vrfToVNI := map[string]types.NamespacedName{}
-	var valid []v1alpha1.L3VNI
-	for _, l3Vni := range l3Vnis {
-		namespaceName := types.NamespacedName{Namespace: l3Vni.Namespace, Name: l3Vni.Name}
-		existing, ok := vrfToVNI[l3Vni.Spec.VRF]
-		if ok {
+	var validL3VNIs []v1alpha1.L3VNI
+	for _, l3vni := range l3vnis {
+		namespaceName := types.NamespacedName{Namespace: l3vni.Namespace, Name: l3vni.Name}
+		if existing, duplicateFound := vrfToVNI[l3vni.Spec.VRF]; duplicateFound {
 			allErrors = append(allErrors, &openpeerrors.ResourceError{
 				Obj: v1alpha1.FailedResource{
-					Kind: "L3VNI", Name: l3Vni.Name, Reason: reason,
-					Message: fmt.Sprintf("more than one L3VNI detected in VRF %q: %q already exists", l3Vni.Spec.VRF, existing),
+					Kind: "L3VNI", Name: l3vni.Name, Reason: reason,
+					Message: fmt.Sprintf("more than one L3VNI detected in VRF %q: %q already exists", l3vni.Spec.VRF, existing),
 				},
 			})
 			continue
 		}
-		vrfToVNI[l3Vni.Spec.VRF] = namespaceName
-		valid = append(valid, l3Vni)
+		vrfToVNI[l3vni.Spec.VRF] = namespaceName
+		validL3VNIs = append(validL3VNIs, l3vni)
 	}
 
-	return valid, errors.Join(allErrors...)
+	return validL3VNIs, vrfToVNI, errors.Join(allErrors...)
 }
 
 // FilterValidVRFSubnets checks for subnet overlaps per VRF and returns valid
