@@ -170,6 +170,14 @@ func (c *Client) listInterfaces(ctx context.Context) ([]groutInterface, error) {
 func (c *Client) portExists(ctx context.Context, name string) (bool, error) {
 	info, err := c.getInterfaceInfo(ctx, name)
 	if err != nil {
+		// gr_connect failures mean the daemon socket is missing — propagate.
+		if strings.Contains(err.Error(), "gr_connect") {
+			return false, err
+		}
+		// grcli returns an error when the interface doesn't exist
+		if strings.Contains(err.Error(), "No such") || strings.Contains(out, "No such") {
+			return false, nil
+		}
 		return false, err
 	}
 	return info != nil, nil
