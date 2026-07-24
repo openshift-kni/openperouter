@@ -94,7 +94,8 @@ for i in $(seq 0 $((NUM_NICS - 1))); do
 done
 
 sudo qemu-system-x86_64 \
-    -machine q35 \
+    -machine q35,kernel-irqchip=split \
+    -device intel-iommu,intremap=on,caching-mode=on \
     -enable-kvm \
     -cpu host \
     -smp "${VM_CPUS}" \
@@ -137,5 +138,25 @@ echo "VM is SSH-reachable."
 echo "Waiting for cloud-init to complete..."
 ssh ${SSH_OPTS} -p "${SSH_PORT}" openperouter@localhost \
     "sudo cloud-init status --wait" 2>/dev/null || true
+
+# --- Reboot if kernel cmdline changes need to take effect ---
+if ! ssh ${SSH_OPTS} -p "${SSH_PORT}" openperouter@localhost \
+    "grep -q intel_iommu=on /proc/cmdline" 2>/dev/null; then
+    echo "Rebooting VM for kernel cmdline changes (IOMMU, hugepages)..."
+    ssh ${SSH_OPTS} -p "${SSH_PORT}" openperouter@localhost \
+        "sudo reboot" 2>/dev/null || true
+    sleep 10
+    ELAPSED=0
+    while ! ssh ${SSH_OPTS} -p "${SSH_PORT}" openperouter@localhost true 2>/dev/null; do
+        sleep 5
+        ELAPSED=$((ELAPSED + 5))
+        if [[ "${ELAPSED}" -ge "${MAX_WAIT}" ]]; then
+            echo "ERROR: VM did not become SSH-reachable after reboot within ${MAX_WAIT}s." >&2
+            exit 1
+        fi
+        echo "  waiting for reboot... (${ELAPSED}s / ${MAX_WAIT}s)"
+    done
+    echo "VM is back after reboot."
+fi
 
 echo "VM is ready."
