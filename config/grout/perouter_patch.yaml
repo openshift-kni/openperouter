@@ -40,11 +40,11 @@ spec:
           value: "/var/run/grout/grout.sock"
         resources:
           requests:
-            memory: "512Mi"
-            cpu: "250m"
+            memory: "1Gi"
+            hugepages-2Mi: "2Gi"
           limits:
             memory: "2Gi"
-            cpu: "500m"
+            hugepages-2Mi: "2Gi"
         command:
         - /bin/sh
         - -c
@@ -61,7 +61,7 @@ spec:
             fi
           done
           ulimit -l unlimited
-          exec nsenter --net=/var/run/netns/perouter grout --test-mode --socket-mode 0666 --verbose --trace-packets
+          exec nsenter --net=/var/run/netns/perouter grout --socket-mode 0666 --verbose --trace-packets
         volumeMounts:
         - name: grout-socket
           mountPath: /var/run/grout
@@ -75,6 +75,8 @@ spec:
           mountPath: /dev/net/tun
         - name: dpdk-runtime
           mountPath: /var/run/dpdk
+        - name: hugepages
+          mountPath: /dev/hugepages
         - name: vfio
           mountPath: /dev/vfio
         startupProbe:
@@ -109,6 +111,9 @@ spec:
           type: CharDevice
       - name: dpdk-runtime
         emptyDir: {}
+      - name: hugepages
+        emptyDir:
+          medium: HugePages
       - name: vfio
         hostPath:
           path: /dev/vfio
