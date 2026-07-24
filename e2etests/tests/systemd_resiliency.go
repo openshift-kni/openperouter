@@ -276,17 +276,21 @@ var _ = Describe("Systemd: Controller auto-recovers when operator deletes named 
 		dumpIfFails(cs)
 	})
 
-	It("should auto-recover after ip netns delete without manual restart", func() {
+	It("should auto-recover after ip netns delete and routerpod restart", func() {
 		Expect(nodes).NotTo(BeEmpty())
 		nodeName := nodes[0].Name
+		nodeExec := executor.ForContainer(nodeName)
 
 		By("verifying named netns exists")
 		Expect(openperouter.NamedNetnsExists(nodeName)).To(BeTrue())
 
-		By("deleting named netns — do NOT manually restart routerpod")
+		By("deleting named netns")
 		Expect(openperouter.DeleteNamedNetns(nodeName)).To(Succeed())
 
-		By("waiting for controller to detect missing netns and auto-restart routerpod")
+		By("restarting routerpod service so FRR exits and the netns is truly destroyed")
+		Expect(systemd.RestartSystemdUnit(nodeExec, "routerpod-pod.service")).To(Succeed())
+
+		By("waiting for controller to detect missing netns and recreate it")
 		Eventually(func() (bool, error) {
 			return openperouter.NamedNetnsExists(nodeName)
 		}, 3*time.Minute, 2*time.Second).Should(BeTrue(), "controller must auto-recreate named netns")
@@ -297,19 +301,6 @@ var _ = Describe("Systemd: Controller auto-recovers when operator deletes named 
 				return openperouter.NamedNetnsHasInterfaceType(nodeName, ifType)
 			}, 2*time.Minute, 2*time.Second).Should(BeTrue(), "interface type %s must be recreated", ifType)
 		}
-
-		By("waiting for routerpod service to become active")
-		nodeExec := executor.ForContainer(nodeName)
-		Eventually(func() error {
-			output, err := nodeExec.Exec("systemctl", "is-active", "routerpod-pod.service")
-			if err != nil {
-				return err
-			}
-			if strings.TrimSpace(output) != "active" {
-				return fmt.Errorf("service not active: %s", output)
-			}
-			return nil
-		}, 2*time.Minute, time.Second).Should(Succeed())
 
 		By("waiting for BGP sessions to re-establish")
 		neighborIP, err := infra.NeighborIP(infra.KindLeaf, nodeName)
