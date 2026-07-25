@@ -14,6 +14,7 @@ import (
 	"github.com/openperouter/openperouter/e2etests/pkg/config"
 	"github.com/openperouter/openperouter/e2etests/pkg/executor"
 	"github.com/openperouter/openperouter/e2etests/pkg/frrk8s"
+	"github.com/openperouter/openperouter/e2etests/pkg/infra"
 	"github.com/openperouter/openperouter/e2etests/pkg/k8s"
 	"github.com/openperouter/openperouter/e2etests/pkg/k8sclient"
 	"github.com/openperouter/openperouter/e2etests/pkg/openperouter"
@@ -77,6 +78,11 @@ var _ = ginkgo.BeforeSuite(func() {
 	Eventually(func(g Gomega) {
 		tests.ValidateCNIBinaries(g, cs)
 	}).WithTimeout(30 * time.Second).WithPolling(2 * time.Second).Should(Succeed())
+
+	if tests.GroutMode {
+		infra.UnderlaySRv6.Spec.ISIS.Interfaces[0].Name = "u_" + infra.UnderlaySRv6.Spec.ISIS.Interfaces[0].Name
+		infra.UnderlayEVPNandSRv6.Spec.ISIS.Interfaces[0].Name = "u_" + infra.UnderlayEVPNandSRv6.Spec.ISIS.Interfaces[0].Name
+	}
 })
 
 var _ = ginkgo.AfterSuite(func() {
