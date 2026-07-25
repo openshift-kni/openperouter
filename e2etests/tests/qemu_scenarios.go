@@ -84,7 +84,7 @@ func qemuSRv6Underlay() v1alpha1.Underlay {
 				BaseNet: "49.0001.0002.0003.0004.00",
 				Level:   new(int32(1)),
 				Interfaces: []v1alpha1.ISISInterface{{
-					Name:     "enp1s0",
+					Name:     "u_p000001000",
 					IPFamily: new(v1alpha1.IPFamilyIPv6),
 				}},
 			},
@@ -164,6 +164,10 @@ var _ = Describe("QEMU EVPN scenarios", Ordered, QEMUSupport, func() {
 			}
 			return openperouter.AreReady(routers)
 		}, 2*time.Minute, time.Second).ShouldNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		dumpIfFails(cs)
 	})
 
 	It("should receive EVPN Type-5 routes via L3VNI", func() {
@@ -289,6 +293,10 @@ var _ = Describe("QEMU SRv6 scenarios", Ordered, QEMUSupport, func() {
 		}, 2*time.Minute, time.Second).ShouldNot(HaveOccurred())
 	})
 
+	AfterEach(func() {
+		dumpIfFails(cs)
+	})
+
 	It("should receive L3VPN routes via SRv6", func() {
 		By("Creating L3VPN red")
 		Expect(Updater.Update(config.Resources{
@@ -401,6 +409,10 @@ var _ = Describe("QEMU RawFRRConfig", Ordered, QEMUSupport, func() {
 			}
 			return openperouter.AreReady(routers)
 		}, 2*time.Minute, time.Second).ShouldNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		dumpIfFails(cs)
 	})
 
 	It("should inject raw config into FRR", func() {

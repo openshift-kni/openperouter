@@ -73,11 +73,16 @@ in_tor_ns ip link set lo up
 in_tor_ns ip addr add 100.64.0.1/32 dev lo
 in_tor_ns ip addr add 2001:db8:1234::1/128 dev lo
 
+# --- SRv6 dummy interface (required by ISIS SRv6 SID installation) ---
+in_tor_ns ip link add sr0 type dummy
+in_tor_ns ip link set sr0 up
+
 # --- IPv6 forwarding and SRv6 ---
 in_tor_ns sysctl -qw net.ipv6.conf.all.forwarding=1
 in_tor_ns sysctl -qw net.ipv6.conf.all.seg6_enabled=1
 in_tor_ns sysctl -qw net.ipv6.conf.eth0.seg6_enabled=1
 in_tor_ns sysctl -qw net.ipv6.conf.lo.seg6_enabled=1
+in_tor_ns sysctl -qw net.ipv6.conf.sr0.seg6_enabled=1
 
 # --- VRFs ---
 in_tor_ns sysctl -qw net.vrf.strict_mode=1
@@ -104,6 +109,13 @@ in_tor_ns ip link set br200 addrgenmode none
 in_tor_ns ip link set vxlan200 master br200
 in_tor_ns ip link set br200 up
 in_tor_ns ip link set vxlan200 up
+
+# --- Reload FRR config ---
+# FRR reads its config at container startup before networking is set up.
+# Re-apply the config now that VRFs, VXLAN, bridges, and sr0 are ready.
+echo "Reloading FRR config..."
+sleep 2
+docker exec "${FRR_CONTAINER_NAME}" vtysh -f /etc/frr/frr.conf
 
 echo "FRR TOR container is running with IP ${TOR_IP} and ${TOR_IPV6} on ${BRIDGE_NAME}."
 echo "  VTEP: 100.64.0.1  SRv6 source: 2001:db8:1234::1"
