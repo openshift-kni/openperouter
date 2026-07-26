@@ -33,8 +33,6 @@ echo "=== Setting up QEMU VM ==="
 echo "Loading vfio-pci module..."
 run_in_vm 'modprobe vfio-pci'
 
-run_in_vm 'modprobe vrf'
-
 # --- Configure the first igb NIC with the underlay IP ---
 echo "Configuring underlay IP on first igb NIC..."
 run_in_vm '
