@@ -112,6 +112,37 @@ func validateCachedAttachment(attachment *libcni.NetworkAttachment, p AddParams)
 	return nil
 }
 
+// Check invokes CNI CHECK for the cached attachment matching the interface
+// name, using the config and netns recorded at ADD time. It reports whether
+// the interface is still correctly configured in the kernel, so the caller
+// can detect drift between the libcni cache and the real state of the
+// namespace. When no cached attachment exists for ifName, Check returns nil:
+// there is nothing to validate, Add will provision it.
+func (inv *invoker) Check(ctx context.Context, ifName string) error {
+	attachment, err := inv.findCachedAttachmentByInterfaceName(ifName)
+	if err != nil {
+		return fmt.Errorf("failed finding cni attachment with ifname %q to check: %w", ifName, err)
+	}
+	if attachment == nil {
+		return nil
+	}
+
+	confList, err := libcni.NetworkConfFromBytes(attachment.Config)
+	if err != nil {
+		return fmt.Errorf("failed to parse cached cni config for network %q: %w", attachment.Network, err)
+	}
+
+	if err := inv.cniConfig.CheckNetworkList(ctx, confList, &libcni.RuntimeConf{
+		ContainerID:    attachment.ContainerID,
+		NetNS:          attachment.NetNS,
+		IfName:         attachment.IfName,
+		CapabilityArgs: attachment.CapabilityArgs,
+	}); err != nil {
+		return fmt.Errorf("cni check %q (%s) in %s: %w", attachment.Network, attachment.IfName, attachment.NetNS, err)
+	}
+	return nil
+}
+
 // Del invokes CNI DEL for the cached attachment matching the interface name,
 // using the config and netns recorded at ADD time so teardown works after the
 // defining config is gone. Interfaces without a cached attachment are
