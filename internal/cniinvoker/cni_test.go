@@ -225,6 +225,47 @@ func TestDelWithEmptyCache(t *testing.T) {
 	env.noCommands(t)
 }
 
+func TestCheckWithNoCachedAttachment(t *testing.T) {
+	env := newFakePluginEnv(t)
+
+	if err := env.invoker().Check(context.Background(), "net1"); err != nil {
+		t.Fatalf("Check with no cached attachment failed: %v", err)
+	}
+
+	env.noCommands(t)
+}
+
+func TestCheckPassesForAHealthyInterface(t *testing.T) {
+	env := newFakePluginEnv(t)
+
+	if err := env.invoker().Add(context.Background(), env.params("net1", nil)); err != nil {
+		t.Fatalf("Add failed: %v", err)
+	}
+
+	if err := env.invoker().Check(context.Background(), "net1"); err != nil {
+		t.Fatalf("Check failed: %v", err)
+	}
+
+	env.matchCommands(t, "ADD net1", "CHECK net1")
+}
+
+func TestCheckReportsAMisconfiguredInterface(t *testing.T) {
+	env := newFakePluginEnv(t)
+
+	if err := env.invoker().Add(context.Background(), env.params("net1", nil)); err != nil {
+		t.Fatalf("Add failed: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(env.stdinDir, "FAIL-CHECK"), nil, 0o644); err != nil {
+		t.Fatalf("failed to request the CHECK failure: %v", err)
+	}
+
+	if err := env.invoker().Check(context.Background(), "net1"); err == nil {
+		t.Fatal("expected error for a failed CHECK")
+	}
+
+	env.matchCommands(t, "ADD net1", "CHECK net1")
+}
+
 func TestValidateConfig(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -292,9 +333,10 @@ func newFakePluginEnv(t *testing.T) *fakePluginEnv {
 	// The fake plugin script logs "COMMAND IFNAME", dumps its stdin and, on
 	// ADD, emits a canned CNI result. A repeated ADD for the same interface
 	// fails, so tests catch broken Add idempotency. DEL clears the marker so
-	// a later ADD is allowed again. Environment variables are inherited
-	// from the test process (t.Setenv) since libcni execs plugins with
-	// os.Environ.
+	// a later ADD is allowed again. CHECK fails when FAIL-CHECK is present,
+	// so tests can simulate a drifted/misconfigured interface. Environment
+	// variables are inherited from the test process (t.Setenv) since libcni
+	// execs plugins with os.Environ.
 	script := `#!/bin/sh
 echo "$CNI_COMMAND $CNI_IFNAME" >> "$CNI_TEST_LOG"
 if [ "$CNI_COMMAND" = "ADD" ] && [ -e "$CNI_TEST_STDIN_DIR/FAIL-ADD" ]; then
@@ -303,6 +345,10 @@ if [ "$CNI_COMMAND" = "ADD" ] && [ -e "$CNI_TEST_STDIN_DIR/FAIL-ADD" ]; then
 fi
 if [ "$CNI_COMMAND" = "ADD" ] && [ -e "$CNI_TEST_STDIN_DIR/ADD-$CNI_IFNAME" ]; then
   echo '{"cniVersion":"1.0.0","code":11,"msg":"duplicate ADD for '"$CNI_IFNAME"'"}'
+  exit 1
+fi
+if [ "$CNI_COMMAND" = "CHECK" ] && [ -e "$CNI_TEST_STDIN_DIR/FAIL-CHECK" ]; then
+  echo '{"cniVersion":"1.0.0","code":11,"msg":"CHECK failure requested by the test"}'
   exit 1
 fi
 cat > "$CNI_TEST_STDIN_DIR/$CNI_COMMAND-$CNI_IFNAME"
