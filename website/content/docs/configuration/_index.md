@@ -193,6 +193,11 @@ Key behaviors to be aware of:
   `mac`, `bandwidth`) to plugins that declare the corresponding
   `capabilities` in their config; undeclared keys are ignored. Like
   `rawConfig`, it is immutable once the Underlay is created.
+- **Drift is detected and repaired on the next reconcile**: the controller
+  runs a CNI CHECK against the cached attachment before trusting it. If the
+  interface was removed or misconfigured outside of OpenPERouter, the next
+  reconcile (triggered by a resource change, or a controller/router
+  restart) tears it down and re-provisions it.
 - Since the interface address is typically node-specific, CNI underlays
   are usually node-scoped via `nodeSelector`, one Underlay per node. See
   the [example on GitHub](https://github.com/openperouter/openperouter/tree/main/examples/evpn/cni-underlay).
