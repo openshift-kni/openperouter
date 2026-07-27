@@ -5,6 +5,7 @@ package config
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	frrk8sv1beta1 "github.com/metallb/frr-k8s/api/v1beta1"
 	"github.com/openperouter/openperouter/api/v1alpha1"
@@ -28,9 +29,10 @@ type Resources struct {
 type Updater struct {
 	cli       client.Client
 	namespace string
+	groutMode bool
 }
 
-func UpdaterForCRs(r *rest.Config, ns string) (*Updater, error) {
+func UpdaterForCRs(r *rest.Config, ns string, groutMode bool) (*Updater, error) {
 	myScheme := runtime.NewScheme()
 
 	if err := v1alpha1.AddToScheme(myScheme); err != nil {
@@ -56,6 +58,7 @@ func UpdaterForCRs(r *rest.Config, ns string) (*Updater, error) {
 	return &Updater{
 		cli:       cl,
 		namespace: ns,
+		groutMode: groutMode,
 	}, nil
 }
 
@@ -68,7 +71,11 @@ func (o Updater) Update(r Resources) error {
 	oldValues := map[int]client.Object{}
 	key := 0
 	for _, underlay := range r.Underlays {
-		objects[key] = underlay.DeepCopy()
+		if o.groutMode {
+			objects[key] = fixUnderlayForGrout(underlay)
+		} else {
+			objects[key] = underlay.DeepCopy()
+		}
 		oldValues[key] = underlay.DeepCopy()
 		key++
 	}
@@ -194,4 +201,22 @@ func (o Updater) Client() client.Client {
 
 func (o Updater) Namespace() string {
 	return o.namespace
+}
+
+func fixUnderlayForGrout(u v1alpha1.Underlay) *v1alpha1.Underlay {
+	res := u.DeepCopy()
+	for i := range res.Spec.Neighbors {
+		if res.Spec.Neighbors[i].Interface != nil && !strings.HasPrefix(*res.Spec.Neighbors[i].Interface, "u_") {
+			iface := "u_" + *res.Spec.Neighbors[i].Interface
+			res.Spec.Neighbors[i].Interface = &iface
+		}
+	}
+	if res.Spec.ISIS != nil {
+		for i := range res.Spec.ISIS.Interfaces {
+			if !strings.HasPrefix(res.Spec.ISIS.Interfaces[i].Name, "u_") {
+				res.Spec.ISIS.Interfaces[i].Name = "u_" + res.Spec.ISIS.Interfaces[i].Name
+			}
+		}
+	}
+	return res
 }
