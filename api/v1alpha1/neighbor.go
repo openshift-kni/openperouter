@@ -78,9 +78,13 @@ type Neighbor struct {
 	// +optional
 	ConnectTimeSeconds *int64 `json:"connectTimeSeconds,omitempty"`
 
-	// ebgpMultiHop indicates if the BGPPeer is multi-hops away.
+	// properties is the set of optional session-level features for this
+	// neighbor (e.g. ebgpMultiHop).
 	// +optional
-	EBGPMultiHop *bool `json:"ebgpMultiHop,omitempty"`
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems:=1
+	Properties []NeighborProperty `json:"properties,omitempty"`
 
 	// bfd defines the BFD configuration for the BGP session.
 	// +optional
@@ -118,6 +122,12 @@ type Neighbor struct {
 // +kubebuilder:validation:Enum=Active;Passive
 type BFDSessionMode string
 
+// NeighborPropertyType defines an optional feature on a Neighbor.
+// The values are protocol / FRR configuration tokens and are kept verbatim so
+// they map directly to the rendered stanzas.
+// +kubebuilder:validation:Enum=ebgpMultiHop
+type NeighborPropertyType string
+
 const (
 	// BFDSessionModeActive initiates the BFD session. This is the default
 	// when sessionMode is omitted.
@@ -126,7 +136,36 @@ const (
 	// BFDSessionModePassive waits for the peer to initiate the BFD session
 	// before replying.
 	BFDSessionModePassive BFDSessionMode = "Passive"
+
+	// NeighborPropertyEBGPMultiHop enables eBGP multihop on the neighbor
+	// session, rendered as "neighbor X ebgp-multihop [ttl]".
+	NeighborPropertyEBGPMultiHop NeighborPropertyType = "ebgpMultiHop"
 )
+
+// EBGPMultiHopProperties holds parameters for the ebgpMultiHop property.
+type EBGPMultiHopProperties struct {
+	// ttl is the maximum number of hops for the eBGP multihop session.
+	// When omitted, FRR defaults to 255.
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=255
+	// +optional
+	TTL *int32 `json:"ttl,omitempty"`
+}
+
+// NeighborProperty is an optional feature applied to a neighbor session. The
+// type field selects the property; typed sub-fields hold parameters for
+// properties that require them.
+// +kubebuilder:validation:XValidation:rule="!has(self.ebgpMultiHop) || self.type == 'ebgpMultiHop'",message="ebgpMultiHop parameters can only be set when type is ebgpMultiHop"
+type NeighborProperty struct {
+	// type selects the property.
+	// +required
+	Type NeighborPropertyType `json:"type,omitempty"`
+
+	// ebgpMultiHop holds parameters for the ebgpMultiHop property.
+	// May only be set when type is ebgpMultiHop.
+	// +optional
+	EBGPMultiHop *EBGPMultiHopProperties `json:"ebgpMultiHop,omitempty"`
+}
 
 // BFDSettings defines the BFD configuration for a BGP session.
 type BFDSettings struct {
