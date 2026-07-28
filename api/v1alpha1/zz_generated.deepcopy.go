@@ -44,19 +44,9 @@ func (in *BFDSettings) DeepCopyInto(out *BFDSettings) {
 		*out = new(int32)
 		**out = **in
 	}
-	if in.EchoInterval != nil {
-		in, out := &in.EchoInterval, &out.EchoInterval
-		*out = new(int32)
-		**out = **in
-	}
-	if in.EchoMode != nil {
-		in, out := &in.EchoMode, &out.EchoMode
-		*out = new(bool)
-		**out = **in
-	}
-	if in.PassiveMode != nil {
-		in, out := &in.PassiveMode, &out.PassiveMode
-		*out = new(bool)
+	if in.SessionMode != nil {
+		in, out := &in.SessionMode, &out.SessionMode
+		*out = new(BFDSessionMode)
 		**out = **in
 	}
 	if in.MinimumTTL != nil {
