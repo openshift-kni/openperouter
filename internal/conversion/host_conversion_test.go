@@ -472,7 +472,7 @@ func TestAPItoHostConfig(t *testing.T) {
 						VXLanPort: new(int32(4789)),
 					},
 					L2GatewayIPs: []string{"192.168.100.1/24"},
-					HostMaster:   &hostnetwork.HostMaster{Name: new("br0"), Type: "linux-bridge"},
+					HostMaster:   &hostnetwork.HostMaster{Name: new("br0"), Type: "linux-bridge", AutoCreate: new(false)},
 				},
 			},
 			wantL3VPNParams: []hostnetwork.L3VPNParams{},

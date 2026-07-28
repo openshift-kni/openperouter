@@ -327,7 +327,8 @@ func TestReadRouterConfigsFromFiles(t *testing.T) {
 				HostMaster: &v1alpha1.HostMaster{
 					Type: "linux-bridge",
 					LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-						Name: new("br-storage"),
+						Lifecycle: v1alpha1.BridgeLifecycleExternal,
+						Name:      new("br-storage"),
 					},
 				},
 			},
@@ -344,7 +345,8 @@ func TestReadRouterConfigsFromFiles(t *testing.T) {
 				HostMaster: &v1alpha1.HostMaster{
 					Type: "ovs-bridge",
 					OVSBridge: &v1alpha1.OVSBridgeConfig{
-						Name: new("ovsbr0"),
+						Lifecycle: v1alpha1.BridgeLifecycleExternal,
+						Name:      new("ovsbr0"),
 					},
 				},
 			},
@@ -383,7 +385,7 @@ func TestReadRouterConfigsFromFiles(t *testing.T) {
 				HostMaster: &v1alpha1.HostMaster{
 					Type: "linux-bridge",
 					LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-						AutoCreate: new(true),
+						Lifecycle: v1alpha1.BridgeLifecycleManaged,
 					},
 				},
 				GatewayIPs: []string{"192.170.1.1/24"},

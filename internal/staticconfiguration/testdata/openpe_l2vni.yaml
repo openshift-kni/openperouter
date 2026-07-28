@@ -9,6 +9,7 @@ l2vnis:
     hostmaster:
       type: linux-bridge
       linuxBridge:
+        lifecycle: External
         name: br-storage
   - name: l2vni-management
     vni: 400
@@ -20,4 +21,5 @@ l2vnis:
     hostmaster:
       type: ovs-bridge
       ovsBridge:
+        lifecycle: External
         name: ovsbr0

@@ -216,7 +216,7 @@ func TestFilterValidL2VNIs(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "nil hostmaster name with autocreate true",
+			name: "nil hostmaster name with Managed lifecycle",
 			vnis: []v1alpha1.L2VNI{
 				{
 					ObjectMeta: metav1.ObjectMeta{Name: "vni1"},
@@ -225,7 +225,7 @@ func TestFilterValidL2VNIs(t *testing.T) {
 						HostMaster: &v1alpha1.HostMaster{
 							Type: "linux-bridge",
 							LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-								AutoCreate: new(true),
+								Lifecycle: v1alpha1.BridgeLifecycleManaged,
 							},
 						},
 					},
