@@ -1543,10 +1543,6 @@ spec:
                       maximum: 65535
                       minimum: 1
                       type: integer
-                    ebgpMultiHop:
-                      description: ebgpMultiHop indicates if the BGPPeer is multi-hops
-                        away.
-                      type: boolean
                     holdTimeSeconds:
                       description: |-
                         holdTimeSeconds is the requested BGP hold time in seconds, per RFC4271.
@@ -1593,6 +1589,47 @@ spec:
                       maximum: 16384
                       minimum: 0
                       type: integer
+                    properties:
+                      description: |-
+                        properties is the set of optional session-level features for this
+                        neighbor (e.g. ebgpMultiHop).
+                      items:
+                        description: |-
+                          NeighborProperty is an optional feature applied to a neighbor session. The
+                          type field selects the property; typed sub-fields hold parameters for
+                          properties that require them.
+                        properties:
+                          ebgpMultiHop:
+                            description: |-
+                              ebgpMultiHop holds parameters for the ebgpMultiHop property.
+                              May only be set when type is ebgpMultiHop.
+                            properties:
+                              ttl:
+                                description: |-
+                                  ttl is the maximum number of hops for the eBGP multihop session.
+                                  When omitted, FRR defaults to 255.
+                                format: int32
+                                maximum: 255
+                                minimum: 1
+                                type: integer
+                            type: object
+                          type:
+                            description: type selects the property.
+                            enum:
+                            - ebgpMultiHop
+                            type: string
+                        required:
+                        - type
+                        type: object
+                        x-kubernetes-validations:
+                        - message: ebgpMultiHop parameters can only be set when type
+                            is ebgpMultiHop
+                          rule: '!has(self.ebgpMultiHop) || self.type == ''ebgpMultiHop'''
+                      maxItems: 1
+                      type: array
+                      x-kubernetes-list-map-keys:
+                      - type
+                      x-kubernetes-list-type: map
                     type:
                       description: type is the AS type of the neighbor. Either ASN
                         or Type must be set.

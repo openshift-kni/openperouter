@@ -98,6 +98,22 @@ _Appears in:_
 | `runtimeConfig` _[JSON](https://kubernetes.io/docs/reference/generated/kubernetes-api/v/#json-v1-apiextensions-k8s-io)_ | runtimeConfig is an opaque JSON object mapping CNI capability names<br />to the payloads passed as capability arguments to the CNI<br />invocation. Only keys that the plugin declares in its<br />"capabilities" config block are forwarded; undeclared keys are<br />silently stripped. Well-known capabilities include ips, mac,<br />bandwidth, portMappings, ipRanges and deviceID. Immutable once<br />set: to change it, delete and recreate the Underlay. Immutability<br />is enforced by the validation webhook because CEL transition rules<br />cannot be evaluated inside atomic lists. |  | Type: object <br />Optional: \{\} <br /> |
 
 
+#### EBGPMultiHopProperties
+
+
+
+EBGPMultiHopProperties holds parameters for the ebgpMultiHop property.
+
+
+
+_Appears in:_
+- [NeighborProperty](#neighborproperty)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `ttl` _integer_ | ttl is the maximum number of hops for the eBGP multihop session.<br />When omitted, FRR defaults to 255. |  | Maximum: 255 <br />Minimum: 1 <br />Optional: \{\} <br /> |
+
+
 #### FailedResource
 
 
@@ -619,7 +635,7 @@ _Appears in:_
 | `holdTimeSeconds` _integer_ | holdTimeSeconds is the requested BGP hold time in seconds, per RFC4271.<br />Defaults to 180. |  | Optional: \{\} <br /> |
 | `keepaliveTimeSeconds` _integer_ | keepaliveTimeSeconds is the requested BGP keepalive time in seconds, per RFC4271.<br />Defaults to 60. |  | Optional: \{\} <br /> |
 | `connectTimeSeconds` _integer_ | connectTimeSeconds controls how long BGP waits between connection attempts to a neighbor, in seconds. |  | Maximum: 65535 <br />Minimum: 1 <br />Optional: \{\} <br /> |
-| `ebgpMultiHop` _boolean_ | ebgpMultiHop indicates if the BGPPeer is multi-hops away. |  | Optional: \{\} <br /> |
+| `properties` _[NeighborProperty](#neighborproperty) array_ | properties is the set of optional session-level features for this<br />neighbor (e.g. ebgpMultiHop). |  | MaxItems: 1 <br />Optional: \{\} <br /> |
 | `bfd` _[BFDSettings](#bfdsettings)_ | bfd defines the BFD configuration for the BGP session. |  | Optional: \{\} <br /> |
 | `addressFamilies` _[NeighborAddressFamily](#neighboraddressfamily) array_ | addressFamilies specifies the BGP address families that shall be enabled<br />for this BGP neighbor. evpn and ipv4vpn/ipv6vpn are mutually exclusive.<br />If ipv4vpn or ipv6vpn are set, the update source of this neighbor will<br />be set to the loopback's IPv6 address.<br />If addressFamilies is not provided or empty, the following defaults are<br />chosen:<br />For unnumbered neighbors:<br />- ipv4unicast<br />- ipv6unicast if passthrough is configured with IPv6 local CIDR<br />- evpn if L2VNIs or L3VNIs are present.<br />For IPv4 neighbors:<br />- ipv4unicast<br />- ipv6unicast if passthrough is configured with IPv6 local CIDR<br />- evpn if L2VNIs or L3VNIs are present.<br />For IPv6 neighbors:<br />- ipv4unicast if L2VNIs or L3VNIs are present, or if passthrough is configured with IPv4 local CIDR<br />- ipv6unicast<br />- evpn if L2VNIs or L3VNIs are present<br />- ipv4vpn if L3VPNs and SRv6 configuration are present.<br />- ipv6vpn if L3VPNs and SRv6 configuration are present. |  | MaxItems: 4 <br />Optional: \{\} <br /> |
 
@@ -639,6 +655,44 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `type` _string_ | type is the address family type. |  | Enum: [ipv4unicast ipv6unicast evpn ipv4vpn ipv6vpn] <br />MaxLength: 11 <br />MinLength: 1 <br />Required: \{\} <br /> |
+
+
+#### NeighborProperty
+
+
+
+NeighborProperty is an optional feature applied to a neighbor session. The
+type field selects the property; typed sub-fields hold parameters for
+properties that require them.
+
+
+
+_Appears in:_
+- [Neighbor](#neighbor)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `type` _[NeighborPropertyType](#neighborpropertytype)_ | type selects the property. |  | Enum: [ebgpMultiHop] <br />Required: \{\} <br /> |
+| `ebgpMultiHop` _[EBGPMultiHopProperties](#ebgpmultihopproperties)_ | ebgpMultiHop holds parameters for the ebgpMultiHop property.<br />May only be set when type is ebgpMultiHop. |  | Optional: \{\} <br /> |
+
+
+#### NeighborPropertyType
+
+_Underlying type:_ _string_
+
+NeighborPropertyType defines an optional feature on a Neighbor.
+The values are protocol / FRR configuration tokens and are kept verbatim so
+they map directly to the rendered stanzas.
+
+_Validation:_
+- Enum: [ebgpMultiHop]
+
+_Appears in:_
+- [NeighborProperty](#neighborproperty)
+
+| Field | Description |
+| --- | --- |
+| `ebgpMultiHop` | NeighborPropertyEBGPMultiHop enables eBGP multihop on the neighbor<br />session, rendered as "neighbor X ebgp-multihop [ttl]".<br /> |
 
 
 #### NetworkDevice
