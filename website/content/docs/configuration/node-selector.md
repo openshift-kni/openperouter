@@ -233,7 +233,7 @@ spec:
   hostmaster:
     type: linux-bridge
     linuxBridge:
-      autoCreate: true
+      lifecycle: Managed
   gatewayIPs:
     - 10.100.0.1/24
 ```

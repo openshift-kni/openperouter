@@ -86,14 +86,14 @@ spec:
   hostmaster:
     type: linux-bridge
     linuxBridge:
-      autoCreate: true
+      lifecycle: Managed
   gatewayIPs: ["192.170.1.1/24"]
 ```
 
 **Configuration Notes:**
 
 - **`gatewayIPs` field**: Allows each pod to have the same default gateway and be able to send traffic to the outer L3 domain
-- **hostmaster.autocreate**: Instructs OpenPERouter to create a bridge
+- **hostmaster.linuxBridge.lifecycle**: `Managed` instructs OpenPERouter to create a bridge
   local to the node that can be used to access the L2 domain
 
 ### Underlay Configuration
