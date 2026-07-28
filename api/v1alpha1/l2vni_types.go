@@ -125,36 +125,53 @@ type L3VPNReference struct {
 	Name string `json:"name,omitempty"`
 }
 
+// BridgeLifecycle determines how the bridge is provisioned.
+// +kubebuilder:validation:Enum=Managed;External
+type BridgeLifecycle string
+
+const (
+	// BridgeLifecycleManaged means the controller creates and owns the
+	// bridge, named br-hs-<VNI>, and deletes it when the L2VNI is removed.
+	BridgeLifecycleManaged BridgeLifecycle = "Managed"
+
+	// BridgeLifecycleExternal means the user provides a pre-existing bridge
+	// via the Name field. The controller does not create or delete it; only
+	// veth ports are attached/detached.
+	BridgeLifecycleExternal BridgeLifecycle = "External"
+)
+
 // LinuxBridgeConfig contains configuration for Linux bridge type.
-// +kubebuilder:validation:XValidation:rule="(self.?name.orValue(\"\") != \"\") != self.?autoCreate.orValue(false)",message="either name must be set or autoCreate must be true, but not both."
+// +kubebuilder:validation:XValidation:rule="(self.?name.orValue(\"\") != \"\") != (self.?lifecycle.orValue(\"\") == 'Managed')",message="name must be set when lifecycle is External, and must not be set when it is Managed."
 type LinuxBridgeConfig struct {
-	// name of the Linux bridge interface.
+	// lifecycle determines if the bridge is managed by the controller or
+	// provided by the user.
+	// +required
+	Lifecycle BridgeLifecycle `json:"lifecycle,omitempty"`
+
+	// name of the Linux bridge interface. Required when lifecycle is
+	// External, and must be omitted when it is Managed, in which case the
+	// bridge is named br-hs-<VNI>.
 	// +kubebuilder:validation:Pattern=`^[a-zA-Z][a-zA-Z0-9_-]*$`
 	// +kubebuilder:validation:MaxLength=15
 	// +optional
 	Name *string `json:"name,omitempty"`
-
-	// autoCreate determines if the bridge should be created automatically.
-	// When true, the bridge is created with name br-hs-<VNI>.
-	// +default=false
-	// +optional
-	AutoCreate *bool `json:"autoCreate,omitempty"`
 }
 
 // OVSBridgeConfig contains configuration for OVS bridge type.
-// +kubebuilder:validation:XValidation:rule="(self.?name.orValue(\"\") != \"\") != self.?autoCreate.orValue(false)",message="either name must be set or autoCreate must be true, but not both."
+// +kubebuilder:validation:XValidation:rule="(self.?name.orValue(\"\") != \"\") != (self.?lifecycle.orValue(\"\") == 'Managed')",message="name must be set when lifecycle is External, and must not be set when it is Managed."
 type OVSBridgeConfig struct {
-	// name of the OVS bridge interface.
+	// lifecycle determines if the OVS bridge is managed by the controller or
+	// provided by the user.
+	// +required
+	Lifecycle BridgeLifecycle `json:"lifecycle,omitempty"`
+
+	// name of the OVS bridge interface. Required when lifecycle is
+	// External, and must be omitted when it is Managed, in which case the
+	// bridge is named br-hs-<VNI>.
 	// +kubebuilder:validation:Pattern=`^[a-zA-Z][a-zA-Z0-9_-]*$`
 	// +kubebuilder:validation:MaxLength=15
 	// +optional
 	Name *string `json:"name,omitempty"`
-
-	// autoCreate determines if the OVS bridge should be created automatically.
-	// When true, the bridge is created with name br-hs-<VNI>.
-	// +default=false
-	// +optional
-	AutoCreate *bool `json:"autoCreate,omitempty"`
 }
 
 // +kubebuilder:validation:XValidation:rule="(self.type == 'linux-bridge' && has(self.linuxBridge) && !has(self.ovsBridge)) || (self.type == 'ovs-bridge' && has(self.ovsBridge) && !has(self.linuxBridge))",message="type/config mismatch: 'linux-bridge' requires linuxBridge field, 'ovs-bridge' requires ovsBridge field"
