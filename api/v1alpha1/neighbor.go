@@ -114,6 +114,20 @@ type Neighbor struct {
 	AddressFamilies []NeighborAddressFamily `json:"addressFamilies,omitempty"`
 }
 
+// BFDSessionMode selects whether the local system initiates the BFD session.
+// +kubebuilder:validation:Enum=Active;Passive
+type BFDSessionMode string
+
+const (
+	// BFDSessionModeActive initiates the BFD session. This is the default
+	// when sessionMode is omitted.
+	BFDSessionModeActive BFDSessionMode = "Active"
+
+	// BFDSessionModePassive waits for the peer to initiate the BFD session
+	// before replying.
+	BFDSessionModePassive BFDSessionMode = "Passive"
+)
+
 // BFDSettings defines the BFD configuration for a BGP session.
 type BFDSettings struct {
 	// receiveInterval is the minimum interval that this system is capable of
@@ -140,25 +154,11 @@ type BFDSettings struct {
 	// +optional
 	DetectMultiplier *int32 `json:"detectMultiplier,omitempty"`
 
-	// echoInterval configures the minimal echo receive transmission
-	// interval that this system is capable of handling in milliseconds.
-	// Defaults to 50ms
-	// +kubebuilder:validation:Maximum:=60000
-	// +kubebuilder:validation:Minimum:=10
+	// sessionMode marks the session active or passive. Active (the default
+	// when omitted) initiates the session. Passive waits for the peer to
+	// initiate before replying (RFC 5880 Section 6.1).
 	// +optional
-	EchoInterval *int32 `json:"echoInterval,omitempty"`
-
-	// echoMode enables or disables the echo transmission mode.
-	// This mode is disabled by default, and not supported on multi
-	// hops setups.
-	// +optional
-	EchoMode *bool `json:"echoMode,omitempty"`
-
-	// passiveMode marks session as passive: a passive session will not
-	// attempt to start the connection and will wait for control packets
-	// from peer before it begins replying.
-	// +optional
-	PassiveMode *bool `json:"passiveMode,omitempty"`
+	SessionMode *BFDSessionMode `json:"sessionMode,omitempty"`
 
 	// minimumTTL configures, for multi hop sessions only, the minimum
 	// expected TTL for an incoming BFD control packet.
