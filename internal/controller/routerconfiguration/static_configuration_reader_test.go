@@ -561,7 +561,8 @@ underlays:
     neighbors:
       - asn: 64520
         address: "2001:db8:1234::1"
-        ebgpMultiHop: true
+        properties:
+          - type: ebgpMultiHop
     tunnelEndpoint:
       cidrs:
       - "2001:db8:1234:5678::/64"
@@ -611,7 +612,8 @@ underlays:
     neighbors:
       - asn: 64520
         address: "2001:db8:1234::1"
-        ebgpMultiHop: true
+        properties:
+          - type: ebgpMultiHop
     tunnelEndpoint:
       cidrs:
       - "2001:db8:1234:5678::/64"
@@ -635,7 +637,8 @@ underlays:
     neighbors:
       - asn: 64520
         address: "2001:db8:1234::1"
-        ebgpMultiHop: true
+        properties:
+          - type: ebgpMultiHop
     tunnelEndpoint:
       cidrs:
       - "100.65.0.0/24"
