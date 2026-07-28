@@ -106,6 +106,9 @@ func patchChartValues(envConfig envconfig.EnvConfig, crdConfig *operatorapi.Open
 			"controller": map[string]any{
 				"name": "controller",
 			},
+			"nodemarker": map[string]any{
+				"name": "nodemarker",
+			},
 			"perouter": map[string]any{
 				"name": "perouter",
 			},

@@ -63,8 +63,13 @@ help: ## Display this help.
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	$(CONTROLLER_GEN) crd webhook paths="./api/..." paths="./config/..." output:crd:artifacts:config=config/crd/bases
 	$(CONTROLLER_GEN) crd webhook paths="./operator/api/..." paths="./operator/config/..." output:crd:artifacts:config=operator/config/crd/bases
-	$(CONTROLLER_GEN) rbac:roleName=controller-role paths="./internal/controller/..." output:rbac:artifacts:config=config/rbac/
 	$(CONTROLLER_GEN) rbac:roleName=operator-role paths="./operator/..." output:rbac:artifacts:config=operator/config/rbac/
+	$(CONTROLLER_GEN) rbac:roleName=controller-role paths="./internal/controller/routerconfiguration/..." output:rbac:artifacts:config=config/rbac/.gen-tmp
+	mv config/rbac/.gen-tmp/role.yaml config/rbac/role.yaml
+	rm -rf config/rbac/.gen-tmp
+	$(CONTROLLER_GEN) rbac:roleName=nodemarker-role paths="./internal/controller/nodeindex/..." output:rbac:artifacts:config=config/rbac/.gen-tmp
+	mv config/rbac/.gen-tmp/role.yaml config/rbac/nodemarker_cluster_role.yaml
+	rm -rf config/rbac/.gen-tmp
 	# The following line generates operator/config/webhook/webhook/manifests.yaml
 	$(CONTROLLER_GEN) crd webhook paths="./api/..." paths="./config/..." output:crd:none output:webhook:artifacts:config=operator/config/webhook/webhook
 	cp config/crd/bases/*.yaml charts/openperouter/charts/crds/templates
