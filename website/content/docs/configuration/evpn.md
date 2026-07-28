@@ -164,10 +164,10 @@ L2VNIs provide Layer 2 connectivity across nodes using EVPN tunnels. Unlike L3VN
 | `gatewayIPs` | string array | IP addresses in CIDR notation for the distributed anycast gateway. Cannot be set without routingDomain. Max 2 (one IPv4, one IPv6). | No |
 | `underlayAddressFamily` | string | VTEP address family for this VNI (`ipv4` or `ipv6`). Defaults to available family (IPv4 preferred in dual-stack). | No |
 | `hostmaster.type` | string | Type of host interface management (`linux-bridge` or `ovs-bridge`) | Yes |
-| `hostmaster.linuxBridge.autoCreate` | boolean | Whether to automatically create a Linux bridge | No |
-| `hostmaster.linuxBridge.name` | string | Name of the Linux bridge to attach to (if not auto-creating) | No |
-| `hostmaster.ovsBridge.autoCreate` | boolean | Whether to automatically create an OVS bridge | No |
-| `hostmaster.ovsBridge.name` | string | Name of the OVS bridge to attach to (if not auto-creating) | No |
+| `hostmaster.linuxBridge.lifecycle` | string | How the Linux bridge is provisioned (`Managed` or `External`) | Yes |
+| `hostmaster.linuxBridge.name` | string | Name of the Linux bridge to attach to. Only valid when `External` | Only when `External` |
+| `hostmaster.ovsBridge.lifecycle` | string | How the OVS bridge is provisioned (`Managed` or `External`) | Yes |
+| `hostmaster.ovsBridge.name` | string | Name of the OVS bridge to attach to. Only valid when `External` | Only when `External` |
 | `nodeSelector` | object | Label selector to target specific nodes (applies to all nodes if omitted) | No |
 
 ### L2VNI Example
@@ -187,7 +187,7 @@ spec:
   hostmaster:
     type: linux-bridge
     linuxBridge:
-      autoCreate: true
+      lifecycle: Managed
 ```
 
 ## What Happens During Reconciliation
@@ -198,8 +198,8 @@ When you create or update VNI configurations, OpenPERouter automatically:
 2. **Establishes Connectivity**: Creates veth pair and moves one end to the router's namespace
 3. **Adjusts Veth MTU**: Sets the MTU on both veth legs to the underlay NIC's MTU minus 50 bytes to account for VXLan encapsulation overhead
 4. **Enslaves the veth**: the veth is connected to the bridge corresponding to the l2 domain
-5. **Optionally creates a bridge on the host**: if hostmaster.autocreate is set to `true`
-6. **Optionally connects the host veth to the bridge on the host**: if hostmaster.autocreate is set to `true` or name
+5. **Optionally creates a bridge on the host**: if the bridge `lifecycle` is `Managed`, named `br-hs-<VNI>`
+6. **Optionally connects the host veth to the bridge on the host**: if the bridge `lifecycle` is `Managed` or a name
 is set
 
 ## Per-Node Configuration

@@ -12,6 +12,6 @@ spec:
   hostmaster:
     type: linux-bridge
     linuxBridge:
-      autoCreate: true
+      lifecycle: Managed
 
 

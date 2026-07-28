@@ -26,7 +26,7 @@ spec:
   hostmaster:
     type: linux-bridge
     linuxBridge:
-      autoCreate: true
+      lifecycle: Managed
   gatewayIPs: ["192.170.1.1/24"]
 ---
 # The underlay interface is provisioned by the macvlan CNI plugin on top of
