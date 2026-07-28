@@ -57,6 +57,25 @@ _Appears in:_
 | `minimumTTL` _integer_ | minimumTTL configures, for multi hop sessions only, the minimum<br />expected TTL for an incoming BFD control packet. |  | Maximum: 254 <br />Minimum: 1 <br />Optional: \{\} <br /> |
 
 
+#### BridgeLifecycle
+
+_Underlying type:_ _string_
+
+BridgeLifecycle determines how the bridge is provisioned.
+
+_Validation:_
+- Enum: [Managed External]
+
+_Appears in:_
+- [LinuxBridgeConfig](#linuxbridgeconfig)
+- [OVSBridgeConfig](#ovsbridgeconfig)
+
+| Field | Description |
+| --- | --- |
+| `Managed` | BridgeLifecycleManaged means the controller creates and owns the<br />bridge, named br-hs-<VNI>, and deletes it when the L2VNI is removed.<br /> |
+| `External` | BridgeLifecycleExternal means the user provides a pre-existing bridge<br />via the Name field. The controller does not create or delete it; only<br />veth ports are attached/detached.<br /> |
+
+
 #### CNIConfigType
 
 _Underlying type:_ _string_
@@ -575,8 +594,8 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `name` _string_ | name of the Linux bridge interface. |  | MaxLength: 15 <br />Pattern: `^[a-zA-Z][a-zA-Z0-9_-]*$` <br />Optional: \{\} <br /> |
-| `autoCreate` _boolean_ | autoCreate determines if the bridge should be created automatically.<br />When true, the bridge is created with name br-hs-<VNI>. | false | Optional: \{\} <br /> |
+| `lifecycle` _[BridgeLifecycle](#bridgelifecycle)_ | lifecycle determines if the bridge is managed by the controller or<br />provided by the user. |  | Enum: [Managed External] <br />Required: \{\} <br /> |
+| `name` _string_ | name of the Linux bridge interface. Required when lifecycle is<br />External, and must be omitted when it is Managed, in which case the<br />bridge is named br-hs-<VNI>. |  | MaxLength: 15 <br />Pattern: `^[a-zA-Z][a-zA-Z0-9_-]*$` <br />Optional: \{\} <br /> |
 
 
 #### LocalCIDRConfig
@@ -670,8 +689,8 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `name` _string_ | name of the OVS bridge interface. |  | MaxLength: 15 <br />Pattern: `^[a-zA-Z][a-zA-Z0-9_-]*$` <br />Optional: \{\} <br /> |
-| `autoCreate` _boolean_ | autoCreate determines if the OVS bridge should be created automatically.<br />When true, the bridge is created with name br-hs-<VNI>. | false | Optional: \{\} <br /> |
+| `lifecycle` _[BridgeLifecycle](#bridgelifecycle)_ | lifecycle determines if the OVS bridge is managed by the controller or<br />provided by the user. |  | Enum: [Managed External] <br />Required: \{\} <br /> |
+| `name` _string_ | name of the OVS bridge interface. Required when lifecycle is<br />External, and must be omitted when it is Managed, in which case the<br />bridge is named br-hs-<VNI>. |  | MaxLength: 15 <br />Pattern: `^[a-zA-Z][a-zA-Z0-9_-]*$` <br />Optional: \{\} <br /> |
 
 
 #### RawFRRConfig

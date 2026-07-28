@@ -77,42 +77,58 @@ spec:
                     description: linuxBridge configuration. Must be set when Type
                       is "linux-bridge".
                     properties:
-                      autoCreate:
-                        default: false
+                      lifecycle:
                         description: |-
-                          autoCreate determines if the bridge should be created automatically.
-                          When true, the bridge is created with name br-hs-<VNI>.
-                        type: boolean
+                          lifecycle determines if the bridge is managed by the controller or
+                          provided by the user.
+                        enum:
+                        - Managed
+                        - External
+                        type: string
                       name:
-                        description: name of the Linux bridge interface.
+                        description: |-
+                          name of the Linux bridge interface. Required when lifecycle is
+                          External, and must be omitted when it is Managed, in which case the
+                          bridge is named br-hs-<VNI>.
                         maxLength: 15
                         pattern: ^[a-zA-Z][a-zA-Z0-9_-]*$
                         type: string
+                    required:
+                    - lifecycle
                     type: object
                     x-kubernetes-validations:
-                    - message: either name must be set or autoCreate must be true,
-                        but not both.
-                      rule: (self.?name.orValue("") != "") != self.?autoCreate.orValue(false)
+                    - message: name must be set when lifecycle is External, and must
+                        not be set when it is Managed.
+                      rule: (self.?name.orValue("") != "") != (self.?lifecycle.orValue("")
+                        == 'Managed')
                   ovsBridge:
                     description: ovsBridge configuration. Must be set when Type is
                       "ovs-bridge".
                     properties:
-                      autoCreate:
-                        default: false
+                      lifecycle:
                         description: |-
-                          autoCreate determines if the OVS bridge should be created automatically.
-                          When true, the bridge is created with name br-hs-<VNI>.
-                        type: boolean
+                          lifecycle determines if the OVS bridge is managed by the controller or
+                          provided by the user.
+                        enum:
+                        - Managed
+                        - External
+                        type: string
                       name:
-                        description: name of the OVS bridge interface.
+                        description: |-
+                          name of the OVS bridge interface. Required when lifecycle is
+                          External, and must be omitted when it is Managed, in which case the
+                          bridge is named br-hs-<VNI>.
                         maxLength: 15
                         pattern: ^[a-zA-Z][a-zA-Z0-9_-]*$
                         type: string
+                    required:
+                    - lifecycle
                     type: object
                     x-kubernetes-validations:
-                    - message: either name must be set or autoCreate must be true,
-                        but not both.
-                      rule: (self.?name.orValue("") != "") != self.?autoCreate.orValue(false)
+                    - message: name must be set when lifecycle is External, and must
+                        not be set when it is Managed.
+                      rule: (self.?name.orValue("") != "") != (self.?lifecycle.orValue("")
+                        == 'Managed')
                   type:
                     description: 'type of the host interface. Supported values: "linux-bridge",
                       "ovs-bridge".'
