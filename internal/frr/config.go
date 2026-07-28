@@ -133,6 +133,7 @@ type NeighborConfig struct {
 	BFDEnabled            bool
 	BFDProfile            string
 	EBGPMultiHop          bool
+	EBGPMultiHopTTL       *int32
 	NetworkLayerProtocols []networklayerprotocol.NLP
 	// Allow bgp to negotiate the extended-nexthop capability with its peer. If you are peering over a v6 LL address
 	// then this capability is turned on automatically.

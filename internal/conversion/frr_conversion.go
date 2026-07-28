@@ -736,13 +736,16 @@ func neighborToFRR(n v1alpha1.Neighbor,
 		updateSource = segmentRouting.SourceAddress
 	}
 
+	ebgpMultiHop, ebgpMultiHopTTL := ebgpMultiHopForNeighbor(n)
+
 	res := &frr.NeighborConfig{
 		Name:                  neighName,
 		ASN:                   asn,
 		Addr:                  ptr.Deref(n.Address, ""),
 		Interface:             ptr.Deref(n.Interface, ""),
 		Port:                  n.Port,
-		EBGPMultiHop:          ptr.Deref(n.EBGPMultiHop, false),
+		EBGPMultiHop:          ebgpMultiHop,
+		EBGPMultiHopTTL:       ebgpMultiHopTTL,
 		Password:              ptr.Deref(n.Password, ""),
 		UpdateSource:          updateSource,
 		NetworkLayerProtocols: nlps,
@@ -999,6 +1002,28 @@ func bfdProfileForNeighbor(n v1alpha1.Neighbor) *frr.BFDProfile {
 	}
 
 	return bfdProfile
+}
+
+// ebgpMultiHopForNeighbor returns whether the ebgpMultiHop property is set on
+// the neighbor session, together with its optional TTL parameter.
+func ebgpMultiHopForNeighbor(n v1alpha1.Neighbor) (bool, *int32) {
+	p := findNeighborPropertyByType(n, v1alpha1.NeighborPropertyEBGPMultiHop)
+	if p == nil {
+		return false, nil
+	}
+	if p.EBGPMultiHop == nil {
+		return true, nil
+	}
+	return true, p.EBGPMultiHop.TTL
+}
+
+func findNeighborPropertyByType(n v1alpha1.Neighbor, propertyTypeToFind v1alpha1.NeighborPropertyType) *v1alpha1.NeighborProperty {
+	for _, p := range n.Properties {
+		if p.Type == propertyTypeToFind {
+			return &p
+		}
+	}
+	return nil
 }
 
 func neighborID(n v1alpha1.Neighbor) string {
