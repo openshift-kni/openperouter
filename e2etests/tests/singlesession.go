@@ -77,7 +77,7 @@ var l2vniRedSingleSession = v1alpha1.L2VNI{
 		HostMaster: &v1alpha1.HostMaster{
 			Type: "linux-bridge",
 			LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-				AutoCreate: new(true),
+				Lifecycle: v1alpha1.BridgeLifecycleManaged,
 			},
 		},
 	},

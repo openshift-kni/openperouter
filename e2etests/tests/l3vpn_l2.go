@@ -91,7 +91,7 @@ var _ = Describe("SRV6 routes between bgp and the fabric", Ordered, func() {
 			HostMaster: &v1alpha1.HostMaster{
 				Type: linuxBridgeHostAttachment,
 				LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-					AutoCreate: new(true),
+					Lifecycle: v1alpha1.BridgeLifecycleManaged,
 				},
 			},
 		},
@@ -390,7 +390,7 @@ var _ = Describe("SRV6 routes between bgp and the fabric", Ordered, func() {
 			hostMaster: v1alpha1.HostMaster{
 				Type: linuxBridgeHostAttachment,
 				LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-					AutoCreate: new(true),
+					Lifecycle: v1alpha1.BridgeLifecycleManaged,
 				},
 			},
 		}),
@@ -403,7 +403,7 @@ var _ = Describe("SRV6 routes between bgp and the fabric", Ordered, func() {
 			hostMaster: v1alpha1.HostMaster{
 				Type: linuxBridgeHostAttachment,
 				LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-					AutoCreate: new(true),
+					Lifecycle: v1alpha1.BridgeLifecycleManaged,
 				},
 			},
 		}),
@@ -416,7 +416,7 @@ var _ = Describe("SRV6 routes between bgp and the fabric", Ordered, func() {
 			hostMaster: v1alpha1.HostMaster{
 				Type: linuxBridgeHostAttachment,
 				LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-					AutoCreate: new(true),
+					Lifecycle: v1alpha1.BridgeLifecycleManaged,
 				},
 			},
 		}),
@@ -429,11 +429,11 @@ var _ = Describe("SRV6 routes between bgp and the fabric", Ordered, func() {
 			hostMaster: v1alpha1.HostMaster{
 				Type: linuxBridgeHostAttachment,
 				LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-					AutoCreate: new(true),
+					Lifecycle: v1alpha1.BridgeLifecycleManaged,
 				},
 			},
 		}),
-		Entry("OVS bridge autocreate for single stack ipv4", testCase{
+		Entry("OVS bridge managed for single stack ipv4", testCase{
 			l2GatewayIPs:   []string{"192.171.24.1/24"},
 			firstPodIPs:    []string{"192.171.24.2/24"},
 			secondPodIPs:   []string{"192.171.24.3/24"},
@@ -442,11 +442,11 @@ var _ = Describe("SRV6 routes between bgp and the fabric", Ordered, func() {
 			hostMaster: v1alpha1.HostMaster{
 				Type: ovsBridgeHostAttachment,
 				OVSBridge: &v1alpha1.OVSBridgeConfig{
-					AutoCreate: new(true),
+					Lifecycle: v1alpha1.BridgeLifecycleManaged,
 				},
 			},
 		}),
-		Entry("OVS bridge autocreate for dual stack", testCase{
+		Entry("OVS bridge managed for dual stack", testCase{
 			l2GatewayIPs:   []string{"192.171.24.1/24", "fd00:10:245:1::1/64"},
 			firstPodIPs:    []string{"192.171.24.2/24", "fd00:10:245:1::2/64"},
 			secondPodIPs:   []string{"192.171.24.3/24", "fd00:10:245:1::3/64"},
@@ -455,11 +455,11 @@ var _ = Describe("SRV6 routes between bgp and the fabric", Ordered, func() {
 			hostMaster: v1alpha1.HostMaster{
 				Type: ovsBridgeHostAttachment,
 				OVSBridge: &v1alpha1.OVSBridgeConfig{
-					AutoCreate: new(true),
+					Lifecycle: v1alpha1.BridgeLifecycleManaged,
 				},
 			},
 		}),
-		Entry("OVS bridge autocreate for single stack ipv6", testCase{
+		Entry("OVS bridge managed for single stack ipv6", testCase{
 			l2GatewayIPs:   []string{"fd00:10:245:1::1/64"},
 			firstPodIPs:    []string{"fd00:10:245:1::2/64"},
 			secondPodIPs:   []string{"fd00:10:245:1::3/64"},
@@ -468,7 +468,7 @@ var _ = Describe("SRV6 routes between bgp and the fabric", Ordered, func() {
 			hostMaster: v1alpha1.HostMaster{
 				Type: ovsBridgeHostAttachment,
 				OVSBridge: &v1alpha1.OVSBridgeConfig{
-					AutoCreate: new(true),
+					Lifecycle: v1alpha1.BridgeLifecycleManaged,
 				},
 			},
 		}),
@@ -481,8 +481,8 @@ var _ = Describe("SRV6 routes between bgp and the fabric", Ordered, func() {
 			hostMaster: v1alpha1.HostMaster{
 				Type: ovsBridgeHostAttachment,
 				OVSBridge: &v1alpha1.OVSBridgeConfig{
-					Name:       ptr.To(preExistingOVSBridge),
-					AutoCreate: new(false),
+					Name:      ptr.To(preExistingOVSBridge),
+					Lifecycle: v1alpha1.BridgeLifecycleExternal,
 				},
 			},
 		}),
@@ -495,8 +495,8 @@ var _ = Describe("SRV6 routes between bgp and the fabric", Ordered, func() {
 			hostMaster: v1alpha1.HostMaster{
 				Type: ovsBridgeHostAttachment,
 				OVSBridge: &v1alpha1.OVSBridgeConfig{
-					Name:       ptr.To(preExistingOVSBridge),
-					AutoCreate: new(false),
+					Name:      ptr.To(preExistingOVSBridge),
+					Lifecycle: v1alpha1.BridgeLifecycleExternal,
 				},
 			},
 		}),
@@ -509,8 +509,8 @@ var _ = Describe("SRV6 routes between bgp and the fabric", Ordered, func() {
 			hostMaster: v1alpha1.HostMaster{
 				Type: ovsBridgeHostAttachment,
 				OVSBridge: &v1alpha1.OVSBridgeConfig{
-					Name:       ptr.To(preExistingOVSBridge),
-					AutoCreate: new(false),
+					Name:      ptr.To(preExistingOVSBridge),
+					Lifecycle: v1alpha1.BridgeLifecycleExternal,
 				},
 			},
 		}),

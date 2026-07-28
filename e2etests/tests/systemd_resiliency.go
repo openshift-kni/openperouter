@@ -126,7 +126,7 @@ var _ = Describe("Systemd: Named netns and kernel objects survive FRR container 
 			VNI:           110,
 			HostMaster: &v1alpha1.HostMaster{
 				Type:        "linux-bridge",
-				LinuxBridge: &v1alpha1.LinuxBridgeConfig{AutoCreate: new(true)},
+				LinuxBridge: &v1alpha1.LinuxBridgeConfig{Lifecycle: v1alpha1.BridgeLifecycleManaged},
 			},
 		},
 	}
@@ -341,7 +341,7 @@ var _ = Describe("Systemd: Data plane continuity during FRR restart", Label("sys
 				RoutingDomain: l3vniRoutingDomain("red"),
 				VNI:           110,
 				GatewayIPs:    []string{"192.171.24.1/24"},
-				HostMaster:    &v1alpha1.HostMaster{Type: "linux-bridge", LinuxBridge: &v1alpha1.LinuxBridgeConfig{AutoCreate: new(true)}},
+				HostMaster:    &v1alpha1.HostMaster{Type: "linux-bridge", LinuxBridge: &v1alpha1.LinuxBridgeConfig{Lifecycle: v1alpha1.BridgeLifecycleManaged}},
 			},
 		}
 
