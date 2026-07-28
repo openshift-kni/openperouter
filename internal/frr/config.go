@@ -115,8 +115,6 @@ type BFDProfile struct {
 	ReceiveInterval  *int32
 	TransmitInterval *int32
 	DetectMultiplier *int32
-	EchoInterval     *int32
-	EchoMode         bool
 	PassiveMode      bool
 	MinimumTTL       *int32
 }

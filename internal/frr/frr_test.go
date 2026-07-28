@@ -1374,3 +1374,41 @@ func mustNewPeerASNFromType(t string) PeerASN {
 	}
 	return asn
 }
+
+func TestBFDProfilePassiveMode(t *testing.T) {
+	configFile := testSetup(t)
+	updater := testUpdater(configFile)
+
+	config := Config{
+		Underlay: UnderlayConfig{
+			MyASN: 64512,
+			TunnelEndpoint: &TunnelEndpoint{
+				IPv4CIDR: "100.64.0.1/32",
+			},
+			RouterID: "10.0.0.1",
+			Neighbors: []NeighborConfig{
+				{
+					ASN:  mustNewPeerASNFromNumber(64513),
+					Addr: "192.168.1.2",
+					ID:   "192.168.1.2",
+					NetworkLayerProtocols: []networklayerprotocol.NLP{
+						{AFI: networklayerprotocol.IPv4, SAFI: networklayerprotocol.Unicast},
+					},
+					BFDEnabled: true,
+					BFDProfile: "passive",
+				},
+			},
+		},
+		BFDProfiles: []BFDProfile{
+			{
+				Name:        "passive",
+				PassiveMode: true,
+			},
+		},
+	}
+	if err := ApplyConfig(context.Background(), &config, updater); err != nil {
+		t.Fatalf("Failed to apply config: %s", err)
+	}
+
+	testCheckConfigFile(t)
+}
