@@ -116,10 +116,12 @@ spec:
   neighbors:
   - address: 2001:db8:1234::1
     asn: 64520
-    ebgpMultiHop: true
+    properties:
+    - type: ebgpMultiHop
   - address: 2001:db8:1234::2
     asn: 64520
-    ebgpMultiHop: true
+    properties:
+    - type: ebgpMultiHop
   - asn: 64512
     address: 192.168.11.2
   interfaces:
