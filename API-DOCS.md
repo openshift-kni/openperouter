@@ -19,6 +19,24 @@ Package v1alpha1 contains API Schema definitions for the openpe v1alpha1 API gro
 
 
 
+#### BFDSessionMode
+
+_Underlying type:_ _string_
+
+BFDSessionMode selects whether the local system initiates the BFD session.
+
+_Validation:_
+- Enum: [Active Passive]
+
+_Appears in:_
+- [BFDSettings](#bfdsettings)
+
+| Field | Description |
+| --- | --- |
+| `Active` | BFDSessionModeActive initiates the BFD session. This is the default<br />when sessionMode is omitted.<br /> |
+| `Passive` | BFDSessionModePassive waits for the peer to initiate the BFD session<br />before replying.<br /> |
+
+
 #### BFDSettings
 
 
@@ -35,9 +53,7 @@ _Appears in:_
 | `receiveInterval` _integer_ | receiveInterval is the minimum interval that this system is capable of<br />receiving control packets in milliseconds.<br />Defaults to 300ms. |  | Maximum: 60000 <br />Minimum: 10 <br />Optional: \{\} <br /> |
 | `transmitInterval` _integer_ | transmitInterval is the minimum transmission interval (less jitter)<br />that this system wants to use to send BFD control packets in<br />milliseconds. Defaults to 300ms |  | Maximum: 60000 <br />Minimum: 10 <br />Optional: \{\} <br /> |
 | `detectMultiplier` _integer_ | detectMultiplier configures the detection multiplier to determine<br />packet loss. The remote transmission interval will be multiplied<br />by this value to determine the connection loss detection timer. |  | Maximum: 255 <br />Minimum: 2 <br />Optional: \{\} <br /> |
-| `echoInterval` _integer_ | echoInterval configures the minimal echo receive transmission<br />interval that this system is capable of handling in milliseconds.<br />Defaults to 50ms |  | Maximum: 60000 <br />Minimum: 10 <br />Optional: \{\} <br /> |
-| `echoMode` _boolean_ | echoMode enables or disables the echo transmission mode.<br />This mode is disabled by default, and not supported on multi<br />hops setups. |  | Optional: \{\} <br /> |
-| `passiveMode` _boolean_ | passiveMode marks session as passive: a passive session will not<br />attempt to start the connection and will wait for control packets<br />from peer before it begins replying. |  | Optional: \{\} <br /> |
+| `sessionMode` _[BFDSessionMode](#bfdsessionmode)_ | sessionMode marks the session active or passive. Active (the default<br />when omitted) initiates the session. Passive waits for the peer to<br />initiate before replying (RFC 5880 Section 6.1). |  | Enum: [Active Passive] <br />Optional: \{\} <br /> |
 | `minimumTTL` _integer_ | minimumTTL configures, for multi hop sessions only, the minimum<br />expected TTL for an incoming BFD control packet. |  | Maximum: 254 <br />Minimum: 1 <br />Optional: \{\} <br /> |
 
 
