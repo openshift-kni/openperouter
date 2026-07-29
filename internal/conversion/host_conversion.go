@@ -320,7 +320,46 @@ func l2vniToHost(
 		}
 		hostL2VNI.HostMaster = hm
 	}
+	if l2vni.Spec.SRIOVVFPair != nil {
+		vfPair, err := convertSRIOVVFPair(l2vni.Spec.SRIOVVFPair)
+		if err != nil {
+			return hostnetwork.L2VNIParams{}, fmt.Errorf("L2VNI %s: %w", l2vni.Name, err)
+		}
+		hostL2VNI.VFPair = vfPair
+	}
 	return hostL2VNI, nil
+}
+
+func convertSRIOVVFPair(cfg *v1alpha1.SRIOVVFPairConfig) (*hostnetwork.VFPairParams, error) {
+	pciAddr, err := resolveVFPairPCI(cfg)
+	if err != nil {
+		return nil, err
+	}
+	trunkPortName := "trunk-" + pciAddressToIfName(pciAddr)
+	params := &hostnetwork.VFPairParams{
+		PCIAddress:    pciAddr,
+		VLAN:          cfg.VLAN,
+		TrunkPortName: trunkPortName,
+	}
+	if cfg.PortOptions != nil {
+		params.MTU = cfg.PortOptions.MTU
+		params.RXQueues = cfg.PortOptions.RXQueues
+		params.QSize = cfg.PortOptions.QSize
+	}
+	return params, nil
+}
+
+func resolveVFPairPCI(cfg *v1alpha1.SRIOVVFPairConfig) (string, error) {
+	if cfg.PCIAddress != nil {
+		if err := sriov.ResolvePCIAddress(*cfg.PCIAddress); err != nil {
+			return "", err
+		}
+		return *cfg.PCIAddress, nil
+	}
+	if cfg.PFName != nil && cfg.VFIndex != nil {
+		return sriov.ResolvePFVFIndex(*cfg.PFName, *cfg.VFIndex)
+	}
+	return "", fmt.Errorf("sriovVFPair must specify either pciAddress or pfName+vfIndex")
 }
 
 func l3vpnsToHost(l3vpns []v1alpha1.L3VPN, srv6Config *v1alpha1.SRV6Config,
