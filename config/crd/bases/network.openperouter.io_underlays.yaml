@@ -359,21 +359,6 @@ spec:
                           maximum: 255
                           minimum: 2
                           type: integer
-                        echoInterval:
-                          description: |-
-                            echoInterval configures the minimal echo receive transmission
-                            interval that this system is capable of handling in milliseconds.
-                            Defaults to 50ms
-                          format: int32
-                          maximum: 60000
-                          minimum: 10
-                          type: integer
-                        echoMode:
-                          description: |-
-                            echoMode enables or disables the echo transmission mode.
-                            This mode is disabled by default, and not supported on multi
-                            hops setups.
-                          type: boolean
                         minimumTTL:
                           description: |-
                             minimumTTL configures, for multi hop sessions only, the minimum
@@ -382,12 +367,6 @@ spec:
                           maximum: 254
                           minimum: 1
                           type: integer
-                        passiveMode:
-                          description: |-
-                            passiveMode marks session as passive: a passive session will not
-                            attempt to start the connection and will wait for control packets
-                            from peer before it begins replying.
-                          type: boolean
                         receiveInterval:
                           description: |-
                             receiveInterval is the minimum interval that this system is capable of
@@ -397,6 +376,15 @@ spec:
                           maximum: 60000
                           minimum: 10
                           type: integer
+                        sessionMode:
+                          description: |-
+                            sessionMode marks the session active or passive. Active (the default
+                            when omitted) initiates the session. Passive waits for the peer to
+                            initiate before replying (RFC 5880 Section 6.1).
+                          enum:
+                          - Active
+                          - Passive
+                          type: string
                         transmitInterval:
                           description: |-
                             transmitInterval is the minimum transmission interval (less jitter)

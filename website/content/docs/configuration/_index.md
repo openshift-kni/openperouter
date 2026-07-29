@@ -94,6 +94,29 @@ spec:
 - NIC names must be unique
 - Local ASN must differ from all neighbor ASNs
 
+### BFD
+
+Bidirectional Forwarding Detection can be enabled per neighbor through the
+`bfd` field. An empty `bfd: {}` enables it with FRR's defaults; the
+individual knobs are rendered as a BFD peer profile for that neighbor.
+
+```yaml
+  neighbors:
+    - asn: 64512
+      address: 192.168.11.2
+      bfd:
+        receiveInterval: 300     # ms, 10-60000
+        transmitInterval: 300    # ms, 10-60000
+        detectMultiplier: 3      # 2-255
+        sessionMode: Passive     # Active (default) | Passive
+        minimumTTL: 254          # 1-254, multi hop sessions only
+```
+
+`sessionMode` selects whether the local system initiates the session.
+`Active`, the default when the field is omitted, starts it; `Passive`
+waits for the peer to initiate before replying, per
+[RFC 5880 section 6.1](https://datatracker.ietf.org/doc/html/rfc5880#section-6.1).
+
 ### Per-Node Configuration
 
 The Underlay resource supports an optional `nodeSelector` field that

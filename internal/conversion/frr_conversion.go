@@ -994,9 +994,7 @@ func bfdProfileForNeighbor(n v1alpha1.Neighbor) *frr.BFDProfile {
 		ReceiveInterval:  n.BFD.ReceiveInterval,
 		TransmitInterval: n.BFD.TransmitInterval,
 		DetectMultiplier: n.BFD.DetectMultiplier,
-		EchoInterval:     n.BFD.EchoInterval,
-		EchoMode:         ptr.Deref(n.BFD.EchoMode, false),
-		PassiveMode:      ptr.Deref(n.BFD.PassiveMode, false),
+		PassiveMode:      ptr.Deref(n.BFD.SessionMode, v1alpha1.BFDSessionModeActive) == v1alpha1.BFDSessionModePassive,
 		MinimumTTL:       n.BFD.MinimumTTL,
 	}
 
