@@ -13,6 +13,8 @@ import (
 	"github.com/containernetworking/cni/libcni"
 )
 
+const ipamTypeDHCP = "dhcp"
+
 // Invoker is the node-level CNI plugin invoker singleton, nil until Init is
 // called.
 var Invoker *invoker
@@ -22,15 +24,18 @@ var Invoker *invoker
 type invoker struct {
 	cniConfig   *libcni.CNIConfig
 	containerID string
+	dhcpEnabler DHCPEnabler
 }
 
 // Init sets the Invoker singleton. The cache directory must be stable across
 // controller restarts so Del keeps working for attachments created by
-// previous invocations.
-func Init(pluginDirs []string, cacheDir, nodeName string) {
+// previous invocations. If dhcpEnabler is nil, any CNI config that uses DHCP
+// IPAM will fail with an error.
+func Init(pluginDirs []string, cacheDir, nodeName string, dhcpEnabler DHCPEnabler) {
 	Invoker = &invoker{
 		cniConfig:   libcni.NewCNIConfigWithCacheDir(pluginDirs, cacheDir, nil),
 		containerID: containerIDForNode(nodeName),
+		dhcpEnabler: dhcpEnabler,
 	}
 }
 
@@ -78,6 +83,10 @@ func (inv *invoker) Add(ctx context.Context, p AddParams) error {
 	confList, err := libcni.NetworkConfFromBytes(p.Config)
 	if err != nil {
 		return err
+	}
+
+	if err := inv.ensureDHCPForConfList(ctx, confList); err != nil {
+		return fmt.Errorf("ensuring dhcp daemon for add %q: %w", p.IfName, err)
 	}
 
 	rt := &libcni.RuntimeConf{
@@ -132,6 +141,10 @@ func (inv *invoker) Check(ctx context.Context, ifName string) error {
 		return fmt.Errorf("failed to parse cached cni config for network %q: %w", attachment.Network, err)
 	}
 
+	if err := inv.ensureDHCPForConfList(ctx, confList); err != nil {
+		return fmt.Errorf("ensuring dhcp daemon for add %q: %w", ifName, err)
+	}
+
 	if err := inv.cniConfig.CheckNetworkList(ctx, confList, &libcni.RuntimeConf{
 		ContainerID:    attachment.ContainerID,
 		NetNS:          attachment.NetNS,
@@ -155,10 +168,16 @@ func (inv *invoker) Del(ctx context.Context, ifNameToDelete string) error {
 	if attachmentToDelete == nil {
 		return nil
 	}
+
 	confListToDelete, err := libcni.NetworkConfFromBytes(attachmentToDelete.Config)
 	if err != nil {
 		return fmt.Errorf("failed to parse cached cni config for network %q: %w", attachmentToDelete.Network, err)
 	}
+
+	if err := inv.ensureDHCPForConfList(ctx, confListToDelete); err != nil {
+		return fmt.Errorf("ensuring dhcp daemon for del %q: %w", ifNameToDelete, err)
+	}
+
 	if err := inv.cniConfig.DelNetworkList(ctx, confListToDelete, &libcni.RuntimeConf{
 		ContainerID:    attachmentToDelete.ContainerID,
 		NetNS:          attachmentToDelete.NetNS,
@@ -217,4 +236,17 @@ func capabilityArgsEqual(a, b map[string]any) bool {
 		return true
 	}
 	return reflect.DeepEqual(a, b)
+}
+
+func (inv *invoker) ensureDHCPForConfList(ctx context.Context, confList *libcni.NetworkConfigList) error {
+	for _, plugin := range confList.Plugins {
+		if plugin.Network == nil || plugin.Network.IPAM.Type != ipamTypeDHCP {
+			continue
+		}
+		if inv.dhcpEnabler == nil {
+			return fmt.Errorf("IPAM type is %q but DHCP support is not enabled", ipamTypeDHCP)
+		}
+		return inv.dhcpEnabler.EnsureUp(ctx)
+	}
+	return nil
 }

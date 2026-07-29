@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/rest"
@@ -52,6 +53,7 @@ import (
 	"github.com/openperouter/openperouter/internal/cniinvoker"
 	"github.com/openperouter/openperouter/internal/controller/nodeindex"
 	"github.com/openperouter/openperouter/internal/controller/routerconfiguration"
+	"github.com/openperouter/openperouter/internal/dhcp"
 	"github.com/openperouter/openperouter/internal/filewatcher"
 	"github.com/openperouter/openperouter/internal/hostnetwork"
 	"github.com/openperouter/openperouter/internal/logging"
@@ -62,10 +64,11 @@ import (
 )
 
 const (
-	datapathKernel = "kernel"
-	datapathGrout  = "grout"
-	modeK8s        = "k8s"
-	modeHost       = "host"
+	datapathKernel   = "kernel"
+	datapathGrout    = "grout"
+	modeK8s          = "k8s"
+	modeHost         = "host"
+	restartDHCPEvent = "dhcp-restart-trigger"
 )
 
 var (
@@ -230,13 +233,14 @@ func runK8sMode(
 		os.Exit(1)
 	}
 
-	cniinvoker.Init(args.cniPluginDirs.values, args.cniCacheDir, args.nodeName)
+	dhcpSupervisor := dhcp.NewLazySupervisor(logger)
+	cniinvoker.Init(args.cniPluginDirs.values, args.cniCacheDir, args.nodeName, dhcpSupervisor)
 	setupLog.Info("CNI plugin invoker initialized for k8s mode",
 		"pluginDirs", args.cniPluginDirs.values,
 		"cacheDir", args.cniCacheDir)
 
 	// runK8sConfigReconciler is blocking so when running in k8s mode we should stop here
-	if err := runK8sConfigReconciler(ctx, args, k8sConfig, logger, args.probeAddr); err != nil {
+	if err := runK8sConfigReconciler(ctx, args, k8sConfig, logger, args.probeAddr, dhcpSupervisor); err != nil {
 		logger.Error("failed to enable k8s reconciler", "error", err)
 		os.Exit(1)
 	}
@@ -259,7 +263,8 @@ func runHostMode(
 		os.Exit(1)
 	}
 
-	cniinvoker.Init(args.cniPluginDirs.values, args.cniCacheDir, args.nodeName)
+	dhcpSupervisor := dhcp.NewLazySupervisor(logger)
+	cniinvoker.Init(args.cniPluginDirs.values, args.cniCacheDir, args.nodeName, dhcpSupervisor)
 	setupLog.Info("CNI plugin invoker initialized for host mode",
 		"pluginDirs", args.cniPluginDirs.values,
 		"cacheDir", args.cniCacheDir)
@@ -272,7 +277,7 @@ func runHostMode(
 		defer close(staticDone)
 		logger.Info("creating static configuration controller for host mode")
 		err := runStaticConfigReconciler(
-			staticControllerCtx, args, hostModeParams, nodeConfig, logger, args.probeAddr,
+			staticControllerCtx, args, hostModeParams, nodeConfig, logger, args.probeAddr, dhcpSupervisor,
 		)
 		if errors.Is(err, context.Canceled) {
 			logger.Info("static config reconciler stopped (API became available)")
@@ -314,7 +319,7 @@ func runHostMode(
 
 	// Start API reconciler in main thread (blocking) - keeps process alive
 	if err := runK8sConfigReconcilerHostMode(
-		ctx, args, hostModeParams, nodeConfig, k8sConfig, logger,
+		ctx, args, hostModeParams, nodeConfig, k8sConfig, logger, dhcpSupervisor,
 	); err != nil {
 		logger.Error("failed to enable k8s reconciler", "error", err)
 		os.Exit(1)
@@ -326,7 +331,8 @@ func runK8sConfigReconcilerHostMode(ctx context.Context,
 	hostModeParams hostModeParameters,
 	nodeConfig *static.NodeConfig,
 	k8sConfig *rest.Config,
-	logger *slog.Logger) error {
+	logger *slog.Logger,
+	dhcpSupervisor *dhcp.Supervisor) error {
 
 	mgr, err := createK8sManager(k8sConfig, args.nodeName, args.namespace, func(opts *ctrl.Options) {
 		opts.HealthProbeBindAddress = args.probeAddr
@@ -351,6 +357,16 @@ func runK8sConfigReconcilerHostMode(ctx context.Context,
 	if args.datapath == datapathGrout {
 		datapathConfigurator = routerconfiguration.NewGroutConfigurator(args.groutSocketPath)
 	}
+
+	dhcpSupervisor.OnRestart = triggerKubernetesReconcile(triggerChan, types.NamespacedName{
+		Namespace: restartDHCPEvent,
+		Name:      args.namespace,
+	})
+
+	if err := mgr.Add(dhcpSupervisor); err != nil {
+		return fmt.Errorf("unable to add DHCP supervisor: %w", err)
+	}
+
 	apiReconciler := &routerconfiguration.PERouterReconciler{
 		Client:               mgr.GetClient(),
 		Scheme:               mgr.GetScheme(),
@@ -427,7 +443,8 @@ func runK8sConfigReconciler(ctx context.Context,
 	args parameters,
 	k8sConfig *rest.Config,
 	logger *slog.Logger,
-	probeAddr string) error {
+	probeAddr string,
+	dhcpSupervisor *dhcp.Supervisor) error {
 
 	mgr, err := createK8sManager(k8sConfig, args.nodeName, args.namespace, func(opts *ctrl.Options) {
 		opts.HealthProbeBindAddress = probeAddr
@@ -448,6 +465,16 @@ func runK8sConfigReconciler(ctx context.Context,
 		datapathConfigurator = routerconfiguration.NewGroutConfigurator(args.groutSocketPath)
 	}
 
+	triggerChan := make(chan event.GenericEvent, 1)
+	dhcpSupervisor.OnRestart = triggerKubernetesReconcile(triggerChan, types.NamespacedName{
+		Namespace: args.namespace,
+		Name:      restartDHCPEvent,
+	})
+
+	if err := mgr.Add(dhcpSupervisor); err != nil {
+		return fmt.Errorf("unable to add DHCP supervisor: %w", err)
+	}
+
 	apiReconciler := &routerconfiguration.PERouterReconciler{
 		Client:               mgr.GetClient(),
 		Scheme:               mgr.GetScheme(),
@@ -459,6 +486,7 @@ func runK8sConfigReconciler(ctx context.Context,
 		RouterProvider:       routerProvider,
 		MyNamespace:          args.namespace,
 		DatapathConfigurator: datapathConfigurator,
+		TriggerChan:          triggerChan,
 	}
 
 	if err := apiReconciler.SetupWithManager(mgr); err != nil {
@@ -477,7 +505,8 @@ func runStaticConfigReconciler(ctx context.Context,
 	hostModeParams hostModeParameters,
 	nodeConfig *static.NodeConfig,
 	logger *slog.Logger,
-	probeAddr string) error {
+	probeAddr string,
+	dhcpSupervisor *dhcp.Supervisor) error {
 	mgr, err := ctrl.NewManager(&rest.Config{}, ctrl.Options{
 		Scheme:                 scheme,
 		HealthProbeBindAddress: probeAddr,
@@ -518,6 +547,15 @@ func runStaticConfigReconciler(ctx context.Context,
 	}
 	if err = staticReconciler.SetupWithManager(mgr); err != nil {
 		return fmt.Errorf("unable to create controller: %w", err)
+	}
+
+	dhcpSupervisor.OnRestart = func() {
+		slog.Info("triggered reconciliation after DHCP daemon restart")
+		staticReconciler.TriggerReconcile()
+	}
+
+	if err := mgr.Add(dhcpSupervisor); err != nil {
+		return fmt.Errorf("unable to add DHCP supervisor: %w", err)
 	}
 
 	if err := staticRouterProvider.StartFRRRestartWatcher(ctx, func() {
@@ -700,6 +738,27 @@ func fanOut(ctx context.Context, in <-chan event.GenericEvent, outs ...chan<- ev
 			for _, out := range outs {
 				out <- evt
 			}
+		}
+	}
+}
+
+func triggerKubernetesReconcile(
+	triggerChan chan event.GenericEvent,
+	name types.NamespacedName,
+) func() {
+	return func() {
+		select {
+		case triggerChan <- event.GenericEvent{
+			Object: &metav1.PartialObjectMetadata{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name.Name,
+					Namespace: name.Namespace,
+				},
+			},
+		}:
+			slog.Info("triggered reconciliation after DHCP daemon restart")
+		default:
+			slog.Debug("reconciliation already queued, skipping DHCP restart trigger")
 		}
 	}
 }
