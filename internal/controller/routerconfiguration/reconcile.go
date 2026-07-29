@@ -110,16 +110,13 @@ func Reconcile(ctx context.Context, apiConfig conversion.APIConfigData, nodeInde
 		RawFRRConfigs: apiConfig.RawFRRConfigs,
 	}
 
-	err = datapathConfigurator.Configure(ctx, interfacesConfiguration{
-		targetNamespace: targetNamespace,
-		APIConfigData:   config,
-		nodeIndex:       nodeIndex,
-	})
-	if openpeerrors.IsNonResourceError(err) {
-		return err
-	}
-	resourceErrors = append(resourceErrors, err)
-
+	// The FRR configuration must be applied before the datapath creates the kernel
+	// objects it references. bgpd handles ZEBRA_VNI_ADD in bgp_evpn_local_vni_add(),
+	// which dereferences the instance returned by bgp_get_evpn() without checking it
+	// for NULL, so a VXLAN interface showing up while FRR has no EVPN instance
+	// configured crashes bgpd. See https://github.com/FRRouting/frr/issues/22851.
+	// Removals keep working in this order because ZEBRA_VNI_DEL does not touch the
+	// EVPN instance, and FRR stops referencing the objects before they are deleted.
 	if err = frrConfigurator(ctx, frrConfigData{
 		configFile:    frrConfigPath,
 		updater:       updater,
@@ -129,6 +126,16 @@ func Reconcile(ctx context.Context, apiConfig conversion.APIConfigData, nodeInde
 	}); err != nil {
 		return err
 	}
+
+	err = datapathConfigurator.Configure(ctx, interfacesConfiguration{
+		targetNamespace: targetNamespace,
+		APIConfigData:   config,
+		nodeIndex:       nodeIndex,
+	})
+	if openpeerrors.IsNonResourceError(err) {
+		return err
+	}
+	resourceErrors = append(resourceErrors, err)
 
 	return errors.Join(resourceErrors...)
 }

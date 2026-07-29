@@ -557,6 +557,62 @@ func TestReconcileFrrReloadFailure(t *testing.T) {
 	}
 }
 
+// recordingDatapathConfigurator appends to a shared list every time the datapath
+// is configured, so that tests can assert the order of the reconcile steps.
+type recordingDatapathConfigurator struct {
+	steps *[]string
+}
+
+func (r *recordingDatapathConfigurator) Configure(_ context.Context, _ interfacesConfiguration) error {
+	*r.steps = append(*r.steps, "datapath")
+	return nil
+}
+
+func (r *recordingDatapathConfigurator) Validate(_ conversion.APIConfigData) error {
+	return nil
+}
+
+// TestReconcileAppliesFRRConfigBeforeDatapath pins the ordering between the FRR
+// configuration and the datapath. The kernel objects must only be created once FRR
+// already references them: bgpd handles ZEBRA_VNI_ADD in bgp_evpn_local_vni_add(),
+// which dereferences bgp_get_evpn() without a NULL check, so a VXLAN interface
+// created while FRR has no EVPN instance crashes bgpd.
+// See https://github.com/FRRouting/frr/issues/22851.
+func TestReconcileAppliesFRRConfigBeforeDatapath(t *testing.T) {
+	var steps []string
+	recordingConfigureFRR := func(_ context.Context, _ frrConfigData) error {
+		steps = append(steps, "frr")
+		return nil
+	}
+
+	reconcileErr := Reconcile(context.Background(), conversion.APIConfigData{}, 0, "",
+		"", "", noopUpdater, &recordingDatapathConfigurator{steps: &steps}, recordingConfigureFRR)
+	if reconcileErr != nil {
+		t.Fatalf("unexpected reconcile error: %v", reconcileErr)
+	}
+
+	want := []string{"frr", "datapath"}
+	if diff := cmp.Diff(steps, want); diff != "" {
+		t.Errorf("reconcile steps out of order (-got, +want):\n%s", diff)
+	}
+}
+
+// TestReconcileSkipsDatapathOnFrrReloadFailure ensures no kernel object is created
+// when FRR could not be configured, so that the datapath never gets ahead of FRR.
+func TestReconcileSkipsDatapathOnFrrReloadFailure(t *testing.T) {
+	var steps []string
+
+	reconcileErr := Reconcile(context.Background(), conversion.APIConfigData{}, 0, "",
+		"", "", failingUpdater, &recordingDatapathConfigurator{steps: &steps}, configureFRR)
+	if reconcileErr == nil {
+		t.Fatal("expected error from FRR reload failure")
+	}
+
+	if len(steps) != 0 {
+		t.Errorf("expected the datapath not to be configured, got steps: %v", steps)
+	}
+}
+
 func l3VNI(name, vrf string, vni int32) v1alpha1.L3VNI {
 	return v1alpha1.L3VNI{
 		ObjectMeta: metav1.ObjectMeta{Name: name},
