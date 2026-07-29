@@ -23,6 +23,12 @@ func ValidateGroutL2VNI(l2VNI v1alpha1.L2VNI) error {
 }
 
 func ValidateGroutUnderlay(underlay v1alpha1.Underlay) error {
+	for _, iface := range underlay.Spec.Interfaces {
+		if iface.Type == v1alpha1.UnderlayInterfaceTypeCNIDevice {
+			return fmt.Errorf("CNI dev underlays are not supported with the grout datapath")
+		}
+	}
+
 	// The grout port name is the interface name with the underlay prefix,
 	// so every interface name must leave room for it, regardless of how
 	// the interface is provisioned.

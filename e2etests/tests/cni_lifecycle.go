@@ -46,7 +46,7 @@ const (
 // CNI DEL / ADD reprovisioning on interface changes and the teardown
 // through CNI DEL. The traffic coverage runs in the EVPN routes suites,
 // parameterized by underlay flavor.
-var _ = Describe("CNI underlay lifecycle", GroutSupport, Ordered, func() {
+var _ = Describe("CNI underlay lifecycle", Ordered, func() {
 	var cs clientset.Interface
 	nodes := []corev1.Node{}
 
@@ -184,15 +184,6 @@ var _ = Describe("CNI underlay lifecycle", GroutSupport, Ordered, func() {
 	})
 
 	It("keeps the CNI interfaces when the router pods are restarted", func() {
-		if GroutMode {
-			// Restarting the router wipes the grout state and the underlay
-			// addresses live in grout (they are removed from the kernel
-			// interfaces), so the sessions cannot re-establish. This is a
-			// grout datapath limitation independent of how the underlay
-			// interface is provisioned.
-			Skip("the grout datapath does not recover the underlay addresses after a router restart, " +
-				"see https://github.com/openperouter/openperouter/issues/597")
-		}
 		indexesBefore, err := cniInterfaceIndexes(nodes, infra.CNIUnderlayInterface)
 		Expect(err).NotTo(HaveOccurred())
 
