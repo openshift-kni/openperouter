@@ -61,7 +61,9 @@ COPY openshift/deps/frr /src/subprojects/frr-frr-10.6.1
 WORKDIR /src
 
 # Apply dpdk patches (meson skips diff_files for pre-existing directories)
-RUN for p in subprojects/packagefiles/dpdk/*.patch; do patch -d subprojects/dpdk-stable-25.11.2 -p1 < "$p"; done
+RUN for p in `sed -En 's%[[:space:]]*(dpdk/.*\.patch),?$%\1%p' subprojects/dpdk-25.11.wrap`; do \
+               patch -d subprojects/dpdk-stable-25.11.2 -p1 < "subprojects/packagefiles/$p" || exit; \
+       done
 
 # Apply frr overlay files (meson skips patch_directory for pre-existing directories)
 RUN cp subprojects/packagefiles/frr/* subprojects/frr-frr-10.6.1/
