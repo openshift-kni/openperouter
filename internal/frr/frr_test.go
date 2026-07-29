@@ -463,6 +463,43 @@ func TestBGPUnnumbered(t *testing.T) {
 	testCheckConfigFile(t)
 }
 
+// TestBGPUnnumberedEBGPIPv6 covers an unnumbered neighbor peering with an
+// external ASN over IPv6 unicast. FRR rejects disable-connected-check for
+// neighbors configured over an interface, so the generated configuration must
+// not contain it, otherwise the whole reload fails.
+func TestBGPUnnumberedEBGPIPv6(t *testing.T) {
+	configFile := testSetup(t)
+	updater := testUpdater(configFile)
+
+	config := Config{
+		Underlay: UnderlayConfig{
+			MyASN: 64512,
+			TunnelEndpoint: &TunnelEndpoint{
+				IPv4CIDR: "100.64.0.1/32",
+			},
+			RouterID: "10.0.0.1",
+			Neighbors: []NeighborConfig{
+				{
+					ASN:       mustNewPeerASNFromNumber(64513),
+					Interface: "eth1",
+					ID:        "eth1",
+					NetworkLayerProtocols: []networklayerprotocol.NLP{
+						{AFI: networklayerprotocol.IPv4, SAFI: networklayerprotocol.Unicast},
+						{AFI: networklayerprotocol.IPv6, SAFI: networklayerprotocol.Unicast},
+						{AFI: networklayerprotocol.L2VPN, SAFI: networklayerprotocol.EVPN},
+					},
+					ExtendedNexthop: true,
+				},
+			},
+		},
+	}
+	if err := ApplyConfig(context.Background(), &config, updater); err != nil {
+		t.Fatalf("Failed to apply config: %s", err)
+	}
+
+	testCheckConfigFile(t)
+}
+
 func TestIPv6OnlyWithRT(t *testing.T) {
 	configFile := testSetup(t)
 	updater := testUpdater(configFile)
