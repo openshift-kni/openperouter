@@ -172,7 +172,7 @@ var _ = Describe("QEMU EVPN scenarios", Ordered, QEMUSupport, func() {
 		dumpIfFails(cs)
 	})
 
-	It("should receive EVPN Type-5 routes via L3VNI", func() {
+	It("should route between L2VNIs in the same L3VNI routing domain", func() {
 		By("Creating L3VNI red")
 		Expect(Updater.Update(config.Resources{
 			L3VNIs: []v1alpha1.L3VNI{l3vniRed},
@@ -183,9 +183,7 @@ var _ = Describe("QEMU EVPN scenarios", Ordered, QEMUSupport, func() {
 			exec := openperouter.ExecutorForPod(pod)
 			waitForType5Route(exec, "192.168.20.0/24")
 		}
-	})
 
-	It("should route between L2VNIs in the same L3VNI routing domain", func() {
 		const testNamespace = "test-qemu-inter-vni"
 
 		l2red110 := v1alpha1.L2VNI{
