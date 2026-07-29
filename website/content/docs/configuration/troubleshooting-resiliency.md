@@ -40,11 +40,13 @@ kubectl exec -n openperouter-system <router-pod> -c frr -- \
 **Impact**: Data-plane disruption (~10-25 seconds). All traffic through VNIs on that node is interrupted during the rebuild.
 
 ```bash
-# 1. Delete the named namespace (destroys all kernel objects inside it).
-#    The underlay NIC is returned to the host namespace.
+# 1. Remove the bind mount (marks the namespace for destruction, but the
+#    kernel keeps it alive while FRR holds open file descriptors to it).
 ip netns delete perouter
 
-# 2. Delete the router pod on the affected node to trigger a DaemonSet replacement.
+# 2. Restart the router pod to release those handles — only then does
+#    the kernel destroy the namespace and all objects inside it
+#    (VRFs, bridges, VXLANs, veths, underlay NIC returned to host).
 kubectl delete pod -n openperouter-system <router-pod-name>
 
 # 3. The controller will automatically:

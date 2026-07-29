@@ -171,7 +171,7 @@ The kernel continues forwarding packets throughout because all networking state 
 
 ### Full Namespace Rebuild
 
-When the named namespace is deleted — either manually (`ip netns delete perouter`) or by the controller via non-recoverable error handling — a full rebuild occurs:
+When the named namespace is torn down — manually via `ip netns delete perouter` + router pod restart — a full rebuild occurs. Both steps are needed for manual recovery: the netns delete removes the bind mount, and the pod restart releases the open handles so the kernel actually destroys the namespace.
 
 | Phase | Duration |
 |-------|----------|
