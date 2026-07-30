@@ -13,7 +13,7 @@ metadata:
   name: layer2
   namespace: openperouter-system
 spec:
-  hostmaster:
+  hostMaster:
     type: linux-bridge
     linuxBridge:
       lifecycle: Managed
@@ -34,7 +34,7 @@ spec:
   tunnelEndpoint:
     cidrs:
     - 100.65.1.0/24
-  routeridcidr: 10.0.1.0/24
+  routerIDCIDR: 10.0.1.0/24
   interfaces:
     - type: NetworkDevice
       networkDevice:

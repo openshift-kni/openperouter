@@ -36,7 +36,7 @@ spec:
     - type: NetworkDevice
       networkDevice:
         interfaceName: toswitch1
-  routeridcidr: 10.0.0.0/24
+  routerIDCIDR: 10.0.0.0/24
   tunnelEndpoint:
     cidrs:
     - 2001:db8:1234:5678::/64
@@ -70,7 +70,7 @@ when combining SRv6 with VXLAN for L2VNIs):
 
 ### Router ID
 
-The `routeridcidr` field defines the IPv4 CIDR used for per-node router ID
+The `routerIDCIDR` field defines the IPv4 CIDR used for per-node router ID
 assignment. Each node receives a unique router ID from this range. Defaults
 to `10.0.0.0/24` if omitted.
 
@@ -150,10 +150,10 @@ metadata:
   name: red
   namespace: openperouter-system
 spec:
-  hostsession:
+  hostSession:
     asn: 64514
-    hostasn: 64515
-    localcidr:
+    hostASN: 64515
+    localCIDR:
       ipv4: 192.169.10.0/24
   vrf: red
   rdAssignedNumber: 100
@@ -184,10 +184,10 @@ spec:
   - "64520:100"
   exportRTs:
   - "64514:100"
-  hostsession:
+  hostSession:
     asn: 64514
-    hostasn: 64515
-    localcidr:
+    hostASN: 64515
+    localCIDR:
       ipv4: 192.168.10.0/24
 ---
 # OAM VPN
@@ -203,10 +203,10 @@ spec:
   - "64520:200"
   exportRTs:
   - "64514:200"
-  hostsession:
+  hostSession:
     asn: 64514
-    hostasn: 64515
-    localcidr:
+    hostASN: 64515
+    localCIDR:
       ipv4: 192.168.20.0/24
 ```
 
@@ -218,7 +218,7 @@ When you create or update L3VPN configurations, OpenPERouter automatically:
    L3VPN
 2. **Establishes Connectivity**: Creates veth pair and moves one end to
    the router's namespace
-3. **Assigns IP Addresses**: Allocates IPs from the `localcidr` range:
+3. **Assigns IP Addresses**: Allocates IPs from the `localCIDR` range:
    - Router side: First IP in the CIDR (e.g., `192.169.10.1`)
    - Host side: Each node gets a free IP in the CIDR, starting from the
      second (e.g., `192.169.10.15`)
@@ -250,7 +250,7 @@ spec:
     type: L3VPN
     l3vpn:
       name: red
-  hostmaster:
+  hostMaster:
     type: linux-bridge
     linuxBridge:
       lifecycle: Managed

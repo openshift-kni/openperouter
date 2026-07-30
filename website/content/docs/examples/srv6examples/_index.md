@@ -69,7 +69,7 @@ spec:
     - type: NetworkDevice
       networkDevice:
         interfaceName: toswitch1
-  routeridcidr: 10.0.0.0/24
+  routerIDCIDR: 10.0.0.0/24
   tunnelEndpoint:
     cidrs:
     - 2001:db8:1234:5678::/64
@@ -109,10 +109,10 @@ metadata:
   name: red
   namespace: openperouter-system
 spec:
-  hostsession:
+  hostSession:
     asn: 64514
-    hostasn: 64515
-    localcidr:
+    hostASN: 64515
+    localCIDR:
       ipv4: 192.169.10.0/24
   vrf: red
   rdAssignedNumber: 100
@@ -127,10 +127,10 @@ metadata:
   name: blue
   namespace: openperouter-system
 spec:
-  hostsession:
+  hostSession:
     asn: 64514
-    hostasn: 64515
-    localcidr:
+    hostASN: 64515
+    localCIDR:
       ipv4: 192.169.11.0/24
   vrf: blue
   rdAssignedNumber: 200
