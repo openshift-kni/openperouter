@@ -34,6 +34,7 @@ func handleFlags() {
 	flag.BoolVar(&tests.HostMode, "systemdmode", false, "tells if openperouter is running on the host")
 	flag.BoolVar(&tests.GroutMode, "groutmode", false, "tells if openperouter is running with grout dataplane")
 	flag.BoolVar(&tests.SkipUnderlayPassthrough, "skip-underlay-passthrough", false, "skip creating underlay in passthrough tests")
+	flag.BoolVar(&tests.QEMUMode, "qemu-mode", false, "running on a QEMU VM with SR-IOV hardware")
 	flag.Parse()
 }
 
@@ -60,7 +61,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	log.SetLogger(zap.New(zap.WriteTo(ginkgo.GinkgoWriter), zap.UseDevMode(true)))
 	clientconfig, err := k8sclient.RestConfig()
 	Expect(err).NotTo(HaveOccurred(), "failed to load kubeconfig (KUBECONFIG=%s)", os.Getenv("KUBECONFIG"))
-	updater, err = config.UpdaterForCRs(clientconfig, openperouter.Namespace)
+	updater, err = config.UpdaterForCRs(clientconfig, openperouter.Namespace, tests.GroutMode)
 	Expect(err).NotTo(HaveOccurred())
 	tests.Updater = updater
 	kubeconfig := os.Getenv("KUBECONFIG")
@@ -76,10 +77,11 @@ var _ = ginkgo.BeforeSuite(func() {
 	Eventually(func(g Gomega) {
 		tests.ValidateCNIBinaries(g, cs)
 	}).WithTimeout(30 * time.Second).WithPolling(2 * time.Second).Should(Succeed())
+
 })
 
 var _ = ginkgo.AfterSuite(func() {
-	if updater == nil {
+	if updater == nil || tests.QEMUMode {
 		return
 	}
 	err := updater.CleanAll()
