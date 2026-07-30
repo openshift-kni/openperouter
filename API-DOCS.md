@@ -243,7 +243,7 @@ _Appears in:_
 | `asn` _integer_ | asn is the local AS number to use to establish a BGP session with<br />the default namespace. |  | Maximum: 4.294967295e+09 <br />Minimum: 1 <br />Required: \{\} <br /> |
 | `hostASN` _integer_ | hostASN is the expected AS number for a BGP speaking component running in<br />the default network namespace. Either HostASN or HostType must be set. |  | Maximum: 4.294967295e+09 <br />Minimum: 1 <br />Optional: \{\} <br /> |
 | `hostType` _string_ | hostType is the AS type of the BGP speaking component running in the<br />default network namespace. Either HostASN or HostType must be set. |  | Enum: [external internal] <br />Optional: \{\} <br /> |
-| `localCIDR` _[LocalCIDRConfig](#localCIDRconfig)_ | localCIDR is the CIDR configuration for the veth pair<br />to connect with the default namespace. The interface under<br />the PERouter side is going to use the first IP of the cidr on all the nodes.<br />At least one of IPv4 or IPv6 must be provided. |  | Required: \{\} <br /> |
+| `localCIDR` _[LocalCIDRConfig](#localcidrconfig)_ | localCIDR is the CIDR configuration for the veth pair<br />to connect with the default namespace. The interface under<br />the PERouter side is going to use the first IP of the cidr on all the nodes.<br />At least one of IPv4 or IPv6 must be provided. |  | Required: \{\} <br /> |
 
 
 #### IPFamily
@@ -389,7 +389,7 @@ _Appears in:_
 | `vni` _integer_ | vni is the VXLan VNI to be used |  | Maximum: 1.6777215e+07 <br />Minimum: 1 <br />Required: \{\} <br /> |
 | `vxlanPort` _integer_ | vxlanPort is the port to be used for VXLan encapsulation. | 4789 | Optional: \{\} <br /> |
 | `underlayAddressFamily` _string_ | underlayAddressFamily selects which VTEP address family to use for this VNI's<br />VXLAN interface. When omitted, defaults to the available family in the underlay<br />(IPv4 preferred in dual-stack). |  | Enum: [ipv4 ipv6] <br />Optional: \{\} <br /> |
-| `hostMaster` _[HostMaster](#hostMaster)_ | hostMaster is the interface on the host the veth should be attached to.<br />If not set, the host veth will not be attached to any interface and it must be<br />attached manually (or by some other means). This is useful if another controller<br />is leveraging the host interface for the VNI. |  | Optional: \{\} <br /> |
+| `hostMaster` _[HostMaster](#hostmaster)_ | hostMaster is the interface on the host the veth should be attached to.<br />If not set, the host veth will not be attached to any interface and it must be<br />attached manually (or by some other means). This is useful if another controller<br />is leveraging the host interface for the VNI. |  | Optional: \{\} <br /> |
 | `gatewayIPs` _string array_ | gatewayIPs is a list of IP addresses in CIDR notation for the<br />distributed anycast gateway on this L2 segment's bridge<br />(Integrated Routing and Bridging interface). It is a property of<br />the L2 segment itself, so it lives on the L2VNI rather than<br />inside the routing-domain reference.<br />Maximum of 2 addresses are allowed. If 2 addresses are provided, one must be IPv4 and one must be IPv6. |  | MaxItems: 2 <br />Optional: \{\} <br /> |
 
 
@@ -440,7 +440,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `nodeSelector` _[LabelSelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v/#labelselector-v1-meta)_ | nodeSelector specifies which nodes this L3Passthrough applies to.<br />If empty or not specified, applies to all nodes.<br />Multiple L3Passthrough with overlapping node selectors will be rejected. |  | Optional: \{\} <br /> |
-| `hostSession` _[HostSession](#hostSession)_ | hostSession is the configuration for the host session. |  | Required: \{\} <br /> |
+| `hostSession` _[HostSession](#hostsession)_ | hostSession is the configuration for the host session. |  | Required: \{\} <br /> |
 
 
 #### L3PassthroughStatus
@@ -510,7 +510,7 @@ _Appears in:_
 | `vni` _integer_ | vni is the VXLan VNI to be used |  | Maximum: 1.6777215e+07 <br />Minimum: 1 <br />Required: \{\} <br /> |
 | `vxlanPort` _integer_ | vxlanPort is the port to be used for VXLan encapsulation. | 4789 | Optional: \{\} <br /> |
 | `underlayAddressFamily` _string_ | underlayAddressFamily selects which VTEP address family to use for this VNI's<br />VXLAN interface. When omitted, defaults to the available family in the underlay<br />(IPv4 preferred in dual-stack). |  | Enum: [ipv4 ipv6] <br />Optional: \{\} <br /> |
-| `hostSession` _[HostSession](#hostSession)_ | hostSession is the configuration for the host session. |  | Optional: \{\} <br /> |
+| `hostSession` _[HostSession](#hostsession)_ | hostSession is the configuration for the host session. |  | Optional: \{\} <br /> |
 | `exportRTs` _[RouteTarget](#routetarget) array_ | exportRTs are the Route Targets to be used for exporting routes.<br />RouteTarget defines a BGP Extended Community for route filtering. |  | MaxItems: 100 <br />MaxLength: 21 <br />Optional: \{\} <br /> |
 | `importRTs` _[RouteTarget](#routetarget) array_ | importRTs are the Route Targets to be used for importing routes.<br />RouteTarget defines a BGP Extended Community for route filtering. |  | MaxItems: 100 <br />MaxLength: 21 <br />Optional: \{\} <br /> |
 
@@ -581,7 +581,7 @@ _Appears in:_
 | `exportRTs` _[RouteTarget](#routetarget) array_ | exportRTs are the Route Targets to be used for exporting routes.<br />If no exportRTs are provided, defaults to single export Route Target<br /><asn>:<rdAssignedNumber>. |  | MaxItems: 100 <br />MaxLength: 21 <br />Optional: \{\} <br /> |
 | `importRTs` _[RouteTarget](#routetarget) array_ | importRTs are the Route Targets to be used for importing routes.<br />importRTs must always be provided explicitly. |  | MaxItems: 100 <br />MaxLength: 21 <br />Required: \{\} <br /> |
 | `rdAssignedNumber` _integer_ | rdAssignedNumber sets the Route Distinguisher's Assigned Number subfield.<br />The Administrator subfield is automatically set to the value of the router<br />ID. OpenPERouter uses Type 1 Route Distinguishers as defined in RFC4364,<br />meaning <Administrator subfield>:<Assigned Number subfield>. |  | Maximum: 65535 <br />Minimum: 1 <br />Required: \{\} <br /> |
-| `hostSession` _[HostSession](#hostSession)_ | hostSession is the configuration for the host session. |  | Optional: \{\} <br /> |
+| `hostSession` _[HostSession](#hostsession)_ | hostSession is the configuration for the host session. |  | Optional: \{\} <br /> |
 
 
 #### L3VPNStatus
@@ -606,7 +606,7 @@ LinuxBridgeConfig contains configuration for Linux bridge type.
 
 
 _Appears in:_
-- [HostMaster](#hostMaster)
+- [HostMaster](#hostmaster)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
@@ -623,7 +623,7 @@ _Appears in:_
 
 
 _Appears in:_
-- [HostSession](#hostSession)
+- [HostSession](#hostsession)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
@@ -739,7 +739,7 @@ OVSBridgeConfig contains configuration for OVS bridge type.
 
 
 _Appears in:_
-- [HostMaster](#hostMaster)
+- [HostMaster](#hostmaster)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |

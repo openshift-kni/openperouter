@@ -41,8 +41,8 @@ spec:
           spec:
             description: spec defines the desired state of L3Passthrough.
             properties:
-              hostsession:
-                description: hostsession is the configuration for the host session.
+              hostSession:
+                description: hostSession is the configuration for the host session.
                 properties:
                   asn:
                     description: |-
@@ -52,25 +52,25 @@ spec:
                     maximum: 4294967295
                     minimum: 1
                     type: integer
-                  hostasn:
+                  hostASN:
                     description: |-
-                      hostasn is the expected AS number for a BGP speaking component running in
+                      hostASN is the expected AS number for a BGP speaking component running in
                       the default network namespace. Either HostASN or HostType must be set.
                     format: int64
                     maximum: 4294967295
                     minimum: 1
                     type: integer
-                  hosttype:
+                  hostType:
                     description: |-
-                      hosttype is the AS type of the BGP speaking component running in the
+                      hostType is the AS type of the BGP speaking component running in the
                       default network namespace. Either HostASN or HostType must be set.
                     enum:
                     - external
                     - internal
                     type: string
-                  localcidr:
+                  localCIDR:
                     description: |-
-                      localcidr is the CIDR configuration for the veth pair
+                      localCIDR is the CIDR configuration for the veth pair
                       to connect with the default namespace. The interface under
                       the PERouter side is going to use the first IP of the cidr on all the nodes.
                       At least one of IPv4 or IPv6 must be provided.
@@ -95,13 +95,13 @@ spec:
                       rule: has(self.ipv4) || has(self.ipv6)
                 required:
                 - asn
-                - localcidr
+                - localCIDR
                 type: object
                 x-kubernetes-validations:
                 - message: either HostASN or HostType must be set
-                  rule: has(self.hostasn) || has(self.hosttype)
+                  rule: has(self.hostASN) || has(self.hostType)
                 - message: HostASN and HostType cannot be set together
-                  rule: '!has(self.hostasn) || !has(self.hosttype)'
+                  rule: '!has(self.hostASN) || !has(self.hostType)'
               nodeSelector:
                 description: |-
                   nodeSelector specifies which nodes this L3Passthrough applies to.
@@ -152,7 +152,7 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
             required:
-            - hostsession
+            - hostSession
             type: object
           status:
             description: status defines the observed state of L3Passthrough.

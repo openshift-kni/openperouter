@@ -578,9 +578,9 @@ spec:
                     type: object
                 type: object
                 x-kubernetes-map-type: atomic
-              routeridcidr:
+              routerIDCIDR:
                 default: 10.0.0.0/24
-                description: routeridcidr is the ipv4 cidr to be used to assign a
+                description: routerIDCIDR is the ipv4 cidr to be used to assign a
                   different routerID on each node.
                 type: string
               srv6:

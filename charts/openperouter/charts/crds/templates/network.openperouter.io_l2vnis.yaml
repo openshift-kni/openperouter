@@ -57,9 +57,9 @@ spec:
                 x-kubernetes-validations:
                 - message: GatewayIPs cannot be changed
                   rule: self == oldSelf
-              hostmaster:
+              hostMaster:
                 description: |-
-                  hostmaster is the interface on the host the veth should be attached to.
+                  hostMaster is the interface on the host the veth should be attached to.
                   If not set, the host veth will not be attached to any interface and it must be
                   attached manually (or by some other means). This is useful if another controller
                   is leveraging the host interface for the VNI.
@@ -247,9 +247,9 @@ spec:
                 maximum: 16777215
                 minimum: 1
                 type: integer
-              vxlanport:
+              vxlanPort:
                 default: 4789
-                description: vxlanport is the port to be used for VXLan encapsulation.
+                description: vxlanPort is the port to be used for VXLan encapsulation.
                 format: int32
                 type: integer
             required:
