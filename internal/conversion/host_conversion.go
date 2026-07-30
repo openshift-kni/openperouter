@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/util/sets"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/openperouter/openperouter/internal/hostnetwork"
 	"github.com/openperouter/openperouter/internal/ipam"
 	"github.com/openperouter/openperouter/internal/ipfamily"
+	"github.com/openperouter/openperouter/internal/sriov"
 	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -318,7 +320,46 @@ func l2vniToHost(
 		}
 		hostL2VNI.HostMaster = hm
 	}
+	if l2vni.Spec.SRIOVVFPair != nil {
+		vfPair, err := convertSRIOVVFPair(l2vni.Spec.SRIOVVFPair)
+		if err != nil {
+			return hostnetwork.L2VNIParams{}, fmt.Errorf("L2VNI %s: %w", l2vni.Name, err)
+		}
+		hostL2VNI.VFPair = vfPair
+	}
 	return hostL2VNI, nil
+}
+
+func convertSRIOVVFPair(cfg *v1alpha1.SRIOVVFPairConfig) (*hostnetwork.VFPairParams, error) {
+	pciAddr, err := resolveVFPairPCI(cfg)
+	if err != nil {
+		return nil, err
+	}
+	trunkPortName := "trunk-" + pciAddressToIfName(pciAddr)
+	params := &hostnetwork.VFPairParams{
+		PCIAddress:    pciAddr,
+		VLAN:          cfg.VLAN,
+		TrunkPortName: trunkPortName,
+	}
+	if cfg.PortOptions != nil {
+		params.MTU = cfg.PortOptions.MTU
+		params.RXQueues = cfg.PortOptions.RXQueues
+		params.QSize = cfg.PortOptions.QSize
+	}
+	return params, nil
+}
+
+func resolveVFPairPCI(cfg *v1alpha1.SRIOVVFPairConfig) (string, error) {
+	if cfg.PCIAddress != nil {
+		if err := sriov.ResolvePCIAddress(*cfg.PCIAddress); err != nil {
+			return "", err
+		}
+		return *cfg.PCIAddress, nil
+	}
+	if cfg.PFName != nil && cfg.VFIndex != nil {
+		return sriov.ResolvePFVFIndex(*cfg.PFName, *cfg.VFIndex)
+	}
+	return "", fmt.Errorf("sriovVFPair must specify either pciAddress or pfName+vfIndex")
 }
 
 func l3vpnsToHost(l3vpns []v1alpha1.L3VPN, srv6Config *v1alpha1.SRV6Config,
@@ -514,6 +555,8 @@ func underlayInterfaceToHost(iface v1alpha1.UnderlayInterface) (hostnetwork.Unde
 		return networkDeviceInterfaceToHost(iface)
 	case v1alpha1.UnderlayInterfaceTypeCNIDevice:
 		return cniDeviceInterfaceToHost(iface)
+	case v1alpha1.UnderlayInterfaceTypeGroutPort:
+		return groutPortInterfaceToHost(iface)
 	default:
 		return hostnetwork.UnderlayInterface{}, fmt.Errorf("unsupported underlay interface type %q", iface.Type)
 	}
@@ -564,4 +607,58 @@ func cniDeviceInterfaceToHost(iface v1alpha1.UnderlayInterface) (hostnetwork.Und
 			CapabilityArgs: capabilityArgs,
 		},
 	}, nil
+}
+
+func groutPortInterfaceToHost(iface v1alpha1.UnderlayInterface) (hostnetwork.UnderlayInterface, error) {
+	if iface.GroutPort == nil {
+		return hostnetwork.UnderlayInterface{},
+			fmt.Errorf("groutPort configuration is missing for interface type GroutPort")
+	}
+
+	pciAddr, err := resolveGroutPortPCI(iface.GroutPort)
+	if err != nil {
+		return hostnetwork.UnderlayInterface{}, err
+	}
+
+	ifName := pciAddressToIfName(pciAddr)
+
+	params := &hostnetwork.GroutPortParams{
+		PCIAddress: pciAddr,
+		Addresses:  iface.GroutPort.IPAM.Addresses,
+	}
+	if iface.GroutPort.PortOptions != nil {
+		params.MTU = iface.GroutPort.PortOptions.MTU
+		params.RXQueues = iface.GroutPort.PortOptions.RXQueues
+		params.QSize = iface.GroutPort.PortOptions.QSize
+	}
+
+	return hostnetwork.UnderlayInterface{
+		InterfaceName: ifName,
+		Kind:          hostnetwork.UnderlayInterfaceGroutPort,
+		GroutPort:     params,
+	}, nil
+}
+
+// resolveGroutPortPCI resolves the PCI address from either a direct
+// pciAddress or pfName+vfIndex selector.
+func resolveGroutPortPCI(config *v1alpha1.GroutPortConfig) (string, error) {
+	if config.PCIAddress != nil {
+		if err := sriov.ResolvePCIAddress(*config.PCIAddress); err != nil {
+			return "", err
+		}
+		return *config.PCIAddress, nil
+	}
+	if config.PFName != nil && config.VFIndex != nil {
+		return sriov.ResolvePFVFIndex(*config.PFName, *config.VFIndex)
+	}
+	return "", fmt.Errorf("groutPort must specify either pciAddress or pfName+vfIndex")
+}
+
+// pciAddressToIfName converts a PCI BDF address to a valid interface name
+// by replacing punctuation and adding a prefix so it starts with a letter.
+// E.g. "0000:03:02.0" → "p000003020".
+func pciAddressToIfName(pciAddr string) string {
+	ret := strings.ReplaceAll(pciAddr, ":", "")
+	ret = strings.ReplaceAll(ret, ".", "")
+	return "p" + ret
 }
