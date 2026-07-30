@@ -70,20 +70,6 @@ func TestApplyDefaults(t *testing.T) {
 			expected: int64(4789),
 		},
 		{
-			name:     "L2VNI linuxBridge autoCreate default",
-			gvk:      l2vniGVK,
-			obj:      newUnstructured("L2VNI", map[string]any{"hostmaster": map[string]any{"type": "linux-bridge", "linuxBridge": map[string]any{"name": "br0"}}}),
-			field:    "spec.hostmaster.linuxBridge.autoCreate",
-			expected: false,
-		},
-		{
-			name:     "L2VNI ovsBridge autoCreate default",
-			gvk:      l2vniGVK,
-			obj:      newUnstructured("L2VNI", map[string]any{"hostmaster": map[string]any{"type": "ovs-bridge", "ovsBridge": map[string]any{"name": "br0"}}}),
-			field:    "spec.hostmaster.ovsBridge.autoCreate",
-			expected: false,
-		},
-		{
 			name:     "L3VNI vxlanport default",
 			gvk:      l3vniGVK,
 			obj:      newUnstructured("L3VNI", map[string]any{"vrf": "testvrf"}),
@@ -189,16 +175,16 @@ func TestApplyDefaultsPreservation(t *testing.T) {
 			expected: int64(50),
 		},
 		{
-			name: "L2VNI linuxBridge autoCreate not overridden when true",
+			name: "L2VNI linuxBridge lifecycle preserved",
 			gvk:  l2vniGVK,
 			obj: newUnstructured("L2VNI", map[string]any{
 				"hostmaster": map[string]any{
 					"type":        "linux-bridge",
-					"linuxBridge": map[string]any{"autoCreate": true},
+					"linuxBridge": map[string]any{"lifecycle": "Managed"},
 				},
 			}),
-			field:    "spec.hostmaster.linuxBridge.autoCreate",
-			expected: true,
+			field:    "spec.hostmaster.linuxBridge.lifecycle",
+			expected: "Managed",
 		},
 	}
 
@@ -225,7 +211,7 @@ func TestApplyDefaultsCombinedAndEdgeCases(t *testing.T) {
 		obj := newUnstructured("L2VNI", map[string]any{
 			"hostmaster": map[string]any{
 				"type":        "linux-bridge",
-				"linuxBridge": map[string]any{"name": "br0"},
+				"linuxBridge": map[string]any{"lifecycle": "External", "name": "br0"},
 			},
 		})
 		if err := ApplyDefaults(obj, l2vniGVK); err != nil {
@@ -240,12 +226,12 @@ func TestApplyDefaultsCombinedAndEdgeCases(t *testing.T) {
 			t.Errorf("spec.vxlanport = %v, want %v", val, int64(4789))
 		}
 
-		val, ok = getNestedField(obj, "spec.hostmaster.linuxBridge.autoCreate")
+		val, ok = getNestedField(obj, "spec.hostmaster.linuxBridge.lifecycle")
 		if !ok {
-			t.Fatal("spec.hostmaster.linuxBridge.autoCreate not found")
+			t.Fatal("spec.hostmaster.linuxBridge.lifecycle not found")
 		}
-		if val != false {
-			t.Errorf("spec.hostmaster.linuxBridge.autoCreate = %v, want false", val)
+		if val != "External" {
+			t.Errorf("spec.hostmaster.linuxBridge.lifecycle = %v, want External", val)
 		}
 	})
 
@@ -397,28 +383,28 @@ func TestValidateSuccessful(t *testing.T) {
 			}),
 		},
 		{
-			name: "L2VNI with LinuxBridge name set and autoCreate false",
+			name: "L2VNI with LinuxBridge External lifecycle and name set",
 			gvk:  l2vniGVK,
 			obj: newUnstructured("L2VNI", map[string]any{
 				"vni": int64(100),
 				"hostmaster": map[string]any{
 					"type": "linux-bridge",
 					"linuxBridge": map[string]any{
-						"name":       "br0",
-						"autoCreate": false,
+						"name":      "br0",
+						"lifecycle": "External",
 					},
 				},
 			}),
 		},
 		{
-			name: "L2VNI with LinuxBridge autoCreate true and no name",
+			name: "L2VNI with LinuxBridge Managed lifecycle and no name",
 			gvk:  l2vniGVK,
 			obj: newUnstructured("L2VNI", map[string]any{
 				"vni": int64(100),
 				"hostmaster": map[string]any{
 					"type": "linux-bridge",
 					"linuxBridge": map[string]any{
-						"autoCreate": true,
+						"lifecycle": "Managed",
 					},
 				},
 			}),
@@ -431,7 +417,7 @@ func TestValidateSuccessful(t *testing.T) {
 				"hostmaster": map[string]any{
 					"type": "linux-bridge",
 					"linuxBridge": map[string]any{
-						"autoCreate": true,
+						"lifecycle": "Managed",
 					},
 				},
 			}),
@@ -507,43 +493,45 @@ func TestValidateFailure(t *testing.T) {
 		errSubstr string
 	}{
 		{
-			name: "LinuxBridge with both name and autoCreate true",
+			name: "LinuxBridge with both name and Managed lifecycle",
 			gvk:  l2vniGVK,
 			obj: newUnstructured("L2VNI", map[string]any{
 				"hostmaster": map[string]any{
 					"type": "linux-bridge",
 					"linuxBridge": map[string]any{
-						"name":       "br0",
-						"autoCreate": true,
+						"name":      "br0",
+						"lifecycle": "Managed",
 					},
 				},
 			}),
-			errSubstr: "either name must be set or autoCreate must be true, but not both",
+			errSubstr: "name must be set when lifecycle is External, and must not be set when it is Managed.",
 		},
 		{
-			name: "LinuxBridge with neither name nor autoCreate",
+			name: "LinuxBridge with External lifecycle and no name",
 			gvk:  l2vniGVK,
 			obj: newUnstructured("L2VNI", map[string]any{
 				"hostmaster": map[string]any{
-					"type":        "linux-bridge",
-					"linuxBridge": map[string]any{},
+					"type": "linux-bridge",
+					"linuxBridge": map[string]any{
+						"lifecycle": "External",
+					},
 				},
 			}),
-			errSubstr: "either name must be set or autoCreate must be true, but not both",
+			errSubstr: "name must be set when lifecycle is External, and must not be set when it is Managed.",
 		},
 		{
-			name: "OVSBridge with both name and autoCreate true",
+			name: "OVSBridge with both name and Managed lifecycle",
 			gvk:  l2vniGVK,
 			obj: newUnstructured("L2VNI", map[string]any{
 				"hostmaster": map[string]any{
 					"type": "ovs-bridge",
 					"ovsBridge": map[string]any{
-						"name":       "br0",
-						"autoCreate": true,
+						"name":      "br0",
+						"lifecycle": "Managed",
 					},
 				},
 			}),
-			errSubstr: "either name must be set or autoCreate must be true, but not both",
+			errSubstr: "name must be set when lifecycle is External, and must not be set when it is Managed.",
 		},
 		{
 			name: "HostMaster type linux-bridge with ovsBridge field",
@@ -552,7 +540,7 @@ func TestValidateFailure(t *testing.T) {
 				"hostmaster": map[string]any{
 					"type": "linux-bridge",
 					"ovsBridge": map[string]any{
-						"autoCreate": true,
+						"lifecycle": "Managed",
 					},
 				},
 			}),
@@ -565,7 +553,7 @@ func TestValidateFailure(t *testing.T) {
 				"hostmaster": map[string]any{
 					"type": "ovs-bridge",
 					"linuxBridge": map[string]any{
-						"autoCreate": true,
+						"lifecycle": "Managed",
 					},
 				},
 			}),
@@ -810,13 +798,13 @@ func TestValidateOldSelfFiltering(t *testing.T) {
 }
 
 func TestValidateMultipleErrors(t *testing.T) {
-	t.Run("LinuxBridge both name and autoCreate plus type mismatch", func(t *testing.T) {
+	t.Run("LinuxBridge both name and Managed lifecycle plus type mismatch", func(t *testing.T) {
 		obj := newUnstructured("L2VNI", map[string]any{
 			"hostmaster": map[string]any{
 				"type": "ovs-bridge",
 				"linuxBridge": map[string]any{
-					"name":       "br0",
-					"autoCreate": true,
+					"name":      "br0",
+					"lifecycle": "Managed",
 				},
 			},
 		})
@@ -833,19 +821,19 @@ func TestValidateMultipleErrors(t *testing.T) {
 			}
 		}
 
-		foundNameAuto := false
+		foundNameLifecycle := false
 		foundMismatch := false
 		for _, e := range errs {
 			msg := e.Error()
-			if strings.Contains(msg, "either name must be set or autoCreate must be true, but not both") {
-				foundNameAuto = true
+			if strings.Contains(msg, "name must be set when lifecycle is External, and must not be set when it is Managed.") {
+				foundNameLifecycle = true
 			}
 			if strings.Contains(msg, "type/config mismatch") {
 				foundMismatch = true
 			}
 		}
-		if !foundNameAuto {
-			t.Error("missing name/autoCreate validation error")
+		if !foundNameLifecycle {
+			t.Error("missing name/lifecycle validation error")
 		}
 		if !foundMismatch {
 			t.Error("missing type/config mismatch validation error")

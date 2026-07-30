@@ -384,7 +384,7 @@ func convertHostMaster(l2vni *v1alpha1.L2VNI) (*hostnetwork.HostMaster, error) {
 			return &hostnetwork.HostMaster{
 				Name:       l2vni.Spec.HostMaster.LinuxBridge.Name,
 				Type:       l2vni.Spec.HostMaster.Type,
-				AutoCreate: l2vni.Spec.HostMaster.LinuxBridge.AutoCreate,
+				AutoCreate: new(l2vni.Spec.HostMaster.LinuxBridge.Lifecycle == v1alpha1.BridgeLifecycleManaged),
 			}, nil
 		}
 	case v1alpha1.OVSBridge:
@@ -392,7 +392,7 @@ func convertHostMaster(l2vni *v1alpha1.L2VNI) (*hostnetwork.HostMaster, error) {
 			return &hostnetwork.HostMaster{
 				Name:       l2vni.Spec.HostMaster.OVSBridge.Name,
 				Type:       l2vni.Spec.HostMaster.Type,
-				AutoCreate: l2vni.Spec.HostMaster.OVSBridge.AutoCreate,
+				AutoCreate: new(l2vni.Spec.HostMaster.OVSBridge.Lifecycle == v1alpha1.BridgeLifecycleManaged),
 			}, nil
 		}
 	default:

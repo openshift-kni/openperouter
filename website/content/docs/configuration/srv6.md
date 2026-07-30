@@ -249,7 +249,7 @@ spec:
   hostmaster:
     type: linux-bridge
     linuxBridge:
-      autoCreate: true
+      lifecycle: Managed
   gatewayIPs: ["192.170.1.1/24"]
 ```
 

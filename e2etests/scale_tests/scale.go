@@ -286,12 +286,12 @@ func newHostMaster(bridgeType string) *v1alpha1.HostMaster {
 	case v1alpha1.LinuxBridge:
 		return &v1alpha1.HostMaster{
 			Type:        v1alpha1.LinuxBridge,
-			LinuxBridge: &v1alpha1.LinuxBridgeConfig{AutoCreate: new(true)},
+			LinuxBridge: &v1alpha1.LinuxBridgeConfig{Lifecycle: v1alpha1.BridgeLifecycleManaged},
 		}
 	case v1alpha1.OVSBridge:
 		return &v1alpha1.HostMaster{
 			Type:      v1alpha1.OVSBridge,
-			OVSBridge: &v1alpha1.OVSBridgeConfig{AutoCreate: new(true)},
+			OVSBridge: &v1alpha1.OVSBridgeConfig{Lifecycle: v1alpha1.BridgeLifecycleManaged},
 		}
 	default:
 		return nil
