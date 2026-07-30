@@ -133,9 +133,19 @@ func SetupUnderlayNetDevInterface(ctx context.Context, ns netns.NsHandle,
 	return nil
 }
 
-// SetupUnderlayCNIDevInterface provisions a single underlay cni dev interface
+// SetupUnderlayCNIDevInterface provisions a single underlay cni dev interface.
+// A CNI CHECK runs first and, if it fails, the interface is torn down so the
+// subsequent Add provisions it fresh.
 func SetupUnderlayCNIDevInterface(ctx context.Context, ns string,
 	iface UnderlayInterface) error {
+	if err := cniinvoker.Invoker.Check(ctx, iface.InterfaceName); err != nil {
+		slog.WarnContext(ctx, "cni check failed, rebuilding underlay cni device",
+			"interface", iface.InterfaceName, "error", err)
+		if err := cniinvoker.Invoker.Del(ctx, iface.InterfaceName); err != nil {
+			return fmt.Errorf("failed to delete unhealthy underlay cni device %s: %w", iface.InterfaceName, err)
+		}
+	}
+
 	if err := cniinvoker.Invoker.Add(ctx, cniinvoker.AddParams{
 		Config:         iface.CNI.Config,
 		NetNS:          ns,

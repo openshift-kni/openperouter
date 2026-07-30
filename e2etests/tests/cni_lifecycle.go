@@ -43,10 +43,11 @@ const (
 // The CNI underlay lifecycle coverage exercises the behaviors specific to
 // CNI provisioned underlay interfaces: the libcni result cache driving the
 // reconciliation across controller and router restarts, the in-place
-// CNI DEL / ADD reprovisioning on interface changes and the teardown
-// through CNI DEL. The traffic coverage runs in the EVPN routes suites,
-// parameterized by underlay flavor.
-var _ = Describe("CNI underlay lifecycle", GroutSupport, Ordered, func() {
+// CNI DEL / ADD reprovisioning on interface changes, CNI CHECK validation
+// of cached state on every reconciliation, and the teardown through CNI DEL.
+// The traffic coverage runs in the EVPN routes suites, parameterized by
+// underlay flavor.
+var _ = Describe("CNI underlay lifecycle", Ordered, func() {
 	var cs clientset.Interface
 	nodes := []corev1.Node{}
 
@@ -184,15 +185,6 @@ var _ = Describe("CNI underlay lifecycle", GroutSupport, Ordered, func() {
 	})
 
 	It("keeps the CNI interfaces when the router pods are restarted", func() {
-		if GroutMode {
-			// Restarting the router wipes the grout state and the underlay
-			// addresses live in grout (they are removed from the kernel
-			// interfaces), so the sessions cannot re-establish. This is a
-			// grout datapath limitation independent of how the underlay
-			// interface is provisioned.
-			Skip("the grout datapath does not recover the underlay addresses after a router restart, " +
-				"see https://github.com/openperouter/openperouter/issues/597")
-		}
 		indexesBefore, err := cniInterfaceIndexes(nodes, infra.CNIUnderlayInterface)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -204,6 +196,35 @@ var _ = Describe("CNI underlay lifecycle", GroutSupport, Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(indexesAfter).To(Equal(indexesBefore),
 			"the interfaces should survive the router restart untouched")
+
+		By("checking the sessions re-establish")
+		validateSessionUp()
+	})
+
+	It("reprovisions the CNI interface after external drift is caught by the next reconcile", func() {
+		indexesBefore, err := cniInterfaceIndexes(nodes, infra.CNIUnderlayInterface)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("deleting the CNI interface directly, behind the controller's back")
+		for _, node := range nodes {
+			exec := executor.ForContainer(node.Name)
+			_, err := exec.Exec("ip", "netns", "exec", openperouter.NamedNetns, "ip", "link", "del", infra.CNIUnderlayInterface)
+			Expect(err).NotTo(HaveOccurred())
+		}
+		validateCNIInterfacesGone(infra.CNIUnderlayInterface)
+
+		// Reconciliation is event-driven, not on a timer: the dangling cache
+		// entry is only caught on the next reconcile. Restarting the
+		// controllers forces one without touching the Underlay.
+		By("forcing a reconcile by restarting the controllers")
+		restartControllers()
+
+		By("checking cni check detects the drift and the interface is reprovisioned")
+		validateCNIInterfacesPresent(infra.CNIUnderlayInterface)
+		indexesAfter, err := cniInterfaceIndexes(nodes, infra.CNIUnderlayInterface)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(indexesAfter).NotTo(Equal(indexesBefore),
+			"the interface should have been recreated with a new ifindex")
 
 		By("checking the sessions re-establish")
 		validateSessionUp()
