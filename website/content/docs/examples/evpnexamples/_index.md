@@ -83,10 +83,10 @@ metadata:
 spec:
   vrf: red
   vni: 100
-  hostsession:
+  hostSession:
     asn: 64514
-    hostasn: 64515
-    localcidr:
+    hostASN: 64515
+    localCIDR:
       ipv4: 192.169.10.0/24
 ---
 # Blue VNI (VNI 200)
@@ -98,10 +98,10 @@ metadata:
 spec:
   vrf: blue
   vni: 200
-  hostsession:
+  hostSession:
     asn: 64514
-    hostasn: 64515
-    localcidr:
+    hostASN: 64515
+    localCIDR:
       ipv4: 192.169.11.0/24
 ```
 

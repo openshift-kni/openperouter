@@ -76,12 +76,12 @@ l3vnis:
 l2vnis:
   - name: storage
     vni: 300
-    vxlanport: 4789
+    vxlanPort: 4789
     routingDomain:
       type: L3VNI
       l3vni:
         name: red
-    hostmaster:
+    hostMaster:
       type: linux-bridge
       linuxBridge:
         name: br-storage

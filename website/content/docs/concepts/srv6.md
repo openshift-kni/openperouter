@@ -80,7 +80,7 @@ OpenPERouter automatically creates:
 #### IP Allocation Strategy
 
 The IP addresses for the veth pair are allocated from the configured
-`localcidr` for each L3VPN:
+`localCIDR` for each L3VPN:
 
 - **Router side**: Always gets the first IP in the CIDR
   (e.g., `192.169.11.0`)

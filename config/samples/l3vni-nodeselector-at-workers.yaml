@@ -11,10 +11,10 @@ spec:
       node-role.kubernetes.io/worker: ""
   vrf: tenant-a
   vni: 5001
-  hostsession:
+  hostSession:
     asn: 64512
-    hostasn: 64600
-    localcidr:
+    hostASN: 64600
+    localCIDR:
       ipv4: 192.169.5.0/24
 ---
 # Tenant B VNI on the same worker nodes
@@ -29,10 +29,10 @@ spec:
       node-role.kubernetes.io/worker: ""
   vrf: tenant-b
   vni: 5002
-  hostsession:
+  hostSession:
     asn: 64512
-    hostasn: 64601
-    localcidr:
+    hostASN: 64601
+    localCIDR:
       ipv4: 192.169.6.0/24
 ---
 # Tenant C VNI on the same worker nodes
@@ -47,9 +47,9 @@ spec:
       node-role.kubernetes.io/worker: ""
   vrf: tenant-c
   vni: 5003
-  hostsession:
+  hostSession:
     asn: 64512
-    hostasn: 64602
-    localcidr:
+    hostASN: 64602
+    localCIDR:
       ipv4: 192.169.7.0/24
 

@@ -9,7 +9,7 @@ spec:
     type: L3VNI
     l3vni:
       name: red
-  hostmaster:
+  hostMaster:
     type: linux-bridge
     linuxBridge:
       lifecycle: Managed

@@ -11,11 +11,11 @@ spec:
       topology.kubernetes.io/rack: rack-1
   vrf: tenant-a
   vni: 5001
-  vxlanport: 4789
-  hostsession:
+  vxlanPort: 4789
+  hostSession:
     asn: 64512
-    hostasn: 64600
-    localcidr:
+    hostASN: 64600
+    localCIDR:
       ipv4: 192.169.1.0/24
 ---
 # L3VNI for rack-2 nodes
@@ -30,10 +30,10 @@ spec:
       topology.kubernetes.io/rack: rack-2
   vrf: tenant-a
   vni: 5002
-  vxlanport: 4789
-  hostsession:
+  vxlanPort: 4789
+  hostSession:
     asn: 64512
-    hostasn: 64600
-    localcidr:
+    hostASN: 64600
+    localCIDR:
       ipv4: 192.169.2.0/24
 

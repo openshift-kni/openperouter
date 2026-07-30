@@ -116,7 +116,7 @@ For each Layer 3 VPN (SRv6), OpenPERouter automatically creates:
 #### IP Allocation Strategy
 
 The IP addresses for the veth pair are allocated from the configured
-`localcidr` for each VNI:
+`localCIDR` for each VNI:
 
 - **Router side**: Always gets the first IP in the CIDR
   (e.g., `192.169.11.0`)

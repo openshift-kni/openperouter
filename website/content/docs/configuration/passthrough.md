@@ -55,10 +55,10 @@ metadata:
   name: passthrough
   namespace: openperouter-system
 spec:
-  hostsession:
+  hostSession:
     asn: 64514
-    hostasn: 64515
-    localcidr:
+    hostASN: 64515
+    localCIDR:
       ipv4: 192.169.10.0/24
 ```
 
@@ -66,10 +66,10 @@ spec:
 
 | Field | Type | Description | Required |
 |-------|------|-------------|----------|
-| `hostsession.asn` | integer | Router ASN for BGP session with host | Yes |
-| `hostsession.hostasn` | integer | Host ASN for BGP session | Yes |
-| `hostsession.localcidr.ipv4` | string | IPv4 CIDR for veth pair IP allocation | No |
-| `hostsession.localcidr.ipv6` | string | IPv6 CIDR for veth pair IP allocation | No |
+| `hostSession.asn` | integer | Router ASN for BGP session with host | Yes |
+| `hostSession.hostASN` | integer | Host ASN for BGP session | Yes |
+| `hostSession.localCIDR.ipv4` | string | IPv4 CIDR for veth pair IP allocation | No |
+| `hostSession.localCIDR.ipv6` | string | IPv6 CIDR for veth pair IP allocation | No |
 | `nodeSelector` | object | Label selector to target specific nodes (applies to all nodes if omitted) | No |
 
 ### Dual Stack Configuration
@@ -83,17 +83,17 @@ metadata:
   name: passthrough-dual
   namespace: openperouter-system
 spec:
-  hostsession:
+  hostSession:
     asn: 64514
-    hostasn: 64515
-    localcidr:
+    hostASN: 64515
+    localCIDR:
       ipv4: 192.169.10.0/24
       ipv6: 2001:db8:10::/64
 ```
 
 ### IP Allocation Strategy
 
-The IP addresses for the veth pair are allocated from the configured `localcidr`:
+The IP addresses for the veth pair are allocated from the configured `localCIDR`:
 
 - **Router side**: Always gets the first IP in the CIDR (e.g., `192.169.10.1`)
 - **Host side**: Each node gets a different IP from the CIDR, starting from the second value (e.g., `192.169.10.2`)
@@ -105,7 +105,7 @@ This consistent allocation strategy ensures that BGP-speaking components on the 
 When you create or update L3Passthrough configurations, OpenPERouter automatically:
 
 1. **Creates Veth Pair**: Sets up a veth pair named `pt-host` (host side) and `pt-ns` (router side)
-2. **Assigns IP Addresses**: Allocates IPs from the `localcidr` range:
+2. **Assigns IP Addresses**: Allocates IPs from the `localCIDR` range:
    - Router side: First IP in the CIDR (e.g., `192.169.10.1`)
    - Host side: Second IP in the CIDR (e.g., `192.169.10.2`)
 3. **Establishes BGP Session**: Opens BGP session between router and host using the specified ASNs

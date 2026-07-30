@@ -122,11 +122,11 @@ spec:
       topology.kubernetes.io/rack: rack-1
   vrf: tenant-a
   vni: 5001
-  vxlanport: 4789
-  hostsession:
+  vxlanPort: 4789
+  hostSession:
     asn: 64512
-    hostasn: 64600
-    localcidr:
+    hostASN: 64600
+    localCIDR:
       ipv4: 192.169.1.0/24
 ---
 # L3VNI for rack-2 nodes
@@ -141,11 +141,11 @@ spec:
       topology.kubernetes.io/rack: rack-2
   vrf: tenant-a
   vni: 5002
-  vxlanport: 4789
-  hostsession:
+  vxlanPort: 4789
+  hostSession:
     asn: 64512
-    hostasn: 64600
-    localcidr:
+    hostASN: 64600
+    localCIDR:
       ipv4: 192.169.2.0/24
 ```
 
@@ -166,10 +166,10 @@ spec:
       node-role.kubernetes.io/worker: ""
   vrf: tenant-a
   vni: 5001
-  hostsession:
+  hostSession:
     asn: 64512
-    hostasn: 64600
-    localcidr:
+    hostASN: 64600
+    localCIDR:
       ipv4: 192.169.5.0/24
 ---
 # Tenant B VNI on the same worker nodes
@@ -184,10 +184,10 @@ spec:
       node-role.kubernetes.io/worker: ""
   vrf: tenant-b
   vni: 5002
-  hostsession:
+  hostSession:
     asn: 64512
-    hostasn: 64601
-    localcidr:
+    hostASN: 64601
+    localCIDR:
       ipv4: 192.169.6.0/24
 ---
 # Tenant C VNI on the same worker nodes
@@ -202,10 +202,10 @@ spec:
       node-role.kubernetes.io/worker: ""
   vrf: tenant-c
   vni: 5003
-  hostsession:
+  hostSession:
     asn: 64512
-    hostasn: 64602
-    localcidr:
+    hostASN: 64602
+    localCIDR:
       ipv4: 192.169.7.0/24
 ```
 
@@ -225,12 +225,12 @@ spec:
     matchLabels:
       node-role.kubernetes.io/worker: ""
   vni: 10100
-  vxlanport: 4789
+  vxlanPort: 4789
   routingDomain:
     type: L3VNI
     l3vni:
       name: tenant-a-vni
-  hostmaster:
+  hostMaster:
     type: linux-bridge
     linuxBridge:
       lifecycle: Managed
@@ -253,9 +253,9 @@ spec:
   nodeSelector:
     matchLabels:
       node-role.kubernetes.io/edge: ""
-  hostsession:
+  hostSession:
     asn: 64512
-    hostasn: 64700
-    localcidr:
+    hostASN: 64700
+    localCIDR:
       ipv4: 192.169.20.0/24
 ```

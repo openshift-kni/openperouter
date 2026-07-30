@@ -76,7 +76,7 @@ metadata:
   name: layer2
   namespace: openperouter-system
 spec:
-  hostmaster:
+  hostMaster:
     type: linux-bridge
     linuxBridge:
       lifecycle: Managed
@@ -91,7 +91,7 @@ spec:
 **Key Configuration Points:**
 
 - The L2VNI references the L3VNI via the `routingDomain` field, enabling routed traffic
-- `hostmaster.linuxBridge.lifecycle: Managed` creates a `br-hs-110` bridge on the host
+- `hostMaster.linuxBridge.lifecycle: Managed` creates a `br-hs-110` bridge on the host
 - `gatewayIPs` defines the gateway IP for the VM subnet
 
 ### 2. Network Attachment Definition
@@ -301,7 +301,7 @@ We see that the packet comes from the veth interface towards the bridge associat
 
 ### Common Issues
 
-1. **Bridge not created**: Verify the L2VNI has `hostmaster.linuxBridge.lifecycle: Managed`
+1. **Bridge not created**: Verify the L2VNI has `hostMaster.linuxBridge.lifecycle: Managed`
 2. **VM cannot reach gateway**: Check that the VM's IP is in the same subnet as `gatewayIPs`
 3. **No VM-to-VM connectivity**: Ensure both VMs are connected to the same bridge (`br-hs-110`)
 

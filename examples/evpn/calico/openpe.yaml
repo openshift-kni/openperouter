@@ -5,10 +5,10 @@ metadata:
   namespace: openperouter-system
 spec:
   vrf: red
-  hostsession:
+  hostSession:
     asn: 64514
-    hostasn: 64515
-    localcidr:
+    hostASN: 64515
+    localCIDR:
       ipv4: 192.169.10.0/24
   vni: 100
 ---
