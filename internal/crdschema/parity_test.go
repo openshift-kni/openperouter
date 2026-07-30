@@ -282,7 +282,12 @@ func TestParityRoundTrip(t *testing.T) {
 							Port:            new(int32(179)),
 							Password:        new("secret"),
 							HoldTimeSeconds: new(int64(90)),
-							EBGPMultiHop:    new(true),
+							Properties: []v1alpha1.NeighborProperty{
+								{
+									Type:         v1alpha1.NeighborPropertyEBGPMultiHop,
+									EBGPMultiHop: &v1alpha1.EBGPMultiHopProperties{TTL: new(int32(5))},
+								},
+							},
 							BFD: &v1alpha1.BFDSettings{
 								ReceiveInterval:  new(int32(300)),
 								TransmitInterval: new(int32(300)),

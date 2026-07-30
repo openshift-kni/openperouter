@@ -5,7 +5,7 @@
   neighbor {{.neighbor.Interface}} interface remote-as {{.neighbor.ASN}}
   {{- end }}
   {{- if .neighbor.EBGPMultiHop }}
-  neighbor {{.neighbor.ID}} ebgp-multihop
+  neighbor {{.neighbor.ID}} ebgp-multihop{{ if .neighbor.EBGPMultiHopTTL }} {{ .neighbor.EBGPMultiHopTTL }}{{ end }}
   {{- end }}
   {{ if .neighbor.Port -}}
   neighbor {{.neighbor.ID}} port {{.neighbor.Port}}

@@ -26,10 +26,12 @@ spec:
   neighbors:
   - address: 2001:db8:1234::1
     asn: 64520
-    ebgpMultiHop: true
+    properties:
+    - type: ebgpMultiHop
   - address: 2001:db8:1234::2
     asn: 64520
-    ebgpMultiHop: true
+    properties:
+    - type: ebgpMultiHop
   interfaces:
     - type: NetworkDevice
       networkDevice:
@@ -118,11 +120,13 @@ In this example, we configure eBGP multihop neighbors:
   neighbors:
   - address: 2001:db8:1234::1
     asn: 64520
-    ebgpMultiHop: true
+    properties:
+    - type: ebgpMultiHop
 ```
 
-The `ebgpMultiHop` field indicates that the BGP peer is multiple hops
-away. OpenPERouter uses a heuristic to enable the correct network layer
+The `ebgpMultiHop` property indicates that the BGP peer is multiple hops
+away. It optionally accepts a `ttl` parameter (1-255); when omitted FRR
+defaults to 255. OpenPERouter uses a heuristic to enable the correct network layer
 protocols for each neighbor unless `addressFamilies` is explicitly set,
 which overrides the automatic selection.
 
