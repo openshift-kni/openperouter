@@ -27,9 +27,9 @@ type L3PassthroughSpec struct {
 	// +optional
 	NodeSelector *metav1.LabelSelector `json:"nodeSelector,omitempty"`
 
-	// hostsession is the configuration for the host session.
+	// hostSession is the configuration for the host session.
 	// +required
-	HostSession HostSession `json:"hostsession,omitzero,omitempty"`
+	HostSession HostSession `json:"hostSession,omitzero,omitempty"`
 }
 
 // L3PassthroughStatus defines the observed state of L3Passthrough.

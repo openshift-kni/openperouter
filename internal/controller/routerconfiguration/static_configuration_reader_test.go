@@ -24,7 +24,7 @@ func TestReadStaticConfigs_L2VNI_DefaultVXLanPort(t *testing.T) {
 	writeYAMLFile(t, dir, "openpe_l2vni.yaml", `
 underlays:
   - asn: 64515
-    routeridcidr: "10.0.0.0/24"
+    routerIDCIDR: "10.0.0.0/24"
     interfaces:
       - type: NetworkDevice
         networkDevice:
@@ -37,7 +37,7 @@ underlays:
       - "100.65.0.0/24"
 l2vnis:
   - vni: 300
-    hostmaster:
+    hostMaster:
       type: linux-bridge
       linuxBridge:
         lifecycle: External
@@ -62,7 +62,7 @@ func TestReadStaticConfigs_L3VNI_DefaultVXLanPort(t *testing.T) {
 	writeYAMLFile(t, dir, "openpe_l3vni.yaml", `
 underlays:
   - asn: 64515
-    routeridcidr: "10.0.0.0/24"
+    routerIDCIDR: "10.0.0.0/24"
     interfaces:
       - type: NetworkDevice
         networkDevice:
@@ -141,7 +141,7 @@ l3vnis:
     vni: 100
 l2vnis:
   - vni: 300
-    hostmaster:
+    hostMaster:
       type: linux-bridge
       linuxBridge:
         lifecycle: External
@@ -169,7 +169,7 @@ func TestReadStaticConfigs_ExplicitVXLanPort(t *testing.T) {
 	writeYAMLFile(t, dir, "openpe_explicit.yaml", `
 underlays:
   - asn: 64515
-    routeridcidr: "10.0.0.0/24"
+    routerIDCIDR: "10.0.0.0/24"
     interfaces:
       - type: NetworkDevice
         networkDevice:
@@ -182,8 +182,8 @@ underlays:
       - "100.65.0.0/24"
 l2vnis:
   - vni: 300
-    vxlanport: 5000
-    hostmaster:
+    vxlanPort: 5000
+    hostMaster:
       type: linux-bridge
       linuxBridge:
         lifecycle: External
@@ -205,7 +205,7 @@ func TestReadStaticConfigs_ExplicitRouterIDCIDR(t *testing.T) {
 	writeYAMLFile(t, dir, "openpe_explicit.yaml", `
 underlays:
   - asn: 64515
-    routeridcidr: "172.16.0.0/16"
+    routerIDCIDR: "172.16.0.0/16"
     interfaces:
       - type: NetworkDevice
         networkDevice:
@@ -249,7 +249,7 @@ underlays:
 	writeYAMLFile(t, dir, "openpe_l2vni.yaml", `
 l2vnis:
   - vni: 300
-    hostmaster:
+    hostMaster:
       type: linux-bridge
       linuxBridge:
         lifecycle: External
@@ -520,7 +520,7 @@ func TestReadStaticConfigs_CELValidation_L2VNIBridgeNameAndLifecycle(t *testing.
 	writeYAMLFile(t, dir, "openpe_invalid.yaml", `
 underlays:
   - asn: 64515
-    routeridcidr: "10.0.0.0/24"
+    routerIDCIDR: "10.0.0.0/24"
     interfaces:
       - type: NetworkDevice
         networkDevice:
@@ -533,7 +533,7 @@ underlays:
       - "100.65.0.0/24"
 l2vnis:
   - vni: 300
-    hostmaster:
+    hostMaster:
       type: linux-bridge
       linuxBridge:
         name: "mybr"
@@ -553,7 +553,7 @@ func TestReadStaticConfigsCELValidationSRv6(t *testing.T) {
 	validSRv6Underlay := `
 underlays:
   - asn: 64514
-    routeridcidr: "10.0.0.0/24"
+    routerIDCIDR: "10.0.0.0/24"
     interfaces:
       - type: NetworkDevice
         networkDevice:
@@ -604,7 +604,7 @@ underlays:
 			yaml: `
 underlays:
   - asn: 64514
-    routeridcidr: "10.0.0.0/24"
+    routerIDCIDR: "10.0.0.0/24"
     interfaces:
       - type: NetworkDevice
         networkDevice:
@@ -629,7 +629,7 @@ underlays:
 			yaml: `
 underlays:
   - asn: 64514
-    routeridcidr: "10.0.0.0/24"
+    routerIDCIDR: "10.0.0.0/24"
     interfaces:
       - type: NetworkDevice
         networkDevice:
@@ -702,7 +702,7 @@ underlays:
       - "100.65.0.0/24"
 l2vnis:
   - vni: 300
-    hostmaster:
+    hostMaster:
       type: linux-bridge
       linuxBridge:
         name: "mybr"
@@ -732,7 +732,7 @@ func TestReadStaticConfigs_MultipleErrors(t *testing.T) {
 	dir := t.TempDir()
 	writeYAMLFile(t, dir, "openpe_multi_invalid.yaml", `
 underlays:
-  - routeridcidr: "10.0.0.0/24"
+  - routerIDCIDR: "10.0.0.0/24"
     interfaces:
       - type: NetworkDevice
         networkDevice:
@@ -745,7 +745,7 @@ underlays:
       - "100.65.0.0/24"
 l2vnis:
   - vni: 300
-    hostmaster:
+    hostMaster:
       type: linux-bridge
       linuxBridge:
         name: "mybr"
@@ -772,7 +772,7 @@ func TestReadStaticConfigs_AtomicRejection(t *testing.T) {
 	writeYAMLFile(t, dir, "openpe_atomic.yaml", `
 underlays:
   - asn: 64515
-    routeridcidr: "10.0.0.0/24"
+    routerIDCIDR: "10.0.0.0/24"
     interfaces:
       - type: NetworkDevice
         networkDevice:
@@ -785,7 +785,7 @@ underlays:
       - "100.65.0.0/24"
 l2vnis:
   - vni: 300
-    hostmaster:
+    hostMaster:
       type: linux-bridge
       linuxBridge:
         name: "mybr"

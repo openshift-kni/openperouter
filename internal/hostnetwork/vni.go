@@ -29,7 +29,7 @@ type VNIParams struct {
 	TargetNS  string `json:"targetns"`
 	VTEPIP    string `json:"vtepip"`
 	VNI       int32  `json:"vni"`
-	VXLanPort *int32 `json:"vxlanport,omitempty"`
+	VXLanPort *int32 `json:"vxlanPort,omitempty"`
 }
 
 type L3VNIParams struct {
@@ -54,7 +54,7 @@ type L2VNIParams struct {
 	VNIParams    `json:",inline"`
 	Name         string      `json:"name"`
 	L2GatewayIPs []string    `json:"l2gatewayips"`
-	HostMaster   *HostMaster `json:"hostmaster"`
+	HostMaster   *HostMaster `json:"hostMaster"`
 }
 
 type HostMaster struct {

@@ -41,7 +41,7 @@ func TestMirrorController(t *testing.T) {
 			files: map[string]string{
 				"openpe_underlay.yaml": `underlays:
   - asn: 64514
-    routeridcidr: "10.0.0.0/24"
+    routerIDCIDR: "10.0.0.0/24"
     interfaces:
       - type: NetworkDevice
         networkDevice:
@@ -86,7 +86,7 @@ func TestMirrorController(t *testing.T) {
 				"openpe_l2vni.yaml": `l2vnis:
   - name: l2vni-300
     vni: 300
-    vxlanport: 4789
+    vxlanPort: 4789
 `,
 			},
 			expectedCRs: expectedResources{
