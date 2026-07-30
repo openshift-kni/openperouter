@@ -96,10 +96,10 @@ var _ = Describe("Hybrid mode: static files and API configuration", Label("syste
 
 	staticRedVNIYAML := `l3vnis:
   - vrf: red
-    hostsession:
+    hostSession:
       asn: 64514
-      hostasn: 64515
-      localcidr:
+      hostASN: 64515
+      localCIDR:
         ipv4: "192.169.10.0/24"
         ipv6: "2001:db8:1::/64"
     vni: 100

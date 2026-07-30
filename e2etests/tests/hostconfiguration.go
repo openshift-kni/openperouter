@@ -1514,7 +1514,7 @@ type l3vniParams struct {
 	VTEPIP    string   `json:"vtepip"`
 	LinkIPs   *linkIPs `json:"linkIPs"`
 	VNI       uint32   `json:"vni"`
-	VXLanPort int      `json:"vxlanport"`
+	VXLanPort int      `json:"vxlanPort"`
 }
 
 type linkIPs struct {
@@ -1528,7 +1528,7 @@ type l2vniParams struct {
 	VRF        string   `json:"vrf"`
 	VTEPIP     string   `json:"vtepip"`
 	VNI        uint32   `json:"vni"`
-	VXLanPort  int      `json:"vxlanport"`
+	VXLanPort  int      `json:"vxlanPort"`
 	GatewayIPs []string `json:"gatewayIPs,omitempty"`
 }
 
