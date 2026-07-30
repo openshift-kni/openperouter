@@ -21,7 +21,7 @@ import (
 )
 
 // L3VPNSpec defines the desired state of L3VPN.
-// +kubebuilder:validation:XValidation:rule="!has(self.hostsession) || self.hostsession.hostasn != self.hostsession.asn",message="hostASN must be different from asn"
+// +kubebuilder:validation:XValidation:rule="!has(self.hostSession) || self.hostSession.hostASN != self.hostSession.asn",message="hostASN must be different from asn"
 type L3VPNSpec struct {
 	// nodeSelector specifies which nodes this L3VPN applies to.
 	// If empty or not specified, applies to all nodes.
@@ -61,9 +61,9 @@ type L3VPNSpec struct {
 	// +required
 	RDAssignedNumber int32 `json:"rdAssignedNumber,omitempty"`
 
-	// hostsession is the configuration for the host session.
+	// hostSession is the configuration for the host session.
 	// +optional
-	HostSession *HostSession `json:"hostsession,omitempty"`
+	HostSession *HostSession `json:"hostSession,omitempty"`
 }
 
 // L3VPNStatus defines the observed state of L3VPN.
