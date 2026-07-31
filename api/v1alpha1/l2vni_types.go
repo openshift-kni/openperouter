@@ -53,10 +53,10 @@ type L2VNISpec struct {
 	// +required
 	VNI int32 `json:"vni,omitempty"`
 
-	// vxlanport is the port to be used for VXLan encapsulation.
+	// vxlanPort is the port to be used for VXLan encapsulation.
 	// +default=4789
 	// +optional
-	VXLanPort *int32 `json:"vxlanport,omitempty"`
+	VXLanPort *int32 `json:"vxlanPort,omitempty"`
 
 	// underlayAddressFamily selects which VTEP address family to use for this VNI's
 	// VXLAN interface. When omitted, defaults to the available family in the underlay
@@ -65,12 +65,12 @@ type L2VNISpec struct {
 	// +optional
 	UnderlayAddressFamily *string `json:"underlayAddressFamily,omitempty"`
 
-	// hostmaster is the interface on the host the veth should be attached to.
+	// hostMaster is the interface on the host the veth should be attached to.
 	// If not set, the host veth will not be attached to any interface and it must be
 	// attached manually (or by some other means). This is useful if another controller
 	// is leveraging the host interface for the VNI.
 	// +optional
-	HostMaster *HostMaster `json:"hostmaster,omitempty"`
+	HostMaster *HostMaster `json:"hostMaster,omitempty"`
 
 	// gatewayIPs is a list of IP addresses in CIDR notation for the
 	// distributed anycast gateway on this L2 segment's bridge

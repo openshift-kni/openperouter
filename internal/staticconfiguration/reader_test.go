@@ -131,7 +131,7 @@ func TestReadRouterConfigs(t *testing.T) {
 
 	t.Run("single file", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		writeTestFile(t, tmpDir, "openpe_underlay.yaml", "underlays:\n  - asn: 64515\n    routeridcidr: \"10.0.0.0/24\"\n")
+		writeTestFile(t, tmpDir, "openpe_underlay.yaml", "underlays:\n  - asn: 64515\n    routerIDCIDR: \"10.0.0.0/24\"\n")
 
 		configs, err := ReadRouterConfigs(tmpDir)
 		if err != nil {
@@ -147,7 +147,7 @@ func TestReadRouterConfigs(t *testing.T) {
 
 	t.Run("multiple files", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		writeTestFile(t, tmpDir, "openpe_underlay.yaml", "underlays:\n  - asn: 64515\n    routeridcidr: \"10.0.0.0/24\"\n")
+		writeTestFile(t, tmpDir, "openpe_underlay.yaml", "underlays:\n  - asn: 64515\n    routerIDCIDR: \"10.0.0.0/24\"\n")
 		writeTestFile(t, tmpDir, "openpe_l3vni.yaml", "l3vnis:\n  - vrf: \"vrf-test\"\n    vni: 1000\n")
 		writeTestFile(t, tmpDir, "other.yaml", "test: value\n")
 

@@ -9,12 +9,12 @@ spec:
     matchLabels:
       node-role.kubernetes.io/worker: ""
   vni: 10100
-  vxlanport: 4789
+  vxlanPort: 4789
   routingDomain:
     type: L3VNI
     l3vni:
       name: app-l3vni
-  hostmaster:
+  hostMaster:
     type: linux-bridge
     linuxBridge:
       lifecycle: Managed

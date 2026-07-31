@@ -4,7 +4,7 @@ metadata:
   name: migration-net
   namespace: openperouter-system
 spec:
-  hostmaster:
+  hostMaster:
     type: linux-bridge
     linuxBridge:
       lifecycle: Managed

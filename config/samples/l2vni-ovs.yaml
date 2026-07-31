@@ -9,7 +9,7 @@ spec:
     type: L3VNI
     l3vni:
       name: red
-  hostmaster:
+  hostMaster:
     type: ovs-bridge
     ovsBridge:
       lifecycle: Managed

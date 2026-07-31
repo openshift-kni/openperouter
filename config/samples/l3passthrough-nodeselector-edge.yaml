@@ -8,9 +8,9 @@ spec:
   nodeSelector:
     matchLabels:
       node-role.kubernetes.io/edge: ""
-  hostsession:
+  hostSession:
     asn: 64512
-    hostasn: 64700
-    localcidr:
+    hostASN: 64700
+    localCIDR:
       ipv4: 192.169.20.0/24
 
