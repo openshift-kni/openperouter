@@ -314,7 +314,7 @@ func (r *PERouterReconciler) resolvePasswordSecrets(ctx context.Context, config 
 		underlay := &config.Underlays[i]
 		var validNeighbors []v1alpha1.Neighbor
 		for _, n := range underlay.Spec.Neighbors {
-			if n.PasswordSecret == nil || *n.PasswordSecret == "" {
+			if n.PasswordSecret == nil || n.PasswordSecret.Name == "" {
 				validNeighbors = append(validNeighbors, n)
 				continue
 			}
@@ -324,12 +324,12 @@ func (r *PERouterReconciler) resolvePasswordSecrets(ctx context.Context, config 
 				continue
 			}
 
-			password, err := r.fetchPasswordFromSecret(ctx, *n.PasswordSecret)
+			password, err := r.fetchPasswordFromSecret(ctx, n.PasswordSecret, underlay.Namespace)
 			if err != nil {
 				var statusErr *apierrors.StatusError
 				if errors.As(err, &statusErr) && !apierrors.IsNotFound(err) {
-					return fmt.Errorf("failed to get password secret %q for neighbor %s: %w",
-						*n.PasswordSecret, conversion.NeighborID(n), err)
+					return fmt.Errorf("failed to get password secret %q in namespace %q for neighbor %s: %w",
+						n.PasswordSecret.Name, underlay.Namespace, conversion.NeighborID(n), err)
 				}
 				allErrors = append(allErrors, &openpeerrors.ResourceError{
 					Obj: v1alpha1.FailedResource{
@@ -349,22 +349,33 @@ func (r *PERouterReconciler) resolvePasswordSecrets(ctx context.Context, config 
 	return errors.Join(allErrors...)
 }
 
-func (r *PERouterReconciler) fetchPasswordFromSecret(ctx context.Context, secretName string) (string, error) {
+// defaultPasswordSecretKey is the Secret data key used when
+// SecretKeyRef.Key is unset.
+const defaultPasswordSecretKey = v1.BasicAuthPasswordKey
+
+// resolvedSecretKey returns the Secret data key to read the password from,
+// defaulting to defaultPasswordSecretKey when Key is unset.
+func resolvedSecretKey(ref *v1alpha1.SecretKeyRef) string {
+	if ref.Key != nil && *ref.Key != "" {
+		return *ref.Key
+	}
+	return defaultPasswordSecretKey
+}
+
+func (r *PERouterReconciler) fetchPasswordFromSecret(ctx context.Context, ref *v1alpha1.SecretKeyRef, namespace string) (string, error) {
 	secret := &v1.Secret{}
-	key := types.NamespacedName{Name: secretName, Namespace: r.MyNamespace}
+	key := types.NamespacedName{Name: ref.Name, Namespace: namespace}
 	if err := r.Get(ctx, key, secret); err != nil {
 		return "", err
 	}
-	if secret.Type != v1.SecretTypeBasicAuth {
-		return "", fmt.Errorf("secret %q has type %q, expected %q", secretName, secret.Type, v1.SecretTypeBasicAuth)
-	}
-	pw, ok := secret.Data["password"]
+	dataKey := resolvedSecretKey(ref)
+	pw, ok := secret.Data[dataKey]
 	if !ok {
-		return "", fmt.Errorf("secret %q missing key %q", secretName, "password")
+		return "", fmt.Errorf("secret %q missing key %q", ref.Name, dataKey)
 	}
 	resolved := string(pw)
 	if err := validatePassword(resolved); err != nil {
-		return "", fmt.Errorf("password from secret %q: %w", secretName, err)
+		return "", fmt.Errorf("password from secret %q: %w", ref.Name, err)
 	}
 	return resolved, nil
 }
