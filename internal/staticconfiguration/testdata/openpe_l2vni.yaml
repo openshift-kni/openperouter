@@ -7,7 +7,7 @@ l2vnis:
       l3vni:
         name: l3vni-red
     hostMaster:
-      type: linux-bridge
+      type: LinuxBridge
       linuxBridge:
         lifecycle: External
         name: br-storage
@@ -19,7 +19,7 @@ l2vnis:
       l3vni:
         name: l3vni-blue
     hostMaster:
-      type: ovs-bridge
+      type: OVSBridge
       ovsBridge:
         lifecycle: External
         name: ovsbr0

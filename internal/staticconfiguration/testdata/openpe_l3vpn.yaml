@@ -19,7 +19,7 @@ l2vnis:
       l3vpn:
         name: red
     hostMaster:
-      type: linux-bridge
+      type: LinuxBridge
       linuxBridge:
         lifecycle: Managed
     gatewayIPs:

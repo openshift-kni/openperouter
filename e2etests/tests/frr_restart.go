@@ -48,7 +48,7 @@ var _ = Describe("North/south traffic after FRR container restart", Ordered, fun
 			RoutingDomain: l3vniRoutingDomain("red"),
 			VNI:           110,
 			HostMaster: &v1alpha1.HostMaster{
-				Type: "linux-bridge",
+				Type: "LinuxBridge",
 				LinuxBridge: &v1alpha1.LinuxBridgeConfig{
 					Lifecycle: v1alpha1.BridgeLifecycleManaged,
 				},
