@@ -13,6 +13,8 @@ import (
 	"github.com/containernetworking/cni/libcni"
 )
 
+const ipamTypeDHCP = "dhcp"
+
 // Invoker is the node-level CNI plugin invoker singleton, nil until Init is
 // called.
 var Invoker *invoker
@@ -22,15 +24,18 @@ var Invoker *invoker
 type invoker struct {
 	cniConfig   *libcni.CNIConfig
 	containerID string
+	dhcpEnabler DHCPEnabler
 }
 
 // Init sets the Invoker singleton. The cache directory must be stable across
 // controller restarts so Del keeps working for attachments created by
-// previous invocations.
-func Init(pluginDirs []string, cacheDir, nodeName string) {
+// previous invocations. If dhcpEnabler is nil, any CNI config that uses DHCP
+// IPAM will fail with an error.
+func Init(pluginDirs []string, cacheDir, nodeName string, dhcpEnabler DHCPEnabler) {
 	Invoker = &invoker{
 		cniConfig:   libcni.NewCNIConfigWithCacheDir(pluginDirs, cacheDir, nil),
 		containerID: containerIDForNode(nodeName),
+		dhcpEnabler: dhcpEnabler,
 	}
 }
 
@@ -80,6 +85,10 @@ func (inv *invoker) Add(ctx context.Context, p AddParams) error {
 		return err
 	}
 
+	if err := inv.ensureDHCPForConfList(ctx, confList); err != nil {
+		return fmt.Errorf("ensuring dhcp daemon for add %q: %w", p.IfName, err)
+	}
+
 	rt := &libcni.RuntimeConf{
 		ContainerID:    inv.containerID,
 		NetNS:          p.NetNS,
@@ -112,6 +121,41 @@ func validateCachedAttachment(attachment *libcni.NetworkAttachment, p AddParams)
 	return nil
 }
 
+// Check invokes CNI CHECK for the cached attachment matching the interface
+// name, using the config and netns recorded at ADD time. It reports whether
+// the interface is still correctly configured in the kernel, so the caller
+// can detect drift between the libcni cache and the real state of the
+// namespace. When no cached attachment exists for ifName, Check returns nil:
+// there is nothing to validate, Add will provision it.
+func (inv *invoker) Check(ctx context.Context, ifName string) error {
+	attachment, err := inv.findCachedAttachmentByInterfaceName(ifName)
+	if err != nil {
+		return fmt.Errorf("failed finding cni attachment with ifname %q to check: %w", ifName, err)
+	}
+	if attachment == nil {
+		return nil
+	}
+
+	confList, err := libcni.NetworkConfFromBytes(attachment.Config)
+	if err != nil {
+		return fmt.Errorf("failed to parse cached cni config for network %q: %w", attachment.Network, err)
+	}
+
+	if err := inv.ensureDHCPForConfList(ctx, confList); err != nil {
+		return fmt.Errorf("ensuring dhcp daemon for add %q: %w", ifName, err)
+	}
+
+	if err := inv.cniConfig.CheckNetworkList(ctx, confList, &libcni.RuntimeConf{
+		ContainerID:    attachment.ContainerID,
+		NetNS:          attachment.NetNS,
+		IfName:         attachment.IfName,
+		CapabilityArgs: attachment.CapabilityArgs,
+	}); err != nil {
+		return fmt.Errorf("cni check %q (%s) in %s: %w", attachment.Network, attachment.IfName, attachment.NetNS, err)
+	}
+	return nil
+}
+
 // Del invokes CNI DEL for the cached attachment matching the interface name,
 // using the config and netns recorded at ADD time so teardown works after the
 // defining config is gone. Interfaces without a cached attachment are
@@ -124,10 +168,16 @@ func (inv *invoker) Del(ctx context.Context, ifNameToDelete string) error {
 	if attachmentToDelete == nil {
 		return nil
 	}
+
 	confListToDelete, err := libcni.NetworkConfFromBytes(attachmentToDelete.Config)
 	if err != nil {
 		return fmt.Errorf("failed to parse cached cni config for network %q: %w", attachmentToDelete.Network, err)
 	}
+
+	if err := inv.ensureDHCPForConfList(ctx, confListToDelete); err != nil {
+		return fmt.Errorf("ensuring dhcp daemon for del %q: %w", ifNameToDelete, err)
+	}
+
 	if err := inv.cniConfig.DelNetworkList(ctx, confListToDelete, &libcni.RuntimeConf{
 		ContainerID:    attachmentToDelete.ContainerID,
 		NetNS:          attachmentToDelete.NetNS,
@@ -186,4 +236,17 @@ func capabilityArgsEqual(a, b map[string]any) bool {
 		return true
 	}
 	return reflect.DeepEqual(a, b)
+}
+
+func (inv *invoker) ensureDHCPForConfList(ctx context.Context, confList *libcni.NetworkConfigList) error {
+	for _, plugin := range confList.Plugins {
+		if plugin.Network == nil || plugin.Network.IPAM.Type != ipamTypeDHCP {
+			continue
+		}
+		if inv.dhcpEnabler == nil {
+			return fmt.Errorf("IPAM type is %q but DHCP support is not enabled", ipamTypeDHCP)
+		}
+		return inv.dhcpEnabler.EnsureUp(ctx)
+	}
+	return nil
 }

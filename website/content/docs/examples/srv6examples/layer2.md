@@ -60,10 +60,10 @@ metadata:
   name: red
   namespace: openperouter-system
 spec:
-  hostsession:
+  hostSession:
     asn: 64514
-    hostasn: 64515
-    localcidr:
+    hostASN: 64515
+    localCIDR:
       ipv4: 192.169.10.0/24
   vrf: red
   rdAssignedNumber: 100
@@ -83,17 +83,17 @@ spec:
     type: L3VPN
     l3vpn:
       name: red
-  hostmaster:
-    type: linux-bridge
+  hostMaster:
+    type: LinuxBridge
     linuxBridge:
-      autoCreate: true
+      lifecycle: Managed
   gatewayIPs: ["192.170.1.1/24"]
 ```
 
 **Configuration Notes:**
 
 - **`gatewayIPs` field**: Allows each pod to have the same default gateway and be able to send traffic to the outer L3 domain
-- **hostmaster.autocreate**: Instructs OpenPERouter to create a bridge
+- **hostMaster.linuxBridge.lifecycle**: `Managed` instructs OpenPERouter to create a bridge
   local to the node that can be used to access the L2 domain
 
 ### Underlay Configuration
@@ -116,17 +116,19 @@ spec:
   neighbors:
   - address: 2001:db8:1234::1
     asn: 64520
-    ebgpMultiHop: true
+    properties:
+    - type: ebgpMultiHop
   - address: 2001:db8:1234::2
     asn: 64520
-    ebgpMultiHop: true
+    properties:
+    - type: ebgpMultiHop
   - asn: 64512
     address: 192.168.11.2
   interfaces:
     - type: NetworkDevice
       networkDevice:
         interfaceName: toswitch1
-  routeridcidr: 10.0.0.0/24
+  routerIDCIDR: 10.0.0.0/24
   isis:
     baseNet: "49.0001.0002.0003.0004.00"
     level: 1

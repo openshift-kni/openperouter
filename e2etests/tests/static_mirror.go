@@ -47,10 +47,10 @@ var staticL3VNIYAML = `l3vnis:
   - name: mirror-red
     vrf: mirror-red
     vni: 8100
-    hostsession:
+    hostSession:
       asn: 64514
-      hostasn: 64515
-      localcidr:
+      hostASN: 64515
+      localCIDR:
         ipv4: "192.169.80.0/24"
 `
 
@@ -58,10 +58,10 @@ var staticL3VNIUpdatedYAML = `l3vnis:
   - name: mirror-red
     vrf: mirror-red
     vni: 8200
-    hostsession:
+    hostSession:
       asn: 64514
-      hostasn: 64515
-      localcidr:
+      hostASN: 64515
+      localCIDR:
         ipv4: "192.169.80.0/24"
 `
 
@@ -265,7 +265,7 @@ var _ = Describe("Mirror static config to Kubernetes", Label("systemdmode"), Ord
 		l2vniYAML := `l2vnis:
   - name: sl2vni8300
     vni: 8300
-    vxlanport: 4789
+    vxlanPort: 4789
 `
 		for _, pod := range configPods {
 			_, err := execInConfigPod(pod, fmt.Sprintf("cat > %s/openpe_l2vni.yaml << 'EOF'\n%s\nEOF",
@@ -282,7 +282,7 @@ var _ = Describe("Mirror static config to Kubernetes", Label("systemdmode"), Ord
 		l2vniYAML := `l2vnis:
   - name: sl2vni8300
     vni: 8300
-    vxlanport: 4789
+    vxlanPort: 4789
 `
 		for _, pod := range configPods {
 			_, err := execInConfigPod(pod, fmt.Sprintf("cat > %s/openpe_l2vni.yaml << 'EOF'\n%s\nEOF",
@@ -465,7 +465,7 @@ var _ = Describe("Mirror static config to Kubernetes", Label("systemdmode"), Ord
 		l2vniYAML := `l2vnis:
   - name: sl2vni8400
     vni: 8400
-    vxlanport: 4789
+    vxlanPort: 4789
 `
 		for _, pod := range configPods {
 			_, err := execInConfigPod(pod, fmt.Sprintf("cat > %s/openpe_l2vni_webhook.yaml << 'EOF'\n%s\nEOF",

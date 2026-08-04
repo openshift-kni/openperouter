@@ -21,7 +21,7 @@ import (
 )
 
 // L3VNISpec defines the desired state of VNI.
-// +kubebuilder:validation:XValidation:rule="!has(self.hostsession) || !has(self.hostsession.hostasn) || self.hostsession.hostasn != self.hostsession.asn",message="hostASN must be different from asn"
+// +kubebuilder:validation:XValidation:rule="!has(self.hostSession) || !has(self.hostSession.hostASN) || self.hostSession.hostASN != self.hostSession.asn",message="hostASN must be different from asn"
 type L3VNISpec struct {
 	// nodeSelector specifies which nodes this L3VNI applies to.
 	// If empty or not specified, applies to all nodes.
@@ -42,21 +42,21 @@ type L3VNISpec struct {
 	// +required
 	VNI int32 `json:"vni,omitempty"`
 
-	// vxlanport is the port to be used for VXLan encapsulation.
+	// vxlanPort is the port to be used for VXLan encapsulation.
 	// +default=4789
 	// +optional
-	VXLanPort *int32 `json:"vxlanport,omitempty"`
+	VXLanPort *int32 `json:"vxlanPort,omitempty"`
 
 	// underlayAddressFamily selects which VTEP address family to use for this VNI's
 	// VXLAN interface. When omitted, defaults to the available family in the underlay
 	// (IPv4 preferred in dual-stack).
-	// +kubebuilder:validation:Enum=ipv4;ipv6
+	// +kubebuilder:validation:Enum=IPv4;IPv6
 	// +optional
 	UnderlayAddressFamily *string `json:"underlayAddressFamily,omitempty"`
 
-	// hostsession is the configuration for the host session.
+	// hostSession is the configuration for the host session.
 	// +optional
-	HostSession *HostSession `json:"hostsession,omitempty"`
+	HostSession *HostSession `json:"hostSession,omitempty"`
 
 	// exportRTs are the Route Targets to be used for exporting routes.
 	// RouteTarget defines a BGP Extended Community for route filtering.

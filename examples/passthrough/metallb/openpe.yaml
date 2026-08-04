@@ -4,10 +4,10 @@ metadata:
   name: passthrough
   namespace: openperouter-system
 spec:
-  hostsession:
+  hostSession:
     asn: 64514
-    hostasn: 64515
-    localcidr:
+    hostASN: 64515
+    localCIDR:
       ipv4: 192.169.10.0/24
 ---
 apiVersion: network.openperouter.io/v1alpha1

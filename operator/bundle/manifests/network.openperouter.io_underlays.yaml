@@ -235,9 +235,9 @@ spec:
                           description: ipFamily configures which address families
                             ISIS is enabled for on this interface.
                           enum:
-                          - ipv4
-                          - ipv6
-                          - dualstack
+                          - IPv4
+                          - IPv6
+                          - DualStack
                           type: string
                         name:
                           description: name of the interface that these settings shall
@@ -359,21 +359,6 @@ spec:
                           maximum: 255
                           minimum: 2
                           type: integer
-                        echoInterval:
-                          description: |-
-                            echoInterval configures the minimal echo receive transmission
-                            interval that this system is capable of handling in milliseconds.
-                            Defaults to 50ms
-                          format: int32
-                          maximum: 60000
-                          minimum: 10
-                          type: integer
-                        echoMode:
-                          description: |-
-                            echoMode enables or disables the echo transmission mode.
-                            This mode is disabled by default, and not supported on multi
-                            hops setups.
-                          type: boolean
                         minimumTTL:
                           description: |-
                             minimumTTL configures, for multi hop sessions only, the minimum
@@ -382,12 +367,6 @@ spec:
                           maximum: 254
                           minimum: 1
                           type: integer
-                        passiveMode:
-                          description: |-
-                            passiveMode marks session as passive: a passive session will not
-                            attempt to start the connection and will wait for control packets
-                            from peer before it begins replying.
-                          type: boolean
                         receiveInterval:
                           description: |-
                             receiveInterval is the minimum interval that this system is capable of
@@ -397,6 +376,15 @@ spec:
                           maximum: 60000
                           minimum: 10
                           type: integer
+                        sessionMode:
+                          description: |-
+                            sessionMode marks the session active or passive. Active (the default
+                            when omitted) initiates the session. Passive waits for the peer to
+                            initiate before replying (RFC 5880 Section 6.1).
+                          enum:
+                          - Active
+                          - Passive
+                          type: string
                         transmitInterval:
                           description: |-
                             transmitInterval is the minimum transmission interval (less jitter)
@@ -414,10 +402,6 @@ spec:
                       maximum: 65535
                       minimum: 1
                       type: integer
-                    ebgpMultiHop:
-                      description: ebgpMultiHop indicates if the BGPPeer is multi-hops
-                        away.
-                      type: boolean
                     holdTimeSeconds:
                       description: |-
                         holdTimeSeconds is the requested BGP hold time in seconds, per RFC4271.
@@ -464,12 +448,53 @@ spec:
                       maximum: 16384
                       minimum: 0
                       type: integer
+                    properties:
+                      description: |-
+                        properties is the set of optional session-level features for this
+                        neighbor (e.g. ebgpMultiHop).
+                      items:
+                        description: |-
+                          NeighborProperty is an optional feature applied to a neighbor session. The
+                          type field selects the property; typed sub-fields hold parameters for
+                          properties that require them.
+                        properties:
+                          ebgpMultiHop:
+                            description: |-
+                              ebgpMultiHop holds parameters for the ebgpMultiHop property.
+                              May only be set when type is ebgpMultiHop.
+                            properties:
+                              ttl:
+                                description: |-
+                                  ttl is the maximum number of hops for the eBGP multihop session.
+                                  When omitted, FRR defaults to 255.
+                                format: int32
+                                maximum: 255
+                                minimum: 1
+                                type: integer
+                            type: object
+                          type:
+                            description: type selects the property.
+                            enum:
+                            - ebgpMultiHop
+                            type: string
+                        required:
+                        - type
+                        type: object
+                        x-kubernetes-validations:
+                        - message: ebgpMultiHop parameters can only be set when type
+                            is ebgpMultiHop
+                          rule: '!has(self.ebgpMultiHop) || self.type == ''ebgpMultiHop'''
+                      maxItems: 1
+                      type: array
+                      x-kubernetes-list-map-keys:
+                      - type
+                      x-kubernetes-list-type: map
                     type:
                       description: type is the AS type of the neighbor. Either ASN
                         or Type must be set.
                       enum:
-                      - external
-                      - internal
+                      - External
+                      - Internal
                       type: string
                   type: object
                   x-kubernetes-validations:
@@ -553,9 +578,9 @@ spec:
                     type: object
                 type: object
                 x-kubernetes-map-type: atomic
-              routeridcidr:
+              routerIDCIDR:
                 default: 10.0.0.0/24
-                description: routeridcidr is the ipv4 cidr to be used to assign a
+                description: routerIDCIDR is the ipv4 cidr to be used to assign a
                   different routerID on each node.
                 type: string
               srv6:

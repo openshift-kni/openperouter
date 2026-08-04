@@ -21,8 +21,8 @@ import (
 )
 
 const (
-	LinuxBridge = "linux-bridge"
-	OVSBridge   = "ovs-bridge"
+	LinuxBridge = "LinuxBridge"
+	OVSBridge   = "OVSBridge"
 
 	// RoutingDomainTypeL3VNI selects an L3VNI as the routing domain provider.
 	RoutingDomainTypeL3VNI = "L3VNI"
@@ -53,24 +53,24 @@ type L2VNISpec struct {
 	// +required
 	VNI int32 `json:"vni,omitempty"`
 
-	// vxlanport is the port to be used for VXLan encapsulation.
+	// vxlanPort is the port to be used for VXLan encapsulation.
 	// +default=4789
 	// +optional
-	VXLanPort *int32 `json:"vxlanport,omitempty"`
+	VXLanPort *int32 `json:"vxlanPort,omitempty"`
 
 	// underlayAddressFamily selects which VTEP address family to use for this VNI's
 	// VXLAN interface. When omitted, defaults to the available family in the underlay
 	// (IPv4 preferred in dual-stack).
-	// +kubebuilder:validation:Enum=ipv4;ipv6
+	// +kubebuilder:validation:Enum=IPv4;IPv6
 	// +optional
 	UnderlayAddressFamily *string `json:"underlayAddressFamily,omitempty"`
 
-	// hostmaster is the interface on the host the veth should be attached to.
+	// hostMaster is the interface on the host the veth should be attached to.
 	// If not set, the host veth will not be attached to any interface and it must be
 	// attached manually (or by some other means). This is useful if another controller
 	// is leveraging the host interface for the VNI.
 	// +optional
-	HostMaster *HostMaster `json:"hostmaster,omitempty"`
+	HostMaster *HostMaster `json:"hostMaster,omitempty"`
 
 	// gatewayIPs is a list of IP addresses in CIDR notation for the
 	// distributed anycast gateway on this L2 segment's bridge
@@ -125,50 +125,67 @@ type L3VPNReference struct {
 	Name string `json:"name,omitempty"`
 }
 
+// BridgeLifecycle determines how the bridge is provisioned.
+// +kubebuilder:validation:Enum=Managed;External
+type BridgeLifecycle string
+
+const (
+	// BridgeLifecycleManaged means the controller creates and owns the
+	// bridge, named br-hs-<VNI>, and deletes it when the L2VNI is removed.
+	BridgeLifecycleManaged BridgeLifecycle = "Managed"
+
+	// BridgeLifecycleExternal means the user provides a pre-existing bridge
+	// via the Name field. The controller does not create or delete it; only
+	// veth ports are attached/detached.
+	BridgeLifecycleExternal BridgeLifecycle = "External"
+)
+
 // LinuxBridgeConfig contains configuration for Linux bridge type.
-// +kubebuilder:validation:XValidation:rule="(self.?name.orValue(\"\") != \"\") != self.?autoCreate.orValue(false)",message="either name must be set or autoCreate must be true, but not both."
+// +kubebuilder:validation:XValidation:rule="(self.?name.orValue(\"\") != \"\") != (self.?lifecycle.orValue(\"\") == 'Managed')",message="name must be set when lifecycle is External, and must not be set when it is Managed."
 type LinuxBridgeConfig struct {
-	// name of the Linux bridge interface.
+	// lifecycle determines if the bridge is managed by the controller or
+	// provided by the user.
+	// +required
+	Lifecycle BridgeLifecycle `json:"lifecycle,omitempty"`
+
+	// name of the Linux bridge interface. Required when lifecycle is
+	// External, and must be omitted when it is Managed, in which case the
+	// bridge is named br-hs-<VNI>.
 	// +kubebuilder:validation:Pattern=`^[a-zA-Z][a-zA-Z0-9_-]*$`
 	// +kubebuilder:validation:MaxLength=15
 	// +optional
 	Name *string `json:"name,omitempty"`
-
-	// autoCreate determines if the bridge should be created automatically.
-	// When true, the bridge is created with name br-hs-<VNI>.
-	// +default=false
-	// +optional
-	AutoCreate *bool `json:"autoCreate,omitempty"`
 }
 
 // OVSBridgeConfig contains configuration for OVS bridge type.
-// +kubebuilder:validation:XValidation:rule="(self.?name.orValue(\"\") != \"\") != self.?autoCreate.orValue(false)",message="either name must be set or autoCreate must be true, but not both."
+// +kubebuilder:validation:XValidation:rule="(self.?name.orValue(\"\") != \"\") != (self.?lifecycle.orValue(\"\") == 'Managed')",message="name must be set when lifecycle is External, and must not be set when it is Managed."
 type OVSBridgeConfig struct {
-	// name of the OVS bridge interface.
+	// lifecycle determines if the OVS bridge is managed by the controller or
+	// provided by the user.
+	// +required
+	Lifecycle BridgeLifecycle `json:"lifecycle,omitempty"`
+
+	// name of the OVS bridge interface. Required when lifecycle is
+	// External, and must be omitted when it is Managed, in which case the
+	// bridge is named br-hs-<VNI>.
 	// +kubebuilder:validation:Pattern=`^[a-zA-Z][a-zA-Z0-9_-]*$`
 	// +kubebuilder:validation:MaxLength=15
 	// +optional
 	Name *string `json:"name,omitempty"`
-
-	// autoCreate determines if the OVS bridge should be created automatically.
-	// When true, the bridge is created with name br-hs-<VNI>.
-	// +default=false
-	// +optional
-	AutoCreate *bool `json:"autoCreate,omitempty"`
 }
 
-// +kubebuilder:validation:XValidation:rule="(self.type == 'linux-bridge' && has(self.linuxBridge) && !has(self.ovsBridge)) || (self.type == 'ovs-bridge' && has(self.ovsBridge) && !has(self.linuxBridge))",message="type/config mismatch: 'linux-bridge' requires linuxBridge field, 'ovs-bridge' requires ovsBridge field"
+// +kubebuilder:validation:XValidation:rule="(self.type == 'LinuxBridge' && has(self.linuxBridge) && !has(self.ovsBridge)) || (self.type == 'OVSBridge' && has(self.ovsBridge) && !has(self.linuxBridge))",message="type/config mismatch: 'LinuxBridge' requires linuxBridge field, 'OVSBridge' requires ovsBridge field"
 type HostMaster struct {
-	// type of the host interface. Supported values: "linux-bridge", "ovs-bridge".
-	// +kubebuilder:validation:Enum=linux-bridge;ovs-bridge
+	// type of the host interface. Supported values: "LinuxBridge", "OVSBridge".
+	// +kubebuilder:validation:Enum=LinuxBridge;OVSBridge
 	// +required
 	Type string `json:"type,omitempty"`
 
-	// linuxBridge configuration. Must be set when Type is "linux-bridge".
+	// linuxBridge configuration. Must be set when Type is "LinuxBridge".
 	// +optional
 	LinuxBridge *LinuxBridgeConfig `json:"linuxBridge,omitempty"`
 
-	// ovsBridge configuration. Must be set when Type is "ovs-bridge".
+	// ovsBridge configuration. Must be set when Type is "OVSBridge".
 	// +optional
 	OVSBridge *OVSBridgeConfig `json:"ovsBridge,omitempty"`
 }

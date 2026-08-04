@@ -43,9 +43,11 @@ var underlayCNITestConfig = fmt.Sprintf(`{
 }`, underlayCNITestPlugin)
 
 // fakeCNIPlugin creates a dummy link with a fixed address inside CNI_NETNS on
-// ADD and deletes it on DEL, recording every invocation in CNI_TEST_LOG. It
-// lets the tests exercise the full CNI provisioning path without shipping
-// real plugins.
+// ADD and deletes it on DEL, recording every invocation in CNI_TEST_LOG. On
+// CHECK it verifies the link still exists in the netns, so tests can drive a
+// real CHECK failure by deleting the link behind the invoker's back. It lets
+// the tests exercise the full CNI provisioning path without shipping real
+// plugins.
 const fakeCNIPlugin = `#!/bin/sh
 set -e
 echo "$CNI_COMMAND $CNI_IFNAME" >> "$CNI_TEST_LOG"
@@ -58,6 +60,12 @@ ADD)
   ;;
 DEL)
   nsenter --net="$CNI_NETNS" ip link del "$CNI_IFNAME" 2>/dev/null || true
+  ;;
+CHECK)
+  if ! nsenter --net="$CNI_NETNS" ip link show "$CNI_IFNAME" >/dev/null 2>&1; then
+    echo "{\"cniVersion\":\"1.0.0\",\"code\":11,\"msg\":\"interface $CNI_IFNAME not found in $CNI_NETNS\"}"
+    exit 1
+  fi
   ;;
 esac
 `
@@ -106,7 +114,7 @@ var _ = Describe("Underlay CNI configuration", func() {
 		logPath = filepath.Join(testDir, "invocations.log")
 		Expect(os.Setenv("CNI_TEST_LOG", logPath)).To(Succeed())
 
-		cniinvoker.Init([]string{binDir}, filepath.Join(testDir, "cache"), "testnode")
+		cniinvoker.Init([]string{binDir}, filepath.Join(testDir, "cache"), "testnode", nil)
 	})
 
 	AfterEach(func() {
@@ -151,12 +159,31 @@ var _ = Describe("Underlay CNI configuration", func() {
 			"the cni cache should be the source of truth for the provisioned interfaces")
 	})
 
-	It("is idempotent through the cni cache", func() {
+	It("is idempotent through the cni cache when the interface is healthy", func() {
 		params := cniParams("net1")
 		Expect(SetupUnderlay(context.Background(), params)).To(Succeed())
 		Expect(SetupUnderlay(context.Background(), params)).To(Succeed())
 
-		Expect(loggedCommands()).To(ConsistOf("ADD net1"), "the second setup should be served from the cache")
+		Expect(loggedCommands()).To(HaveExactElements("ADD net1", "CHECK net1"),
+			"the second setup should pass cni check and be served from the cache, without a new ADD")
+		validateCNIInterfaceInNS(testNs, "net1")
+	})
+
+	It("rebuilds the cni interface when cni check finds it missing from the netns", func() {
+		params := cniParams("net1")
+		Expect(SetupUnderlay(context.Background(), params)).To(Succeed())
+
+		// Simulate drift between the cni cache and the real namespace state:
+		// remove the link directly, bypassing the invoker, so the cache
+		// still believes the interface is provisioned.
+		Expect(netnamespace.In(testNs, func() error {
+			return netlink.LinkDel(&netlink.Dummy{LinkAttrs: netlink.LinkAttrs{Name: "net1"}})
+		})).To(Succeed())
+
+		Expect(SetupUnderlay(context.Background(), params)).To(Succeed())
+
+		Expect(loggedCommands()).To(HaveExactElements("ADD net1", "CHECK net1", "DEL net1", "ADD net1"),
+			"a failed check should tear down and re-provision the interface")
 		validateCNIInterfaceInNS(testNs, "net1")
 	})
 

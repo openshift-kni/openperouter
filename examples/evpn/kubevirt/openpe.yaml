@@ -5,10 +5,10 @@ metadata:
   namespace: openperouter-system
 spec:
   vrf: red
-  hostsession:
+  hostSession:
     asn: 64514
-    hostasn: 64515
-    localcidr:
+    hostASN: 64515
+    localCIDR:
       ipv4: 192.169.10.0/24
   vni: 100
 ---
@@ -18,17 +18,17 @@ metadata:
   name: layer2
   namespace: openperouter-system
 spec:
-  hostmaster:
-    type: linux-bridge
+  hostMaster:
+    type: LinuxBridge
     linuxBridge:
-      autoCreate: true
+      lifecycle: Managed
   gatewayIPs: ["192.170.1.1/24"]
   vni: 110
   routingDomain:
     type: L3VNI
     l3vni:
       name: red
-  vxlanport: 4789
+  vxlanPort: 4789
 ---
 apiVersion: network.openperouter.io/v1alpha1
 kind: Underlay

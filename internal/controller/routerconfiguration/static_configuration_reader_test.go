@@ -24,7 +24,7 @@ func TestReadStaticConfigs_L2VNI_DefaultVXLanPort(t *testing.T) {
 	writeYAMLFile(t, dir, "openpe_l2vni.yaml", `
 underlays:
   - asn: 64515
-    routeridcidr: "10.0.0.0/24"
+    routerIDCIDR: "10.0.0.0/24"
     interfaces:
       - type: NetworkDevice
         networkDevice:
@@ -37,9 +37,10 @@ underlays:
       - "100.65.0.0/24"
 l2vnis:
   - vni: 300
-    hostmaster:
-      type: linux-bridge
+    hostMaster:
+      type: LinuxBridge
       linuxBridge:
+        lifecycle: External
         name: "br-storage"
 `)
 
@@ -61,7 +62,7 @@ func TestReadStaticConfigs_L3VNI_DefaultVXLanPort(t *testing.T) {
 	writeYAMLFile(t, dir, "openpe_l3vni.yaml", `
 underlays:
   - asn: 64515
-    routeridcidr: "10.0.0.0/24"
+    routerIDCIDR: "10.0.0.0/24"
     interfaces:
       - type: NetworkDevice
         networkDevice:
@@ -140,9 +141,10 @@ l3vnis:
     vni: 100
 l2vnis:
   - vni: 300
-    hostmaster:
-      type: linux-bridge
+    hostMaster:
+      type: LinuxBridge
       linuxBridge:
+        lifecycle: External
         name: "br-storage"
 `)
 
@@ -167,7 +169,7 @@ func TestReadStaticConfigs_ExplicitVXLanPort(t *testing.T) {
 	writeYAMLFile(t, dir, "openpe_explicit.yaml", `
 underlays:
   - asn: 64515
-    routeridcidr: "10.0.0.0/24"
+    routerIDCIDR: "10.0.0.0/24"
     interfaces:
       - type: NetworkDevice
         networkDevice:
@@ -180,10 +182,11 @@ underlays:
       - "100.65.0.0/24"
 l2vnis:
   - vni: 300
-    vxlanport: 5000
-    hostmaster:
-      type: linux-bridge
+    vxlanPort: 5000
+    hostMaster:
+      type: LinuxBridge
       linuxBridge:
+        lifecycle: External
         name: "br-storage"
 `)
 
@@ -202,7 +205,7 @@ func TestReadStaticConfigs_ExplicitRouterIDCIDR(t *testing.T) {
 	writeYAMLFile(t, dir, "openpe_explicit.yaml", `
 underlays:
   - asn: 64515
-    routeridcidr: "172.16.0.0/16"
+    routerIDCIDR: "172.16.0.0/16"
     interfaces:
       - type: NetworkDevice
         networkDevice:
@@ -246,9 +249,10 @@ underlays:
 	writeYAMLFile(t, dir, "openpe_l2vni.yaml", `
 l2vnis:
   - vni: 300
-    hostmaster:
-      type: linux-bridge
+    hostMaster:
+      type: LinuxBridge
       linuxBridge:
+        lifecycle: External
         name: "br-storage"
 `)
 
@@ -408,7 +412,7 @@ func TestReadStaticConfigs_ExistingTestdata(t *testing.T) {
 					VXLanPort: new(int32(4789)),
 					HostMaster: &v1alpha1.HostMaster{
 						Type:        v1alpha1.LinuxBridge,
-						LinuxBridge: &v1alpha1.LinuxBridgeConfig{Name: new("br-storage"), AutoCreate: new(false)},
+						LinuxBridge: &v1alpha1.LinuxBridgeConfig{Name: new("br-storage"), Lifecycle: v1alpha1.BridgeLifecycleExternal},
 					},
 					NodeSelector: &metav1.LabelSelector{MatchLabels: map[string]string{"kubernetes.io/hostname": "test-node"}},
 				},
@@ -432,7 +436,7 @@ func TestReadStaticConfigs_ExistingTestdata(t *testing.T) {
 					VXLanPort: new(int32(4789)),
 					HostMaster: &v1alpha1.HostMaster{
 						Type:      v1alpha1.OVSBridge,
-						OVSBridge: &v1alpha1.OVSBridgeConfig{Name: new("ovsbr0"), AutoCreate: new(false)},
+						OVSBridge: &v1alpha1.OVSBridgeConfig{Name: new("ovsbr0"), Lifecycle: v1alpha1.BridgeLifecycleExternal},
 					},
 					NodeSelector: &metav1.LabelSelector{MatchLabels: map[string]string{"kubernetes.io/hostname": "test-node"}},
 				},
@@ -456,7 +460,7 @@ func TestReadStaticConfigs_ExistingTestdata(t *testing.T) {
 					VXLanPort: new(int32(4789)),
 					HostMaster: &v1alpha1.HostMaster{
 						Type:        v1alpha1.LinuxBridge,
-						LinuxBridge: &v1alpha1.LinuxBridgeConfig{AutoCreate: new(true)},
+						LinuxBridge: &v1alpha1.LinuxBridgeConfig{Lifecycle: v1alpha1.BridgeLifecycleManaged},
 					},
 					GatewayIPs:   []string{"192.170.1.1/24"},
 					NodeSelector: &metav1.LabelSelector{MatchLabels: map[string]string{"kubernetes.io/hostname": "test-node"}},
@@ -511,12 +515,12 @@ func TestReadStaticConfigs_ExistingTestdata(t *testing.T) {
 	}
 }
 
-func TestReadStaticConfigs_CELValidation_L2VNIBridgeNameAndAutoCreate(t *testing.T) {
+func TestReadStaticConfigs_CELValidation_L2VNIBridgeNameAndLifecycle(t *testing.T) {
 	dir := t.TempDir()
 	writeYAMLFile(t, dir, "openpe_invalid.yaml", `
 underlays:
   - asn: 64515
-    routeridcidr: "10.0.0.0/24"
+    routerIDCIDR: "10.0.0.0/24"
     interfaces:
       - type: NetworkDevice
         networkDevice:
@@ -529,19 +533,19 @@ underlays:
       - "100.65.0.0/24"
 l2vnis:
   - vni: 300
-    hostmaster:
-      type: linux-bridge
+    hostMaster:
+      type: LinuxBridge
       linuxBridge:
         name: "mybr"
-        autoCreate: true
+        lifecycle: Managed
 `)
 
 	_, err := readStaticConfigs(dir, "test-node", "test-namespace")
 	if err == nil {
-		t.Fatal("expected validation error for L2VNI with bridge name and autoCreate, got nil")
+		t.Fatal("expected validation error for L2VNI with bridge name and Managed lifecycle, got nil")
 	}
-	if !strings.Contains(err.Error(), "either name must be set or autoCreate must be true, but not both") {
-		t.Errorf("expected error containing 'either name must be set or autoCreate must be true, but not both', got: %v", err)
+	if !strings.Contains(err.Error(), "name must be set when lifecycle is External, and must not be set when it is Managed.") {
+		t.Errorf("expected error containing 'name must be set when lifecycle is External, and must not be set when it is Managed.', got: %v", err)
 	}
 }
 
@@ -549,7 +553,7 @@ func TestReadStaticConfigsCELValidationSRv6(t *testing.T) {
 	validSRv6Underlay := `
 underlays:
   - asn: 64514
-    routeridcidr: "10.0.0.0/24"
+    routerIDCIDR: "10.0.0.0/24"
     interfaces:
       - type: NetworkDevice
         networkDevice:
@@ -557,7 +561,8 @@ underlays:
     neighbors:
       - asn: 64520
         address: "2001:db8:1234::1"
-        ebgpMultiHop: true
+        properties:
+          - type: ebgpMultiHop
     tunnelEndpoint:
       cidrs:
       - "2001:db8:1234:5678::/64"
@@ -566,7 +571,7 @@ underlays:
       level: 1
       interfaces:
         - name: toswitch1
-          ipFamily: ipv6
+          ipFamily: IPv6
     srv6:
       locator:
         basePrefix: "fd00:0:32::/48"
@@ -599,7 +604,7 @@ underlays:
 			yaml: `
 underlays:
   - asn: 64514
-    routeridcidr: "10.0.0.0/24"
+    routerIDCIDR: "10.0.0.0/24"
     interfaces:
       - type: NetworkDevice
         networkDevice:
@@ -607,7 +612,8 @@ underlays:
     neighbors:
       - asn: 64520
         address: "2001:db8:1234::1"
-        ebgpMultiHop: true
+        properties:
+          - type: ebgpMultiHop
     tunnelEndpoint:
       cidrs:
       - "2001:db8:1234:5678::/64"
@@ -623,7 +629,7 @@ underlays:
 			yaml: `
 underlays:
   - asn: 64514
-    routeridcidr: "10.0.0.0/24"
+    routerIDCIDR: "10.0.0.0/24"
     interfaces:
       - type: NetworkDevice
         networkDevice:
@@ -631,7 +637,8 @@ underlays:
     neighbors:
       - asn: 64520
         address: "2001:db8:1234::1"
-        ebgpMultiHop: true
+        properties:
+          - type: ebgpMultiHop
     tunnelEndpoint:
       cidrs:
       - "100.65.0.0/24"
@@ -640,7 +647,7 @@ underlays:
       level: 1
       interfaces:
         - name: toswitch1
-          ipFamily: ipv6
+          ipFamily: IPv6
     srv6:
       locator:
         basePrefix: "fd00:0:32::/48"
@@ -695,13 +702,13 @@ underlays:
       - "100.65.0.0/24"
 l2vnis:
   - vni: 300
-    hostmaster:
-      type: linux-bridge
+    hostMaster:
+      type: LinuxBridge
       linuxBridge:
         name: "mybr"
-        autoCreate: true
+        lifecycle: Managed
 `,
-			wantContains: "either name must be set or autoCreate must be true, but not both",
+			wantContains: "name must be set when lifecycle is External, and must not be set when it is Managed.",
 		},
 	}
 
@@ -725,7 +732,7 @@ func TestReadStaticConfigs_MultipleErrors(t *testing.T) {
 	dir := t.TempDir()
 	writeYAMLFile(t, dir, "openpe_multi_invalid.yaml", `
 underlays:
-  - routeridcidr: "10.0.0.0/24"
+  - routerIDCIDR: "10.0.0.0/24"
     interfaces:
       - type: NetworkDevice
         networkDevice:
@@ -738,11 +745,11 @@ underlays:
       - "100.65.0.0/24"
 l2vnis:
   - vni: 300
-    hostmaster:
-      type: linux-bridge
+    hostMaster:
+      type: LinuxBridge
       linuxBridge:
         name: "mybr"
-        autoCreate: true
+        lifecycle: Managed
 `)
 
 	_, err := readStaticConfigs(dir, "test-node", "test-namespace")
@@ -754,7 +761,7 @@ l2vnis:
 	if !strings.Contains(errMsg, "asn") {
 		t.Errorf("expected error from underlay missing required ASN field, got: %v", err)
 	}
-	if !strings.Contains(errMsg, "either name must be set or autoCreate must be true, but not both") {
+	if !strings.Contains(errMsg, "name must be set when lifecycle is External, and must not be set when it is Managed.") {
 		t.Errorf("expected error from L2VNI bridge validation, got: %v", err)
 	}
 }
@@ -765,7 +772,7 @@ func TestReadStaticConfigs_AtomicRejection(t *testing.T) {
 	writeYAMLFile(t, dir, "openpe_atomic.yaml", `
 underlays:
   - asn: 64515
-    routeridcidr: "10.0.0.0/24"
+    routerIDCIDR: "10.0.0.0/24"
     interfaces:
       - type: NetworkDevice
         networkDevice:
@@ -778,11 +785,11 @@ underlays:
       - "100.65.0.0/24"
 l2vnis:
   - vni: 300
-    hostmaster:
-      type: linux-bridge
+    hostMaster:
+      type: LinuxBridge
       linuxBridge:
         name: "mybr"
-        autoCreate: true
+        lifecycle: Managed
 `)
 
 	_, err := readStaticConfigs(dir, "test-node", "test-namespace")
@@ -791,7 +798,7 @@ l2vnis:
 	}
 
 	// Verify the error is about the L2VNI validation, not about the underlay
-	if !strings.Contains(err.Error(), "either name must be set or autoCreate must be true, but not both") {
+	if !strings.Contains(err.Error(), "name must be set when lifecycle is External, and must not be set when it is Managed.") {
 		t.Errorf("expected L2VNI validation error, got: %v", err)
 	}
 }

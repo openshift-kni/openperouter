@@ -1,9 +1,9 @@
 l3vpns:
   - name: red
-    hostsession:
+    hostSession:
       asn: 64514
-      hostasn: 64515
-      localcidr:
+      hostASN: 64515
+      localCIDR:
         ipv4: 192.169.10.0/24
     vrf: red
     rdAssignedNumber: 100
@@ -18,9 +18,9 @@ l2vnis:
       type: L3VPN
       l3vpn:
         name: red
-    hostmaster:
-      type: linux-bridge
+    hostMaster:
+      type: LinuxBridge
       linuxBridge:
-        autoCreate: true
+        lifecycle: Managed
     gatewayIPs:
     - "192.170.1.1/24"

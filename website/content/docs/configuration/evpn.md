@@ -79,10 +79,10 @@ metadata:
   namespace: openperouter-system
 spec:
   vrf: blue
-  hostsession:
+  hostSession:
     asn: 64514
-    hostasn: 64515
-    localcidr:
+    hostASN: 64515
+    localCIDR:
       ipv4: 192.169.11.0/24
   vni: 200
 
@@ -94,10 +94,10 @@ spec:
 |-------|------|-------------|----------|
 | `vrf` | string | Name of the VRF (Virtual Routing and Forwarding) instance | Yes |
 | `vni` | integer | Virtual Network Identifier (1-16777215) | Yes |
-| `underlayAddressFamily` | string | VTEP address family for this VNI (`ipv4` or `ipv6`). Defaults to available family (IPv4 preferred in dual-stack). | No |
-| `hostsession.asn` | integer | Router ASN for BGP session with host | Yes |
-| `hostsession.hostasn` | integer | Host ASN for BGP session | Yes |
-| `hostsession.localcidr` | string | CIDR for veth pair IP allocation | Yes |
+| `underlayAddressFamily` | string | VTEP address family for this VNI (`IPv4` or `IPv6`). Defaults to available family (IPv4 preferred in dual-stack). | No |
+| `hostSession.asn` | integer | Router ASN for BGP session with host | Yes |
+| `hostSession.hostASN` | integer | Host ASN for BGP session | Yes |
+| `hostSession.localCIDR` | string | CIDR for veth pair IP allocation | Yes |
 | `nodeSelector` | object | Label selector to target specific nodes (applies to all nodes if omitted) | No |
 
 ### Multiple VNIs Example
@@ -114,10 +114,10 @@ metadata:
 spec:
   vrf: signal
   vni: 100
-  hostsession:
+  hostSession:
     asn: 64514
-    hostasn: 64515
-    localcidr:
+    hostASN: 64515
+    localCIDR:
       ipv4: 192.168.10.0/24
 ---
 # Development VNI
@@ -129,10 +129,10 @@ metadata:
 spec:
   vrf: oam
   vni: 200
-  hostsession:
+  hostSession:
     asn: 64514
-    hostasn: 64515
-    localcidr:
+    hostASN: 64515
+    localCIDR:
       ipv4: 192.168.20.0/24
 ```
 
@@ -143,7 +143,7 @@ When you create or update VNI configurations, OpenPERouter automatically:
 1. **Creates Network Interfaces**: Sets up VXLAN interface and Linux VRF named after the VNI
 2. **Establishes Connectivity**: Creates veth pair and moves one end to the router's namespace
 3. **Adjusts Veth MTU**: Sets the MTU on both veth legs to the underlay NIC's MTU minus 50 bytes to account for VXLan encapsulation overhead
-4. **Assigns IP Addresses**: Allocates IPs from the `localcidr` range:
+4. **Assigns IP Addresses**: Allocates IPs from the `localCIDR` range:
    - Router side: First IP in the CIDR (e.g., `192.169.11.1`)
    - Host side: Each node gets a free IP in the CIDR, starting from the second (e.g., `192.169.11.15`)
 5. **Creates BGP Session**: Opens BGP session between router and host using the specified ASNs
@@ -162,12 +162,12 @@ L2VNIs provide Layer 2 connectivity across nodes using EVPN tunnels. Unlike L3VN
 | `routingDomain.l3vni.name` | string | metadata.name of the L3VNI that provides the routing domain | Yes (when type is `L3VNI`) |
 | `routingDomain.l3vpn.name` | string | metadata.name of the L3VPN that provides the routing domain | Yes (when type is `L3VPN`) |
 | `gatewayIPs` | string array | IP addresses in CIDR notation for the distributed anycast gateway. Cannot be set without routingDomain. Max 2 (one IPv4, one IPv6). | No |
-| `underlayAddressFamily` | string | VTEP address family for this VNI (`ipv4` or `ipv6`). Defaults to available family (IPv4 preferred in dual-stack). | No |
-| `hostmaster.type` | string | Type of host interface management (`linux-bridge` or `ovs-bridge`) | Yes |
-| `hostmaster.linuxBridge.autoCreate` | boolean | Whether to automatically create a Linux bridge | No |
-| `hostmaster.linuxBridge.name` | string | Name of the Linux bridge to attach to (if not auto-creating) | No |
-| `hostmaster.ovsBridge.autoCreate` | boolean | Whether to automatically create an OVS bridge | No |
-| `hostmaster.ovsBridge.name` | string | Name of the OVS bridge to attach to (if not auto-creating) | No |
+| `underlayAddressFamily` | string | VTEP address family for this VNI (`IPv4` or `IPv6`). Defaults to available family (IPv4 preferred in dual-stack). | No |
+| `hostMaster.type` | string | Type of host interface management (`LinuxBridge` or `OVSBridge`) | Yes |
+| `hostMaster.linuxBridge.lifecycle` | string | How the Linux bridge is provisioned (`Managed` or `External`) | Yes |
+| `hostMaster.linuxBridge.name` | string | Name of the Linux bridge to attach to. Only valid when `External` | Only when `External` |
+| `hostMaster.ovsBridge.lifecycle` | string | How the OVS bridge is provisioned (`Managed` or `External`) | Yes |
+| `hostMaster.ovsBridge.name` | string | Name of the OVS bridge to attach to. Only valid when `External` | Only when `External` |
 | `nodeSelector` | object | Label selector to target specific nodes (applies to all nodes if omitted) | No |
 
 ### L2VNI Example
@@ -184,10 +184,10 @@ spec:
     type: L3VNI
     l3vni:
       name: red
-  hostmaster:
-    type: linux-bridge
+  hostMaster:
+    type: LinuxBridge
     linuxBridge:
-      autoCreate: true
+      lifecycle: Managed
 ```
 
 ## What Happens During Reconciliation
@@ -198,8 +198,8 @@ When you create or update VNI configurations, OpenPERouter automatically:
 2. **Establishes Connectivity**: Creates veth pair and moves one end to the router's namespace
 3. **Adjusts Veth MTU**: Sets the MTU on both veth legs to the underlay NIC's MTU minus 50 bytes to account for VXLan encapsulation overhead
 4. **Enslaves the veth**: the veth is connected to the bridge corresponding to the l2 domain
-5. **Optionally creates a bridge on the host**: if hostmaster.autocreate is set to `true`
-6. **Optionally connects the host veth to the bridge on the host**: if hostmaster.autocreate is set to `true` or name
+5. **Optionally creates a bridge on the host**: if the bridge `lifecycle` is `Managed`, named `br-hs-<VNI>`
+6. **Optionally connects the host veth to the bridge on the host**: if the bridge `lifecycle` is `Managed` or a name
 is set
 
 ## Per-Node Configuration

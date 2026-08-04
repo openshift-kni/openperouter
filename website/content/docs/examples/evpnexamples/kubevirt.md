@@ -60,10 +60,10 @@ metadata:
 spec:
   vrf: red
   vni: 100
-  hostsession:
+  hostSession:
     asn: 64514
-    hostasn: 64515
-    localcidr:
+    hostASN: 64515
+    localCIDR:
       ipv4: 192.169.10.0/24
 ---
 apiVersion: network.openperouter.io/v1alpha1
@@ -72,23 +72,23 @@ metadata:
   name: layer2
   namespace: openperouter-system
 spec:
-  hostmaster:
-    type: linux-bridge
+  hostMaster:
+    type: LinuxBridge
     linuxBridge:
-      autoCreate: true
+      lifecycle: Managed
   gatewayIPs: ["192.170.1.1/24"]
   vni: 110
   routingDomain:
     type: L3VNI
     l3vni:
       name: red
-  vxlanport: 4789
+  vxlanPort: 4789
 ```
 
 **Key Configuration Points:**
 
 - The L2VNI references the L3VNI via the `routingDomain` field, enabling routed traffic
-- `hostmaster.autocreate: true` creates a `br-hs-110` bridge on the host
+- `hostMaster.linuxBridge.lifecycle: Managed` creates a `br-hs-110` bridge on the host
 - `gatewayIPs` defines the gateway IP for the VM subnet
 
 ### 2. Network Attachment Definition
@@ -263,7 +263,7 @@ The ping should continue working throughout the migration process.
 
 ### Common Issues
 
-1. **Bridge not created**: Verify the L2VNI has `hostmaster.autocreate: true`
+1. **Bridge not created**: Verify the L2VNI has `hostMaster.linuxBridge.lifecycle: Managed`
 2. **VM cannot reach gateway**: Check that the VM's IP is in the same subnet as `gatewayIPs`
 3. **No VM-to-VM connectivity**: Ensure both VMs are connected to the same bridge (`br-hs-110`)
 

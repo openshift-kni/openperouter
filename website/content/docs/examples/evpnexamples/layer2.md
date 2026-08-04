@@ -49,10 +49,10 @@ metadata:
 spec:
   vrf: red
   vni: 100
-  hostsession:
+  hostSession:
     asn: 64514
-    hostasn: 64515
-    localcidr:
+    hostASN: 64515
+    localCIDR:
       ipv4: 192.169.10.0/24
 ---
 apiVersion: network.openperouter.io/v1alpha1
@@ -66,17 +66,17 @@ spec:
     type: L3VNI
     l3vni:
       name: red
-  hostmaster:
-    type: linux-bridge
+  hostMaster:
+    type: LinuxBridge
     linuxBridge:
-      autoCreate: true
+      lifecycle: Managed
   gatewayIPs: ["192.170.1.1/24"]
 ```
 
 **Configuration Notes:**
 
 - **`gatewayIPs` field**: Allows each pod to have the same default gateway and be able to send traffic to the outer L3 domain
-- **hostmaster.autocreate**: Instructs OpenPERouter to create a bridge local to the node that can be used to access the L2 domain
+- **hostMaster.linuxBridge.lifecycle**: `Managed` instructs OpenPERouter to create a bridge local to the node that can be used to access the L2 domain
 
 ### Network Attachment Definition
 

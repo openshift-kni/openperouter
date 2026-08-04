@@ -32,34 +32,36 @@ func TestValidateGroutL3Passthrough(t *testing.T) {
 
 func TestValidateGroutUnderlayCNI(t *testing.T) {
 	tests := []struct {
-		name          string
-		interfaceName string
-		wantErr       string
+		name    string
+		iface   v1alpha1.UnderlayInterface
+		wantErr string
 	}{
 		{
-			name:          "ValidateGroutUnderlay() with a valid cni interface name should return no error",
-			interfaceName: "underlay0",
+			name: "CNI dev underlay should be rejected on grout",
+			iface: v1alpha1.UnderlayInterface{
+				Type: v1alpha1.UnderlayInterfaceTypeCNIDevice,
+				CNIDevice: &v1alpha1.CNIDevice{
+					Type:      v1alpha1.CNIConfigTypeRawConfig,
+					RawConfig: &apiextensionsv1.JSON{Raw: []byte(`{"cniVersion":"1.0.0","name":"u","type":"macvlan"}`)},
+				},
+			},
+			wantErr: "CNI dev underlays are not supported with the grout datapath",
 		},
 		{
-			name:          "ValidateGroutUnderlay() with a cni interface name should return error",
-			interfaceName: "a2345678901234",
-			wantErr:       "nic name a2345678901234 can't be longer than 14 characters",
+			name: "network device underlay should be accepted on grout",
+			iface: v1alpha1.UnderlayInterface{
+				Type: v1alpha1.UnderlayInterfaceTypeNetworkDevice,
+				NetworkDevice: &v1alpha1.NetworkDevice{
+					InterfaceName: "eth0",
+				},
+			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			underlay := v1alpha1.Underlay{
 				Spec: v1alpha1.UnderlaySpec{
-					Interfaces: []v1alpha1.UnderlayInterface{
-						{
-							Type: v1alpha1.UnderlayInterfaceTypeCNIDevice,
-							CNIDevice: &v1alpha1.CNIDevice{
-								Type:          v1alpha1.CNIConfigTypeRawConfig,
-								RawConfig:     &apiextensionsv1.JSON{Raw: []byte(`{"cniVersion":"1.0.0","name":"u","type":"macvlan"}`)},
-								InterfaceName: &tt.interfaceName,
-							},
-						},
-					},
+					Interfaces: []v1alpha1.UnderlayInterface{tt.iface},
 				},
 			}
 			obtainedErr := ""

@@ -9,9 +9,9 @@ spec:
     type: L3VNI
     l3vni:
       name: red
-  hostmaster:
-    type: linux-bridge
+  hostMaster:
+    type: LinuxBridge
     linuxBridge:
-      autoCreate: true
+      lifecycle: Managed
 
 

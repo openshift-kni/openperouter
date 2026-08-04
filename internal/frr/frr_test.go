@@ -183,7 +183,7 @@ func TestExternal(t *testing.T) {
 			RouterID: "10.0.0.1",
 			Neighbors: []NeighborConfig{
 				{
-					ASN:  mustNewPeerASNFromType("external"),
+					ASN:  mustNewPeerASNFromType("External"),
 					Addr: "192.168.1.2",
 					ID:   "192.168.1.2",
 					NetworkLayerProtocols: []networklayerprotocol.NLP{
@@ -200,7 +200,7 @@ func TestExternal(t *testing.T) {
 				VNI:      100,
 				RouterID: "10.0.0.1",
 				LocalNeighbor: &NeighborConfig{
-					ASN:  mustNewPeerASNFromType("external"),
+					ASN:  mustNewPeerASNFromType("External"),
 					Addr: "192.168.1.2",
 					ID:   "192.168.1.2",
 				},
@@ -230,7 +230,7 @@ func TestInternal(t *testing.T) {
 			RouterID: "10.0.0.1",
 			Neighbors: []NeighborConfig{
 				{
-					ASN:  mustNewPeerASNFromType("internal"),
+					ASN:  mustNewPeerASNFromType("Internal"),
 					Addr: "192.168.1.2",
 					ID:   "192.168.1.2",
 					NetworkLayerProtocols: []networklayerprotocol.NLP{
@@ -452,6 +452,43 @@ func TestBGPUnnumbered(t *testing.T) {
 				},
 				ToAdvertiseIPv6: []string{
 					"2001:db8::2/64",
+				},
+			},
+		},
+	}
+	if err := ApplyConfig(context.Background(), &config, updater); err != nil {
+		t.Fatalf("Failed to apply config: %s", err)
+	}
+
+	testCheckConfigFile(t)
+}
+
+// TestBGPUnnumberedEBGPIPv6 covers an unnumbered neighbor peering with an
+// external ASN over IPv6 unicast. FRR rejects disable-connected-check for
+// neighbors configured over an interface, so the generated configuration must
+// not contain it, otherwise the whole reload fails.
+func TestBGPUnnumberedEBGPIPv6(t *testing.T) {
+	configFile := testSetup(t)
+	updater := testUpdater(configFile)
+
+	config := Config{
+		Underlay: UnderlayConfig{
+			MyASN: 64512,
+			TunnelEndpoint: &TunnelEndpoint{
+				IPv4CIDR: "100.64.0.1/32",
+			},
+			RouterID: "10.0.0.1",
+			Neighbors: []NeighborConfig{
+				{
+					ASN:       mustNewPeerASNFromNumber(64513),
+					Interface: "eth1",
+					ID:        "eth1",
+					NetworkLayerProtocols: []networklayerprotocol.NLP{
+						{AFI: networklayerprotocol.IPv4, SAFI: networklayerprotocol.Unicast},
+						{AFI: networklayerprotocol.IPv6, SAFI: networklayerprotocol.Unicast},
+						{AFI: networklayerprotocol.L2VPN, SAFI: networklayerprotocol.EVPN},
+					},
+					ExtendedNexthop: true,
 				},
 			},
 		},
@@ -766,7 +803,7 @@ func TestPassthroughExternal(t *testing.T) {
 		},
 		Passthrough: &PassthroughConfig{
 			LocalNeighborV4: &NeighborConfig{
-				ASN:         mustNewPeerASNFromType("external"),
+				ASN:         mustNewPeerASNFromType("External"),
 				Addr:        "192.168.1.3",
 				ID:          "192.168.1.3",
 				ConnectTime: new(int64(5)),
@@ -1373,4 +1410,74 @@ func mustNewPeerASNFromType(t string) PeerASN {
 		panic(err)
 	}
 	return asn
+}
+
+func TestBFDProfilePassiveMode(t *testing.T) {
+	configFile := testSetup(t)
+	updater := testUpdater(configFile)
+
+	config := Config{
+		Underlay: UnderlayConfig{
+			MyASN: 64512,
+			TunnelEndpoint: &TunnelEndpoint{
+				IPv4CIDR: "100.64.0.1/32",
+			},
+			RouterID: "10.0.0.1",
+			Neighbors: []NeighborConfig{
+				{
+					ASN:  mustNewPeerASNFromNumber(64513),
+					Addr: "192.168.1.2",
+					ID:   "192.168.1.2",
+					NetworkLayerProtocols: []networklayerprotocol.NLP{
+						{AFI: networklayerprotocol.IPv4, SAFI: networklayerprotocol.Unicast},
+					},
+					BFDEnabled: true,
+					BFDProfile: "passive",
+				},
+			},
+		},
+		BFDProfiles: []BFDProfile{
+			{
+				Name:        "passive",
+				PassiveMode: true,
+			},
+		},
+	}
+	if err := ApplyConfig(context.Background(), &config, updater); err != nil {
+		t.Fatalf("Failed to apply config: %s", err)
+	}
+
+	testCheckConfigFile(t)
+}
+
+func TestEBGPMultiHopWithTTL(t *testing.T) {
+	configFile := testSetup(t)
+	updater := testUpdater(configFile)
+
+	config := Config{
+		Underlay: UnderlayConfig{
+			MyASN: 64512,
+			TunnelEndpoint: &TunnelEndpoint{
+				IPv4CIDR: "100.64.0.1/32",
+			},
+			RouterID: "10.0.0.1",
+			Neighbors: []NeighborConfig{
+				{
+					ASN:  mustNewPeerASNFromNumber(64513),
+					Addr: "192.168.1.2",
+					ID:   "192.168.1.2",
+					NetworkLayerProtocols: []networklayerprotocol.NLP{
+						{AFI: networklayerprotocol.IPv4, SAFI: networklayerprotocol.Unicast},
+					},
+					EBGPMultiHop:    true,
+					EBGPMultiHopTTL: new(int32(5)),
+				},
+			},
+		},
+	}
+	if err := ApplyConfig(context.Background(), &config, updater); err != nil {
+		t.Fatalf("Failed to apply config: %s", err)
+	}
+
+	testCheckConfigFile(t)
 }
