@@ -188,22 +188,11 @@ var UnderlayEVPNandSRv6 = v1alpha1.Underlay{
 		ASN:        64514,
 		Interfaces: defaultInterfaces,
 		Neighbors: []v1alpha1.Neighbor{
-			// leafA - use automatically derived address families.
+			// leafSRV6 - use automatically derived address families.
 			{
 				ASN:        new(int64(64520)),
 				Address:    new("2001:db8:1234::1"),
 				Properties: []v1alpha1.NeighborProperty{{Type: v1alpha1.NeighborPropertyEBGPMultiHop}},
-			},
-			// leafB - explicitly set address families.
-			{
-				ASN:        new(int64(64520)),
-				Address:    new("2001:db8:1234::2"),
-				Properties: []v1alpha1.NeighborProperty{{Type: v1alpha1.NeighborPropertyEBGPMultiHop}},
-				AddressFamilies: []v1alpha1.NeighborAddressFamily{
-					{Type: "ipv6unicast"},
-					{Type: "ipv4vpn"},
-					{Type: "ipv6vpn"},
-				},
 			},
 			// leafkind
 			{
