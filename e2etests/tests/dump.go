@@ -17,6 +17,7 @@ import (
 	"github.com/openperouter/openperouter/e2etests/pkg/executor"
 	"github.com/openperouter/openperouter/e2etests/pkg/frr"
 	"github.com/openperouter/openperouter/e2etests/pkg/frrk8s"
+	"github.com/openperouter/openperouter/e2etests/pkg/infra"
 	"github.com/openperouter/openperouter/e2etests/pkg/k8s"
 	"github.com/openperouter/openperouter/e2etests/pkg/openperouter"
 	corev1 "k8s.io/api/core/v1"
@@ -33,6 +34,7 @@ func dumpIfFails(cs clientset.Interface, additionalNamespaces ...string) {
 		opts := []func(dumpOptions *dumpOptions){
 			onRouterPods(cs),
 			onFRRK8sPods(cs),
+			onFRRContainers(),
 			withFRR(),
 		}
 
@@ -90,6 +92,15 @@ func onFRRK8sPods(cs clientset.Interface) func(dumpOptions *dumpOptions) {
 		Expect(err).NotTo(HaveOccurred())
 		for _, pod := range frrk8sPods {
 			dumpOptions.executors[pod.Name] = executor.ForPod(pod.Namespace, pod.Name, "frr")
+		}
+	}
+}
+
+func onFRRContainers() func(dumpOptions *dumpOptions) {
+	return func(dumpOptions *dumpOptions) {
+		for _, c := range []string{infra.LeafA, infra.LeafB, infra.LeafSRV6, infra.KindLeaf, infra.KindLeaf2} {
+			exec := executor.ForContainer(c)
+			dumpOptions.executors[c] = exec
 		}
 	}
 }
