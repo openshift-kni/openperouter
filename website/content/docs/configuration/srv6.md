@@ -28,10 +28,6 @@ spec:
     asn: 64520
     properties:
     - type: ebgpMultiHop
-  - address: 2001:db8:1234::2
-    asn: 64520
-    properties:
-    - type: ebgpMultiHop
   interfaces:
     - type: NetworkDevice
       networkDevice:

@@ -61,10 +61,6 @@ spec:
     asn: 64520
     properties:
     - type: ebgpMultiHop
-  - address: 2001:db8:1234::2
-    asn: 64520
-    properties:
-    - type: ebgpMultiHop
   interfaces:
     - type: NetworkDevice
       networkDevice:
@@ -87,8 +83,7 @@ spec:
 **Configuration Details:**
 
 - **ASN**: 64514 (OpenPERouter's ASN)
-- **Neighbors**: eBGP multihop peers at `2001:db8:1234::1` and
-  `2001:db8:1234::2` (ASN 64520)
+- **Neighbors**: eBGP multihop peers at `2001:db8:1234::1` (ASN 64520)
 - **Interface**: `toswitch1` (network interface to the fabric)
 - **Router ID CIDR**: `10.0.0.0/24` (router ID allocation range,
   incremented by the node index for each node)
