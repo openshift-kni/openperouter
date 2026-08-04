@@ -41,8 +41,8 @@ var _ = Describe("Routes between bgp and the fabric with Underlay in ipv4", Orde
 	}
 
 	const (
-		linuxBridgeHostAttachment = "linux-bridge"
-		ovsBridgeHostAttachment   = "ovs-bridge"
+		linuxBridgeHostAttachment = "LinuxBridge"
+		ovsBridgeHostAttachment   = "OVSBridge"
 	)
 	l2VniRed := v1alpha1.L2VNI{
 		ObjectMeta: metav1.ObjectMeta{
@@ -55,7 +55,7 @@ var _ = Describe("Routes between bgp and the fabric with Underlay in ipv4", Orde
 			HostMaster: &v1alpha1.HostMaster{
 				Type: linuxBridgeHostAttachment,
 				LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-					AutoCreate: new(true),
+					Lifecycle: v1alpha1.BridgeLifecycleManaged,
 				},
 			},
 		},
@@ -229,7 +229,7 @@ var _ = Describe("Routes between bgp and the fabric with Underlay in ipv4", Orde
 			hostMaster: v1alpha1.HostMaster{
 				Type: linuxBridgeHostAttachment,
 				LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-					AutoCreate: new(true),
+					Lifecycle: v1alpha1.BridgeLifecycleManaged,
 				},
 			},
 		}),
@@ -243,7 +243,7 @@ var _ = Describe("Routes between bgp and the fabric with Underlay in ipv4", Orde
 			hostMaster: v1alpha1.HostMaster{
 				Type: linuxBridgeHostAttachment,
 				LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-					AutoCreate: new(true),
+					Lifecycle: v1alpha1.BridgeLifecycleManaged,
 				},
 			},
 		}),
@@ -257,11 +257,11 @@ var _ = Describe("Routes between bgp and the fabric with Underlay in ipv4", Orde
 			hostMaster: v1alpha1.HostMaster{
 				Type: linuxBridgeHostAttachment,
 				LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-					AutoCreate: new(true),
+					Lifecycle: v1alpha1.BridgeLifecycleManaged,
 				},
 			},
 		}),
-		Entry("OVS bridge autocreate for single stack ipv4", testCase{
+		Entry("OVS bridge managed for single stack ipv4", testCase{
 			l2GatewayIPs: []string{"192.171.24.1/24"},
 			firstPodIPs:  []string{"192.171.24.2/24"},
 			secondPodIPs: []string{"192.171.24.3/24"},
@@ -271,11 +271,11 @@ var _ = Describe("Routes between bgp and the fabric with Underlay in ipv4", Orde
 			hostMaster: v1alpha1.HostMaster{
 				Type: ovsBridgeHostAttachment,
 				OVSBridge: &v1alpha1.OVSBridgeConfig{
-					AutoCreate: new(true),
+					Lifecycle: v1alpha1.BridgeLifecycleManaged,
 				},
 			},
 		}),
-		Entry("OVS bridge autocreate for dual stack", testCase{
+		Entry("OVS bridge managed for dual stack", testCase{
 			l2GatewayIPs: []string{"192.171.24.1/24", "fd00:10:245:1::1/64"},
 			firstPodIPs:  []string{"192.171.24.2/24", "fd00:10:245:1::2/64"},
 			secondPodIPs: []string{"192.171.24.3/24", "fd00:10:245:1::3/64"},
@@ -285,11 +285,11 @@ var _ = Describe("Routes between bgp and the fabric with Underlay in ipv4", Orde
 			hostMaster: v1alpha1.HostMaster{
 				Type: ovsBridgeHostAttachment,
 				OVSBridge: &v1alpha1.OVSBridgeConfig{
-					AutoCreate: new(true),
+					Lifecycle: v1alpha1.BridgeLifecycleManaged,
 				},
 			},
 		}),
-		Entry("OVS bridge autocreate for single stack ipv6", testCase{
+		Entry("OVS bridge managed for single stack ipv6", testCase{
 			l2GatewayIPs: []string{"fd00:10:245:1::1/64"},
 			firstPodIPs:  []string{"fd00:10:245:1::2/64"},
 			secondPodIPs: []string{"fd00:10:245:1::3/64"},
@@ -299,7 +299,7 @@ var _ = Describe("Routes between bgp and the fabric with Underlay in ipv4", Orde
 			hostMaster: v1alpha1.HostMaster{
 				Type: ovsBridgeHostAttachment,
 				OVSBridge: &v1alpha1.OVSBridgeConfig{
-					AutoCreate: new(true),
+					Lifecycle: v1alpha1.BridgeLifecycleManaged,
 				},
 			},
 		}),
@@ -313,8 +313,8 @@ var _ = Describe("Routes between bgp and the fabric with Underlay in ipv4", Orde
 			hostMaster: v1alpha1.HostMaster{
 				Type: ovsBridgeHostAttachment,
 				OVSBridge: &v1alpha1.OVSBridgeConfig{
-					Name:       new(preExistingOVSBridge),
-					AutoCreate: new(false),
+					Name:      new(preExistingOVSBridge),
+					Lifecycle: v1alpha1.BridgeLifecycleExternal,
 				},
 			},
 		}),
@@ -328,8 +328,8 @@ var _ = Describe("Routes between bgp and the fabric with Underlay in ipv4", Orde
 			hostMaster: v1alpha1.HostMaster{
 				Type: ovsBridgeHostAttachment,
 				OVSBridge: &v1alpha1.OVSBridgeConfig{
-					Name:       new(preExistingOVSBridge),
-					AutoCreate: new(false),
+					Name:      new(preExistingOVSBridge),
+					Lifecycle: v1alpha1.BridgeLifecycleExternal,
 				},
 			},
 		}),
@@ -343,8 +343,8 @@ var _ = Describe("Routes between bgp and the fabric with Underlay in ipv4", Orde
 			hostMaster: v1alpha1.HostMaster{
 				Type: ovsBridgeHostAttachment,
 				OVSBridge: &v1alpha1.OVSBridgeConfig{
-					Name:       new(preExistingOVSBridge),
-					AutoCreate: new(false),
+					Name:      new(preExistingOVSBridge),
+					Lifecycle: v1alpha1.BridgeLifecycleExternal,
 				},
 			},
 		}),
@@ -355,7 +355,7 @@ var _ = Describe("Routes between bgp and the fabric with Underlay in ipv4", Orde
 var _ = Describe("Disconnected L2VNI east/west traffic", Ordered, func() {
 	const (
 		testNamespace             = "test-disconnected-l2"
-		linuxBridgeHostAttachment = "linux-bridge"
+		linuxBridgeHostAttachment = "LinuxBridge"
 		firstPodIP                = "192.171.30.2"
 		secondPodIP               = "192.171.30.3"
 	)
@@ -372,7 +372,7 @@ var _ = Describe("Disconnected L2VNI east/west traffic", Ordered, func() {
 			HostMaster: &v1alpha1.HostMaster{
 				Type: linuxBridgeHostAttachment,
 				LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-					AutoCreate: new(true),
+					Lifecycle: v1alpha1.BridgeLifecycleManaged,
 				},
 			},
 		},

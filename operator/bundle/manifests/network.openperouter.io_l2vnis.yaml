@@ -57,68 +57,84 @@ spec:
                 x-kubernetes-validations:
                 - message: GatewayIPs cannot be changed
                   rule: self == oldSelf
-              hostmaster:
+              hostMaster:
                 description: |-
-                  hostmaster is the interface on the host the veth should be attached to.
+                  hostMaster is the interface on the host the veth should be attached to.
                   If not set, the host veth will not be attached to any interface and it must be
                   attached manually (or by some other means). This is useful if another controller
                   is leveraging the host interface for the VNI.
                 properties:
                   linuxBridge:
                     description: linuxBridge configuration. Must be set when Type
-                      is "linux-bridge".
+                      is "LinuxBridge".
                     properties:
-                      autoCreate:
-                        default: false
+                      lifecycle:
                         description: |-
-                          autoCreate determines if the bridge should be created automatically.
-                          When true, the bridge is created with name br-hs-<VNI>.
-                        type: boolean
+                          lifecycle determines if the bridge is managed by the controller or
+                          provided by the user.
+                        enum:
+                        - Managed
+                        - External
+                        type: string
                       name:
-                        description: name of the Linux bridge interface.
+                        description: |-
+                          name of the Linux bridge interface. Required when lifecycle is
+                          External, and must be omitted when it is Managed, in which case the
+                          bridge is named br-hs-<VNI>.
                         maxLength: 15
                         pattern: ^[a-zA-Z][a-zA-Z0-9_-]*$
                         type: string
+                    required:
+                    - lifecycle
                     type: object
                     x-kubernetes-validations:
-                    - message: either name must be set or autoCreate must be true,
-                        but not both.
-                      rule: (self.?name.orValue("") != "") != self.?autoCreate.orValue(false)
+                    - message: name must be set when lifecycle is External, and must
+                        not be set when it is Managed.
+                      rule: (self.?name.orValue("") != "") != (self.?lifecycle.orValue("")
+                        == 'Managed')
                   ovsBridge:
                     description: ovsBridge configuration. Must be set when Type is
-                      "ovs-bridge".
+                      "OVSBridge".
                     properties:
-                      autoCreate:
-                        default: false
+                      lifecycle:
                         description: |-
-                          autoCreate determines if the OVS bridge should be created automatically.
-                          When true, the bridge is created with name br-hs-<VNI>.
-                        type: boolean
+                          lifecycle determines if the OVS bridge is managed by the controller or
+                          provided by the user.
+                        enum:
+                        - Managed
+                        - External
+                        type: string
                       name:
-                        description: name of the OVS bridge interface.
+                        description: |-
+                          name of the OVS bridge interface. Required when lifecycle is
+                          External, and must be omitted when it is Managed, in which case the
+                          bridge is named br-hs-<VNI>.
                         maxLength: 15
                         pattern: ^[a-zA-Z][a-zA-Z0-9_-]*$
                         type: string
+                    required:
+                    - lifecycle
                     type: object
                     x-kubernetes-validations:
-                    - message: either name must be set or autoCreate must be true,
-                        but not both.
-                      rule: (self.?name.orValue("") != "") != self.?autoCreate.orValue(false)
+                    - message: name must be set when lifecycle is External, and must
+                        not be set when it is Managed.
+                      rule: (self.?name.orValue("") != "") != (self.?lifecycle.orValue("")
+                        == 'Managed')
                   type:
-                    description: 'type of the host interface. Supported values: "linux-bridge",
-                      "ovs-bridge".'
+                    description: 'type of the host interface. Supported values: "LinuxBridge",
+                      "OVSBridge".'
                     enum:
-                    - linux-bridge
-                    - ovs-bridge
+                    - LinuxBridge
+                    - OVSBridge
                     type: string
                 required:
                 - type
                 type: object
                 x-kubernetes-validations:
-                - message: 'type/config mismatch: ''linux-bridge'' requires linuxBridge
-                    field, ''ovs-bridge'' requires ovsBridge field'
-                  rule: (self.type == 'linux-bridge' && has(self.linuxBridge) && !has(self.ovsBridge))
-                    || (self.type == 'ovs-bridge' && has(self.ovsBridge) && !has(self.linuxBridge))
+                - message: 'type/config mismatch: ''LinuxBridge'' requires linuxBridge
+                    field, ''OVSBridge'' requires ovsBridge field'
+                  rule: (self.type == 'LinuxBridge' && has(self.linuxBridge) && !has(self.ovsBridge))
+                    || (self.type == 'OVSBridge' && has(self.ovsBridge) && !has(self.linuxBridge))
               nodeSelector:
                 description: |-
                   nodeSelector specifies which nodes this L2VNI applies to.
@@ -222,8 +238,8 @@ spec:
                   VXLAN interface. When omitted, defaults to the available family in the underlay
                   (IPv4 preferred in dual-stack).
                 enum:
-                - ipv4
-                - ipv6
+                - IPv4
+                - IPv6
                 type: string
               vni:
                 description: vni is the VXLan VNI to be used
@@ -231,9 +247,9 @@ spec:
                 maximum: 16777215
                 minimum: 1
                 type: integer
-              vxlanport:
+              vxlanPort:
                 default: 4789
-                description: vxlanport is the port to be used for VXLan encapsulation.
+                description: vxlanPort is the port to be used for VXLan encapsulation.
                 format: int32
                 type: integer
             required:

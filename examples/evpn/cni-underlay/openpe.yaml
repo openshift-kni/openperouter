@@ -5,10 +5,10 @@ metadata:
   namespace: openperouter-system
 spec:
   vrf: red
-  hostsession:
+  hostSession:
     asn: 64514
-    hostasn: 64515
-    localcidr:
+    hostASN: 64515
+    localCIDR:
       ipv4: 192.169.10.0/24
   vni: 100
 ---
@@ -23,10 +23,10 @@ spec:
     type: L3VNI
     l3vni:
       name: red
-  hostmaster:
-    type: linux-bridge
+  hostMaster:
+    type: LinuxBridge
     linuxBridge:
-      autoCreate: true
+      lifecycle: Managed
   gatewayIPs: ["192.170.1.1/24"]
 ---
 # The underlay interface is provisioned by the macvlan CNI plugin on top of

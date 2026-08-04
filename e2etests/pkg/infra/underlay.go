@@ -108,9 +108,9 @@ var UnderlaySRv6 = v1alpha1.Underlay{
 		Interfaces: defaultInterfaces,
 		Neighbors: []v1alpha1.Neighbor{
 			{
-				ASN:          new(int64(64520)),
-				Address:      new("2001:db8:1234::1"),
-				EBGPMultiHop: new(true),
+				ASN:        new(int64(64520)),
+				Address:    new("2001:db8:1234::1"),
+				Properties: []v1alpha1.NeighborProperty{{Type: v1alpha1.NeighborPropertyEBGPMultiHop}},
 			},
 		},
 		RouterIDCIDR: new("10.0.0.0/24"),
@@ -148,9 +148,9 @@ var UnderlaySRv6EncapRed = v1alpha1.Underlay{
 		Interfaces: defaultInterfaces,
 		Neighbors: []v1alpha1.Neighbor{
 			{
-				ASN:          new(int64(64520)),
-				Address:      new("2001:db8:1234::1"),
-				EBGPMultiHop: new(true),
+				ASN:        new(int64(64520)),
+				Address:    new("2001:db8:1234::1"),
+				Properties: []v1alpha1.NeighborProperty{{Type: v1alpha1.NeighborPropertyEBGPMultiHop}},
 			},
 		},
 		RouterIDCIDR: new("10.0.0.0/24"),
@@ -190,15 +190,15 @@ var UnderlayEVPNandSRv6 = v1alpha1.Underlay{
 		Neighbors: []v1alpha1.Neighbor{
 			// leafA - use automatically derived address families.
 			{
-				ASN:          new(int64(64520)),
-				Address:      new("2001:db8:1234::1"),
-				EBGPMultiHop: new(true),
+				ASN:        new(int64(64520)),
+				Address:    new("2001:db8:1234::1"),
+				Properties: []v1alpha1.NeighborProperty{{Type: v1alpha1.NeighborPropertyEBGPMultiHop}},
 			},
 			// leafB - explicitly set address families.
 			{
-				ASN:          new(int64(64520)),
-				Address:      new("2001:db8:1234::2"),
-				EBGPMultiHop: new(true),
+				ASN:        new(int64(64520)),
+				Address:    new("2001:db8:1234::2"),
+				Properties: []v1alpha1.NeighborProperty{{Type: v1alpha1.NeighborPropertyEBGPMultiHop}},
 				AddressFamilies: []v1alpha1.NeighborAddressFamily{
 					{Type: "ipv6unicast"},
 					{Type: "ipv4vpn"},

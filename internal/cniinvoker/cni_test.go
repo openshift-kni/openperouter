@@ -225,6 +225,47 @@ func TestDelWithEmptyCache(t *testing.T) {
 	env.noCommands(t)
 }
 
+func TestCheckWithNoCachedAttachment(t *testing.T) {
+	env := newFakePluginEnv(t)
+
+	if err := env.invoker().Check(context.Background(), "net1"); err != nil {
+		t.Fatalf("Check with no cached attachment failed: %v", err)
+	}
+
+	env.noCommands(t)
+}
+
+func TestCheckPassesForAHealthyInterface(t *testing.T) {
+	env := newFakePluginEnv(t)
+
+	if err := env.invoker().Add(context.Background(), env.params("net1", nil)); err != nil {
+		t.Fatalf("Add failed: %v", err)
+	}
+
+	if err := env.invoker().Check(context.Background(), "net1"); err != nil {
+		t.Fatalf("Check failed: %v", err)
+	}
+
+	env.matchCommands(t, "ADD net1", "CHECK net1")
+}
+
+func TestCheckReportsAMisconfiguredInterface(t *testing.T) {
+	env := newFakePluginEnv(t)
+
+	if err := env.invoker().Add(context.Background(), env.params("net1", nil)); err != nil {
+		t.Fatalf("Add failed: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(env.stdinDir, "FAIL-CHECK"), nil, 0o644); err != nil {
+		t.Fatalf("failed to request the CHECK failure: %v", err)
+	}
+
+	if err := env.invoker().Check(context.Background(), "net1"); err == nil {
+		t.Fatal("expected error for a failed CHECK")
+	}
+
+	env.matchCommands(t, "ADD net1", "CHECK net1")
+}
+
 func TestValidateConfig(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -270,6 +311,114 @@ const (
 	netNS = "/var/run/netns/perouter-test"
 )
 
+const fakeConfListDHCP = `{
+  "cniVersion": "1.0.0",
+  "name": "underlay-dhcp-test",
+  "plugins": [
+    {
+      "type": "fake",
+      "ipam": {"type": "dhcp"}
+    }
+  ]
+}`
+
+type spyDHCPEnabler struct {
+	called int
+	err    error
+}
+
+func (s *spyDHCPEnabler) EnsureUp(_ context.Context) error {
+	s.called++
+	return s.err
+}
+
+func TestAddCallsEnsureUpForDHCPConfig(t *testing.T) {
+	env := newFakePluginEnv(t)
+	spy := &spyDHCPEnabler{}
+
+	inv := env.invokerWithDHCP(spy)
+	params := env.params("net1", nil)
+	params.Config = []byte(fakeConfListDHCP)
+
+	if err := inv.Add(context.Background(), params); err != nil {
+		t.Fatalf("Add failed: %v", err)
+	}
+	if spy.called != 1 {
+		t.Errorf("EnsureUp called %d times, want 1", spy.called)
+	}
+}
+
+func TestAddSkipsEnsureUpForNonDHCPConfig(t *testing.T) {
+	env := newFakePluginEnv(t)
+	spy := &spyDHCPEnabler{}
+
+	inv := env.invokerWithDHCP(spy)
+	if err := inv.Add(context.Background(), env.params("net1", nil)); err != nil {
+		t.Fatalf("Add failed: %v", err)
+	}
+	if spy.called != 0 {
+		t.Errorf("EnsureUp called %d times for non-DHCP config, want 0", spy.called)
+	}
+}
+
+func TestAddFailsWhenEnsureUpFails(t *testing.T) {
+	env := newFakePluginEnv(t)
+	spy := &spyDHCPEnabler{err: fmt.Errorf("daemon not starting")}
+
+	inv := env.invokerWithDHCP(spy)
+	params := env.params("net1", nil)
+	params.Config = []byte(fakeConfListDHCP)
+
+	err := inv.Add(context.Background(), params)
+	if err == nil {
+		t.Fatal("expected error when EnsureUp fails")
+	}
+}
+
+func TestDelCallsEnsureUpForCachedDHCPConfig(t *testing.T) {
+	env := newFakePluginEnv(t)
+	spy := &spyDHCPEnabler{}
+
+	inv := env.invokerWithDHCP(spy)
+	params := env.params("net1", nil)
+	params.Config = []byte(fakeConfListDHCP)
+
+	if err := inv.Add(context.Background(), params); err != nil {
+		t.Fatalf("Add failed: %v", err)
+	}
+	spy.called = 0
+
+	if err := inv.Del(context.Background(), "net1"); err != nil {
+		t.Fatalf("Del failed: %v", err)
+	}
+	if spy.called != 1 {
+		t.Errorf("EnsureUp called %d times on Del, want 1", spy.called)
+	}
+}
+
+func TestNilDHCPEnablerErrorsForDHCPConfig(t *testing.T) {
+	env := newFakePluginEnv(t)
+
+	inv := env.invoker()
+	params := env.params("net1", nil)
+	params.Config = []byte(fakeConfListDHCP)
+
+	if err := inv.Add(context.Background(), params); err == nil {
+		t.Fatal("Add should fail with nil dhcpEnabler and DHCP IPAM config")
+	}
+}
+
+func TestNilDHCPEnablerIsHarmlessForNonDHCPConfig(t *testing.T) {
+	env := newFakePluginEnv(t)
+
+	inv := env.invoker()
+	params := env.params("net1", nil)
+
+	if err := inv.Add(context.Background(), params); err != nil {
+		t.Fatalf("Add failed with nil dhcpEnabler and non-DHCP config: %v", err)
+	}
+}
+
 // fakePluginEnv provides a fake CNI plugin executable that records its
 // invocations (command + interface name) and the stdin it received, so tests
 // can assert on how libcni drove it without requiring real plugins or root.
@@ -292,9 +441,10 @@ func newFakePluginEnv(t *testing.T) *fakePluginEnv {
 	// The fake plugin script logs "COMMAND IFNAME", dumps its stdin and, on
 	// ADD, emits a canned CNI result. A repeated ADD for the same interface
 	// fails, so tests catch broken Add idempotency. DEL clears the marker so
-	// a later ADD is allowed again. Environment variables are inherited
-	// from the test process (t.Setenv) since libcni execs plugins with
-	// os.Environ.
+	// a later ADD is allowed again. CHECK fails when FAIL-CHECK is present,
+	// so tests can simulate a drifted/misconfigured interface. Environment
+	// variables are inherited from the test process (t.Setenv) since libcni
+	// execs plugins with os.Environ.
 	script := `#!/bin/sh
 echo "$CNI_COMMAND $CNI_IFNAME" >> "$CNI_TEST_LOG"
 if [ "$CNI_COMMAND" = "ADD" ] && [ -e "$CNI_TEST_STDIN_DIR/FAIL-ADD" ]; then
@@ -303,6 +453,10 @@ if [ "$CNI_COMMAND" = "ADD" ] && [ -e "$CNI_TEST_STDIN_DIR/FAIL-ADD" ]; then
 fi
 if [ "$CNI_COMMAND" = "ADD" ] && [ -e "$CNI_TEST_STDIN_DIR/ADD-$CNI_IFNAME" ]; then
   echo '{"cniVersion":"1.0.0","code":11,"msg":"duplicate ADD for '"$CNI_IFNAME"'"}'
+  exit 1
+fi
+if [ "$CNI_COMMAND" = "CHECK" ] && [ -e "$CNI_TEST_STDIN_DIR/FAIL-CHECK" ]; then
+  echo '{"cniVersion":"1.0.0","code":11,"msg":"CHECK failure requested by the test"}'
   exit 1
 fi
 cat > "$CNI_TEST_STDIN_DIR/$CNI_COMMAND-$CNI_IFNAME"
@@ -334,6 +488,14 @@ func (e *fakePluginEnv) invoker() *invoker {
 	return &invoker{
 		cniConfig:   libcni.NewCNIConfigWithCacheDir([]string{e.binDir}, e.cacheDir, nil),
 		containerID: containerIDForNode(fakeNodeName),
+	}
+}
+
+func (e *fakePluginEnv) invokerWithDHCP(enabler DHCPEnabler) *invoker {
+	return &invoker{
+		cniConfig:   libcni.NewCNIConfigWithCacheDir([]string{e.binDir}, e.cacheDir, nil),
+		containerID: containerIDForNode(fakeNodeName),
+		dhcpEnabler: enabler,
 	}
 }
 

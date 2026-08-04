@@ -115,8 +115,6 @@ type BFDProfile struct {
 	ReceiveInterval  *int32
 	TransmitInterval *int32
 	DetectMultiplier *int32
-	EchoInterval     *int32
-	EchoMode         bool
 	PassiveMode      bool
 	MinimumTTL       *int32
 }
@@ -135,6 +133,7 @@ type NeighborConfig struct {
 	BFDEnabled            bool
 	BFDProfile            string
 	EBGPMultiHop          bool
+	EBGPMultiHopTTL       *int32
 	NetworkLayerProtocols []networklayerprotocol.NLP
 	// Allow bgp to negotiate the extended-nexthop capability with its peer. If you are peering over a v6 LL address
 	// then this capability is turned on automatically.
@@ -170,8 +169,14 @@ func templateConfig(data any) (string, error) {
 				}
 				return dict, nil
 			},
-			"mustDisableConnectedCheck": func(nlps []networklayerprotocol.NLP, myASN int64, peerASN PeerASN,
-				eBGPMultiHop bool) bool {
+			"mustDisableConnectedCheck": func(addr string, nlps []networklayerprotocol.NLP, myASN int64,
+				peerASN PeerASN, eBGPMultiHop bool) bool {
+				// Neighbors configured over an interface are directly connected by
+				// definition, and FRR rejects disable-connected-check for them, which
+				// makes the whole reload fail.
+				if addr == "" {
+					return false
+				}
 				// Return true only if neighbor establishes an IPv6 eBGP session.
 				return networklayerprotocol.HasUnicastFamily(nlps, networklayerprotocol.IPv6) &&
 					!eBGPMultiHop && peerASN.IsExternalTo(myASN)

@@ -51,7 +51,7 @@ func TestParityDefaults(t *testing.T) {
 			},
 		},
 		{
-			name: "L2VNI minimal with linuxBridge gets VXLanPort=4789 and AutoCreate=false defaults",
+			name: "L2VNI minimal with linuxBridge gets VXLanPort=4789 default",
 			kind: "L2VNI",
 			input: &v1alpha1.L2VNI{
 				TypeMeta: metav1.TypeMeta{Kind: "L2VNI", APIVersion: group + "/" + version},
@@ -63,7 +63,8 @@ func TestParityDefaults(t *testing.T) {
 					HostMaster: &v1alpha1.HostMaster{
 						Type: v1alpha1.LinuxBridge,
 						LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-							Name: new("br0"),
+							Lifecycle: v1alpha1.BridgeLifecycleExternal,
+							Name:      new("br0"),
 						},
 					},
 				},
@@ -76,8 +77,8 @@ func TestParityDefaults(t *testing.T) {
 				if result.Spec.HostMaster == nil || result.Spec.HostMaster.LinuxBridge == nil {
 					t.Fatal("expected HostMaster.LinuxBridge to be non-nil")
 				}
-				if ptr.Deref(result.Spec.HostMaster.LinuxBridge.AutoCreate, true) != false {
-					t.Errorf("expected LinuxBridge.AutoCreate=false (default is not to auto-create), got %v", ptr.Deref(result.Spec.HostMaster.LinuxBridge.AutoCreate, true))
+				if result.Spec.HostMaster.LinuxBridge.Lifecycle != v1alpha1.BridgeLifecycleExternal {
+					t.Errorf("expected LinuxBridge.Lifecycle=External (unchanged), got %q", result.Spec.HostMaster.LinuxBridge.Lifecycle)
 				}
 			},
 		},
@@ -138,7 +139,8 @@ func TestParityDefaults(t *testing.T) {
 					HostMaster: &v1alpha1.HostMaster{
 						Type: v1alpha1.LinuxBridge,
 						LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-							Name: new("mybridge"),
+							Lifecycle: v1alpha1.BridgeLifecycleExternal,
+							Name:      new("mybridge"),
 						},
 					},
 					GatewayIPs: []string{"10.10.10.1/24"},
@@ -152,8 +154,8 @@ func TestParityDefaults(t *testing.T) {
 				if ptr.Deref(result.Spec.HostMaster.LinuxBridge.Name, "") != "mybridge" {
 					t.Errorf("expected LinuxBridge.Name=mybridge, got %q", ptr.Deref(result.Spec.HostMaster.LinuxBridge.Name, ""))
 				}
-				if ptr.Deref(result.Spec.HostMaster.LinuxBridge.AutoCreate, true) != false {
-					t.Errorf("expected LinuxBridge.AutoCreate=false (unchanged), got %v", ptr.Deref(result.Spec.HostMaster.LinuxBridge.AutoCreate, true))
+				if result.Spec.HostMaster.LinuxBridge.Lifecycle != v1alpha1.BridgeLifecycleExternal {
+					t.Errorf("expected LinuxBridge.Lifecycle=External (unchanged), got %q", result.Spec.HostMaster.LinuxBridge.Lifecycle)
 				}
 			},
 		},
@@ -205,7 +207,7 @@ func TestParityValidation(t *testing.T) {
 		wantMessage string
 	}{
 		{
-			name: "L2VNI linuxBridge with name and autoCreate=true",
+			name: "L2VNI linuxBridge with name and Managed lifecycle",
 			kind: "L2VNI",
 			input: &v1alpha1.L2VNI{
 				TypeMeta: metav1.TypeMeta{Kind: "L2VNI", APIVersion: group + "/" + version},
@@ -218,13 +220,13 @@ func TestParityValidation(t *testing.T) {
 					HostMaster: &v1alpha1.HostMaster{
 						Type: v1alpha1.LinuxBridge,
 						LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-							Name:       new("mybridge"),
-							AutoCreate: new(true),
+							Name:      new("mybridge"),
+							Lifecycle: v1alpha1.BridgeLifecycleManaged,
 						},
 					},
 				},
 			},
-			wantMessage: "either name must be set or autoCreate must be true, but not both",
+			wantMessage: "name must be set when lifecycle is External, and must not be set when it is Managed.",
 		},
 	}
 
@@ -280,14 +282,17 @@ func TestParityRoundTrip(t *testing.T) {
 							Port:            new(int32(179)),
 							Password:        new("secret"),
 							HoldTimeSeconds: new(int64(90)),
-							EBGPMultiHop:    new(true),
+							Properties: []v1alpha1.NeighborProperty{
+								{
+									Type:         v1alpha1.NeighborPropertyEBGPMultiHop,
+									EBGPMultiHop: &v1alpha1.EBGPMultiHopProperties{TTL: new(int32(5))},
+								},
+							},
 							BFD: &v1alpha1.BFDSettings{
 								ReceiveInterval:  new(int32(300)),
 								TransmitInterval: new(int32(300)),
 								DetectMultiplier: new(int32(3)),
-								EchoInterval:     new(int32(50)),
-								EchoMode:         new(false),
-								PassiveMode:      new(true),
+								SessionMode:      new(v1alpha1.BFDSessionModePassive),
 								MinimumTTL:       new(int32(254)),
 							},
 						},
@@ -318,8 +323,8 @@ func TestParityRoundTrip(t *testing.T) {
 					HostMaster: &v1alpha1.HostMaster{
 						Type: v1alpha1.LinuxBridge,
 						LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-							Name:       new("mybridge"),
-							AutoCreate: new(false),
+							Name:      new("mybridge"),
+							Lifecycle: v1alpha1.BridgeLifecycleExternal,
 						},
 					},
 					GatewayIPs: []string{"10.10.10.1/24", "fd00::1/64"},

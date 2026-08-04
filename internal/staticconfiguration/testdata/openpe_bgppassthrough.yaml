@@ -1,5 +1,5 @@
 bgppassthrough:
-  hostsession:
+  hostSession:
     asn: 64514
     hostASN: 64517
     localCIDR:

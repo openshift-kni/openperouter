@@ -37,10 +37,10 @@ type UnderlaySpec struct {
 	// +required
 	ASN int64 `json:"asn,omitempty"`
 
-	// routeridcidr is the ipv4 cidr to be used to assign a different routerID on each node.
+	// routerIDCIDR is the ipv4 cidr to be used to assign a different routerID on each node.
 	// +default="10.0.0.0/24"
 	// +optional
-	RouterIDCIDR *string `json:"routeridcidr,omitempty"`
+	RouterIDCIDR *string `json:"routerIDCIDR,omitempty"`
 
 	// Note: MaxItems:=128 is arbitrarily chosen to keep total CEL cost low
 	// Note: kubeapilinter complained about 'the struct has no required fields', but CEL enforces either/or choices
@@ -306,13 +306,13 @@ type ISISInterface struct {
 type ISISInterfaceFeature string
 
 // IPFamily specifies which address families are enabled.
-// +kubebuilder:validation:Enum:=ipv4;ipv6;dualstack
+// +kubebuilder:validation:Enum=IPv4;IPv6;DualStack
 type IPFamily string
 
 const (
-	IPFamilyIPv4      IPFamily = "ipv4"
-	IPFamilyIPv6      IPFamily = "ipv6"
-	IPFamilyDualStack IPFamily = "dualstack"
+	IPFamilyIPv4      IPFamily = "IPv4"
+	IPFamilyIPv6      IPFamily = "IPv6"
+	IPFamilyDualStack IPFamily = "DualStack"
 )
 
 // SRV6Config contains SRV6 configuration for the underlay.

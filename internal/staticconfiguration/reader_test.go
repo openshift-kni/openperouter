@@ -131,7 +131,7 @@ func TestReadRouterConfigs(t *testing.T) {
 
 	t.Run("single file", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		writeTestFile(t, tmpDir, "openpe_underlay.yaml", "underlays:\n  - asn: 64515\n    routeridcidr: \"10.0.0.0/24\"\n")
+		writeTestFile(t, tmpDir, "openpe_underlay.yaml", "underlays:\n  - asn: 64515\n    routerIDCIDR: \"10.0.0.0/24\"\n")
 
 		configs, err := ReadRouterConfigs(tmpDir)
 		if err != nil {
@@ -147,7 +147,7 @@ func TestReadRouterConfigs(t *testing.T) {
 
 	t.Run("multiple files", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		writeTestFile(t, tmpDir, "openpe_underlay.yaml", "underlays:\n  - asn: 64515\n    routeridcidr: \"10.0.0.0/24\"\n")
+		writeTestFile(t, tmpDir, "openpe_underlay.yaml", "underlays:\n  - asn: 64515\n    routerIDCIDR: \"10.0.0.0/24\"\n")
 		writeTestFile(t, tmpDir, "openpe_l3vni.yaml", "l3vnis:\n  - vrf: \"vrf-test\"\n    vni: 1000\n")
 		writeTestFile(t, tmpDir, "other.yaml", "test: value\n")
 
@@ -325,9 +325,10 @@ func TestReadRouterConfigsFromFiles(t *testing.T) {
 				VNI:       300,
 				VXLanPort: new(int32(4789)),
 				HostMaster: &v1alpha1.HostMaster{
-					Type: "linux-bridge",
+					Type: "LinuxBridge",
 					LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-						Name: new("br-storage"),
+						Lifecycle: v1alpha1.BridgeLifecycleExternal,
+						Name:      new("br-storage"),
 					},
 				},
 			},
@@ -342,9 +343,10 @@ func TestReadRouterConfigsFromFiles(t *testing.T) {
 				VNI:       400,
 				VXLanPort: new(int32(4789)),
 				HostMaster: &v1alpha1.HostMaster{
-					Type: "ovs-bridge",
+					Type: "OVSBridge",
 					OVSBridge: &v1alpha1.OVSBridgeConfig{
-						Name: new("ovsbr0"),
+						Lifecycle: v1alpha1.BridgeLifecycleExternal,
+						Name:      new("ovsbr0"),
 					},
 				},
 			},
@@ -381,9 +383,9 @@ func TestReadRouterConfigsFromFiles(t *testing.T) {
 				},
 				VNI: 210,
 				HostMaster: &v1alpha1.HostMaster{
-					Type: "linux-bridge",
+					Type: "LinuxBridge",
 					LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-						AutoCreate: new(true),
+						Lifecycle: v1alpha1.BridgeLifecycleManaged,
 					},
 				},
 				GatewayIPs: []string{"192.170.1.1/24"},

@@ -94,6 +94,29 @@ spec:
 - NIC names must be unique
 - Local ASN must differ from all neighbor ASNs
 
+### BFD
+
+Bidirectional Forwarding Detection can be enabled per neighbor through the
+`bfd` field. An empty `bfd: {}` enables it with FRR's defaults; the
+individual knobs are rendered as a BFD peer profile for that neighbor.
+
+```yaml
+  neighbors:
+    - asn: 64512
+      address: 192.168.11.2
+      bfd:
+        receiveInterval: 300     # ms, 10-60000
+        transmitInterval: 300    # ms, 10-60000
+        detectMultiplier: 3      # 2-255
+        sessionMode: Passive     # Active (default) | Passive
+        minimumTTL: 254          # 1-254, multi hop sessions only
+```
+
+`sessionMode` selects whether the local system initiates the session.
+`Active`, the default when the field is omitted, starts it; `Passive`
+waits for the peer to initiate before replying, per
+[RFC 5880 section 6.1](https://datatracker.ietf.org/doc/html/rfc5880#section-6.1).
+
 ### Per-Node Configuration
 
 The Underlay resource supports an optional `nodeSelector` field that
@@ -151,6 +174,52 @@ the target. The plugin binaries are looked up in the directories passed
 via the controller's `--cni-plugin-dirs` flag; a set of reference plugins is
 bundled in the controller image.
 
+#### DHCP IPAM
+
+To use DHCP instead of static addressing, set `ipam.type` to `dhcp`.
+The controller automatically starts and supervises the DHCP daemon when
+it detects a CNI config with DHCP IPAM — no additional configuration is
+needed.
+
+The controller supervises the DHCP daemon as a child process — starting
+it on demand, restarting it automatically on exit, and triggering lease
+re-acquisition for all DHCP-backed underlay interfaces after each daemon
+restart.
+
+```yaml
+apiVersion: network.openperouter.io/v1alpha1
+kind: Underlay
+metadata:
+  name: underlay
+  namespace: openperouter-system
+spec:
+  asn: 64514
+  interfaces:
+    - type: CNIDevice
+      cniDevice:
+        type: RawConfig
+        interfaceName: net1
+        rawConfig:
+          cniVersion: "1.0.0"
+          name: macvlan-underlay
+          plugins:
+            - type: macvlan
+              master: toswitch
+              mode: bridge
+              ipam:
+                type: dhcp
+        runtimeConfig:
+          mac: "aa:bb:cc:00:00:01"
+  neighbors:
+    - asn: 64512
+      address: 192.168.11.2
+```
+
+MAC pinning via `runtimeConfig` (requires the macvlan plugin to declare
+`capabilities: {"mac": true}`) ensures the interface keeps the same MAC
+across netns rebuilds, which helps DHCP servers with MAC-based
+reservations assign a stable IP address.
+
 Key behaviors to be aware of:
 
 - **Interface types cannot be mixed**: all the entries of `interfaces`
@@ -170,6 +239,11 @@ Key behaviors to be aware of:
   `mac`, `bandwidth`) to plugins that declare the corresponding
   `capabilities` in their config; undeclared keys are ignored. Like
   `rawConfig`, it is immutable once the Underlay is created.
+- **Drift is detected and repaired on the next reconcile**: the controller
+  runs a CNI CHECK against the cached attachment before trusting it. If the
+  interface was removed or misconfigured outside of OpenPERouter, the next
+  reconcile (triggered by a resource change, or a controller/router
+  restart) tears it down and re-provisions it.
 - Since the interface address is typically node-specific, CNI underlays
   are usually node-scoped via `nodeSelector`, one Underlay per node. See
   the [example on GitHub](https://github.com/openperouter/openperouter/tree/main/examples/evpn/cni-underlay).

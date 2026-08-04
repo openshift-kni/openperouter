@@ -384,7 +384,7 @@ func convertHostMaster(l2vni *v1alpha1.L2VNI) (*hostnetwork.HostMaster, error) {
 			return &hostnetwork.HostMaster{
 				Name:       l2vni.Spec.HostMaster.LinuxBridge.Name,
 				Type:       l2vni.Spec.HostMaster.Type,
-				AutoCreate: l2vni.Spec.HostMaster.LinuxBridge.AutoCreate,
+				AutoCreate: new(l2vni.Spec.HostMaster.LinuxBridge.Lifecycle == v1alpha1.BridgeLifecycleManaged),
 			}, nil
 		}
 	case v1alpha1.OVSBridge:
@@ -392,7 +392,7 @@ func convertHostMaster(l2vni *v1alpha1.L2VNI) (*hostnetwork.HostMaster, error) {
 			return &hostnetwork.HostMaster{
 				Name:       l2vni.Spec.HostMaster.OVSBridge.Name,
 				Type:       l2vni.Spec.HostMaster.Type,
-				AutoCreate: l2vni.Spec.HostMaster.OVSBridge.AutoCreate,
+				AutoCreate: new(l2vni.Spec.HostMaster.OVSBridge.Lifecycle == v1alpha1.BridgeLifecycleManaged),
 			}, nil
 		}
 	default:
@@ -428,16 +428,16 @@ func resolveVTEPIP(
 			return tunnelEndpoint.IPv6CIDR, nil
 		}
 		return "", fmt.Errorf("no VTEP IP available")
-	case "ipv4":
+	case "IPv4":
 		if tunnelEndpoint.IPv4CIDR != "" {
 			return tunnelEndpoint.IPv4CIDR, nil
 		}
-		return "", fmt.Errorf("ipv4 address family requested but no IPv4 VTEP IP available")
-	case "ipv6":
+		return "", fmt.Errorf("IPv4 address family requested but no IPv4 VTEP IP available")
+	case "IPv6":
 		if tunnelEndpoint.IPv6CIDR != "" {
 			return tunnelEndpoint.IPv6CIDR, nil
 		}
-		return "", fmt.Errorf("ipv6 address family requested but no IPv6 VTEP IP available")
+		return "", fmt.Errorf("IPv6 address family requested but no IPv6 VTEP IP available")
 	default:
 		return "", fmt.Errorf("unsupported address family %q", af)
 	}

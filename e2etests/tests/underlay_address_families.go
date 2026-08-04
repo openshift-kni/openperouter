@@ -38,7 +38,7 @@ var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
 var runUnderlayTests = func(af ipfamily.Family, underlay v1alpha1.Underlay) {
 	const (
 		testNamespace             = "test-namespace"
-		linuxBridgeHostAttachment = "linux-bridge"
+		linuxBridgeHostAttachment = "LinuxBridge"
 		l2GatewayIP               = "192.171.24.1/24"
 		nadMaster                 = "br-hs-110"
 		firstPodIP                = "192.171.24.2/24"
@@ -80,7 +80,7 @@ var runUnderlayTests = func(af ipfamily.Family, underlay v1alpha1.Underlay) {
 			HostMaster: &v1alpha1.HostMaster{
 				Type: linuxBridgeHostAttachment,
 				LinuxBridge: &v1alpha1.LinuxBridgeConfig{
-					AutoCreate: new(true),
+					Lifecycle: v1alpha1.BridgeLifecycleManaged,
 				},
 			},
 		},
