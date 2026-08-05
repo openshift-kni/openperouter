@@ -49,6 +49,11 @@ type evpnUnderlayParams struct {
 	NeighborIP func(nodeIndex int, node corev1.Node) (string, error)
 }
 
+const (
+	evpnUnderlayStaticInterface = "ev-static"
+	evpnUnderlayDHCPInterface   = "ev-dhcp"
+)
+
 var (
 	// NOTE: we can't advertise any ip via EVPN from the leaves, they
 	// must be reacheable otherwise FRR will skip them.
@@ -64,7 +69,7 @@ var (
 	// of toswitch1 through the CNI mode, with static per-node addresses.
 	macvlanStaticUnderlay = evpnUnderlayParams{
 		Underlays: func(nodes []corev1.Node) []v1alpha1.Underlay {
-			return infra.CNIUnderlaysForNodes(nodes, infra.CNIUnderlayInterface)
+			return infra.CNIUnderlaysForNodes(nodes, evpnUnderlayStaticInterface)
 		},
 		ConfigureLeafKind: infra.ConfigureLeafKind1ForCNIUnderlay,
 		NeighborIP: func(nodeIndex int, _ corev1.Node) (string, error) {
@@ -94,13 +99,13 @@ var (
 	// address acquisition from the dhcp1 dnsmasq server.
 	macvlanDHCPUnderlay = evpnUnderlayParams{
 		Underlays: func(nodes []corev1.Node) []v1alpha1.Underlay {
-			return infra.DHCPCNIUnderlaysForNodes(nodes, infra.CNIUnderlayInterface)
+			return infra.DHCPCNIUnderlaysForNodes(nodes, evpnUnderlayDHCPInterface)
 		},
 		ConfigureLeafKind: func(nodes []corev1.Node) error {
-			return infra.ConfigureLeafKind1ForDHCPUnderlay(nodes, infra.CNIUnderlayInterface)
+			return infra.ConfigureLeafKind1ForDHCPUnderlay(nodes, evpnUnderlayDHCPInterface)
 		},
 		NeighborIP: func(_ int, node corev1.Node) (string, error) {
-			return infra.DHCPNeighborIP(node.Name, infra.CNIUnderlayInterface)
+			return infra.DHCPNeighborIP(node.Name, evpnUnderlayDHCPInterface)
 		},
 	}
 )
