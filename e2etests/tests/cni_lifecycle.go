@@ -211,11 +211,11 @@ var _ = Describe("CNI underlay lifecycle", Ordered, func() {
 			_, err := exec.Exec("ip", "netns", "exec", openperouter.NamedNetns, "ip", "link", "del", infra.CNIUnderlayInterface)
 			Expect(err).NotTo(HaveOccurred())
 		}
-		validateCNIInterfacesGone(infra.CNIUnderlayInterface)
 
 		// Reconciliation is event-driven, not on a timer: the dangling cache
-		// entry is only caught on the next reconcile. Restarting the
-		// controllers forces one without touching the Underlay.
+		// entry is only caught on the next reconcile which may or may not have
+		// been triggered at this point in time. Restarting the
+		// controllers forces a reconcile without touching the Underlay.
 		By("forcing a reconcile by restarting the controllers")
 		restartControllers()
 
