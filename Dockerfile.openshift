@@ -23,6 +23,16 @@ RUN GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=
 FROM registry.redhat.io/openshift4/ose-container-networking-plugins-rhel9:v4.22.0-202606220442.p2.g659bc0a.assembly.stream.el9 as openshift-cni-binaries
 
 FROM registry.redhat.io/openshift4/frr-rhel9:v4.22
+
+# Pin FRR GIDs to 92/102 to match the pod spec supplementalGroups.
+# The RHEL FRR RPM assigns dynamic GIDs (997/998) which differ from
+# the values hardcoded in the Helm chart and operator bindata (92/102).
+RUN userdel frr 2>/dev/null; groupdel frrvty 2>/dev/null; groupdel frr 2>/dev/null; \
+    groupadd -r -g 92 frr && \
+    groupadd -r -g 102 frrvty && \
+    useradd -r -u 92 -g frr -G frrvty -d /var/run/frr -s /sbin/nologin -c "FRRouting suite" frr && \
+    chown -R frr:frr /etc/frr /var/run/frr
+
 WORKDIR /
 COPY --from=builder /go/openperouter/reloader .
 COPY --from=builder /go/openperouter/controller .
