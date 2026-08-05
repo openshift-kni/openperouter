@@ -35,12 +35,18 @@ var Underlay = v1alpha1.Underlay{
 		Interfaces: defaultInterfaces,
 		Neighbors: []v1alpha1.Neighbor{
 			{
-				ASN:     new(int64(64512)),
-				Address: new("192.168.11.2"),
+				ASN:                  new(int64(64512)),
+				Address:              new("192.168.11.2"),
+				ConnectTimeSeconds:   new(int64(5)),
+				KeepaliveTimeSeconds: new(int64(3)),
+				HoldTimeSeconds:      new(int64(9)),
 			},
 			{
-				ASN:     new(int64(64513)),
-				Address: new("192.168.12.2"),
+				ASN:                  new(int64(64513)),
+				Address:              new("192.168.12.2"),
+				ConnectTimeSeconds:   new(int64(5)),
+				KeepaliveTimeSeconds: new(int64(3)),
+				HoldTimeSeconds:      new(int64(9)),
 			},
 		},
 		TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
@@ -59,12 +65,18 @@ var UnderlayIPv6 = v1alpha1.Underlay{
 		Interfaces: defaultInterfaces,
 		Neighbors: []v1alpha1.Neighbor{
 			{
-				ASN:     new(int64(64512)),
-				Address: new("2001:db8:11::2"),
+				ASN:                  new(int64(64512)),
+				Address:              new("2001:db8:11::2"),
+				ConnectTimeSeconds:   new(int64(5)),
+				KeepaliveTimeSeconds: new(int64(3)),
+				HoldTimeSeconds:      new(int64(9)),
 			},
 			{
-				ASN:     new(int64(64513)),
-				Address: new("2001:db8:12::2"),
+				ASN:                  new(int64(64513)),
+				Address:              new("2001:db8:12::2"),
+				ConnectTimeSeconds:   new(int64(5)),
+				KeepaliveTimeSeconds: new(int64(3)),
+				HoldTimeSeconds:      new(int64(9)),
 			},
 		},
 		TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
@@ -88,8 +100,11 @@ var UnderlayUnnumbered = v1alpha1.Underlay{
 		},
 		Neighbors: []v1alpha1.Neighbor{
 			{
-				ASN:       new(int64(64512)),
-				Interface: new("toleafkind1"),
+				ASN:                  new(int64(64512)),
+				Interface:            new("toleafkind1"),
+				ConnectTimeSeconds:   new(int64(5)),
+				KeepaliveTimeSeconds: new(int64(3)),
+				HoldTimeSeconds:      new(int64(9)),
 			},
 		},
 		TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
@@ -108,9 +123,12 @@ var UnderlaySRv6 = v1alpha1.Underlay{
 		Interfaces: defaultInterfaces,
 		Neighbors: []v1alpha1.Neighbor{
 			{
-				ASN:        new(int64(64520)),
-				Address:    new("2001:db8:1234::1"),
-				Properties: []v1alpha1.NeighborProperty{{Type: v1alpha1.NeighborPropertyEBGPMultiHop}},
+				ASN:                  new(int64(64520)),
+				Address:              new("2001:db8:1234::1"),
+				Properties:           []v1alpha1.NeighborProperty{{Type: v1alpha1.NeighborPropertyEBGPMultiHop}},
+				ConnectTimeSeconds:   new(int64(5)),
+				KeepaliveTimeSeconds: new(int64(3)),
+				HoldTimeSeconds:      new(int64(9)),
 			},
 		},
 		RouterIDCIDR: new("10.0.0.0/24"),
@@ -148,9 +166,12 @@ var UnderlaySRv6EncapRed = v1alpha1.Underlay{
 		Interfaces: defaultInterfaces,
 		Neighbors: []v1alpha1.Neighbor{
 			{
-				ASN:        new(int64(64520)),
-				Address:    new("2001:db8:1234::1"),
-				Properties: []v1alpha1.NeighborProperty{{Type: v1alpha1.NeighborPropertyEBGPMultiHop}},
+				ASN:                  new(int64(64520)),
+				Address:              new("2001:db8:1234::1"),
+				Properties:           []v1alpha1.NeighborProperty{{Type: v1alpha1.NeighborPropertyEBGPMultiHop}},
+				ConnectTimeSeconds:   new(int64(5)),
+				KeepaliveTimeSeconds: new(int64(3)),
+				HoldTimeSeconds:      new(int64(9)),
 			},
 		},
 		RouterIDCIDR: new("10.0.0.0/24"),
@@ -190,14 +211,20 @@ var UnderlayEVPNandSRv6 = v1alpha1.Underlay{
 		Neighbors: []v1alpha1.Neighbor{
 			// leafSRV6 - use automatically derived address families.
 			{
-				ASN:        new(int64(64520)),
-				Address:    new("2001:db8:1234::1"),
-				Properties: []v1alpha1.NeighborProperty{{Type: v1alpha1.NeighborPropertyEBGPMultiHop}},
+				ASN:                  new(int64(64520)),
+				Address:              new("2001:db8:1234::1"),
+				Properties:           []v1alpha1.NeighborProperty{{Type: v1alpha1.NeighborPropertyEBGPMultiHop}},
+				ConnectTimeSeconds:   new(int64(5)),
+				KeepaliveTimeSeconds: new(int64(3)),
+				HoldTimeSeconds:      new(int64(9)),
 			},
 			// leafkind
 			{
-				ASN:     new(int64(64512)),
-				Address: new("192.168.11.2"),
+				ASN:                  new(int64(64512)),
+				Address:              new("192.168.11.2"),
+				ConnectTimeSeconds:   new(int64(5)),
+				KeepaliveTimeSeconds: new(int64(3)),
+				HoldTimeSeconds:      new(int64(9)),
 			},
 		},
 		TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
