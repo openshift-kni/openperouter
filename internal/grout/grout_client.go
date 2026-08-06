@@ -36,6 +36,12 @@ type groutVXLANInfo struct {
 	VRF     string `json:"vrf"`
 }
 
+type groutInterfaceDetails struct {
+	groutInterface
+	Description string `json:"description"`
+	Devargs     string `json:"devargs"`
+}
+
 // NewClient creates a new grout client pointing at the given UNIX socket.
 func NewClient(socketPath string) *Client {
 	return &Client{socketPath: socketPath}
@@ -51,9 +57,10 @@ func (c *Client) deleteAddress(ctx context.Context, iface, addr string) error {
 
 // PortOptions holds optional parameters for DPDK port creation.
 type PortOptions struct {
-	MTU      *int32
-	RXQueues *int32
-	QSize    *int32
+	MTU         *int32
+	RXQueues    *int32
+	QSize       *int32
+	Description string
 }
 
 func (c *Client) ensurePort(ctx context.Context, name, devargs string) error {
@@ -79,6 +86,9 @@ func (c *Client) ensurePortWithOptions(ctx context.Context, name, devargs string
 	}
 	if opts.QSize != nil {
 		args = append(args, "qsize", fmt.Sprintf("%d", *opts.QSize))
+	}
+	if opts.Description != "" {
+		args = append(args, "description", opts.Description)
 	}
 
 	slog.InfoContext(ctx, "creating grout port", "name", name, "devargs", devargs, "opts", opts)
@@ -164,6 +174,18 @@ func (c *Client) listInterfaces(ctx context.Context) ([]groutInterface, error) {
 		return nil, fmt.Errorf("parsing interface list JSON: %w", err)
 	}
 	return ifaces, nil
+}
+
+func (c *Client) getInterfaceDetails(ctx context.Context, name string) (*groutInterfaceDetails, error) {
+	out, err := c.runOutput(ctx, "interface", "show", "name", name)
+	if err != nil {
+		return nil, fmt.Errorf("getting interface details for %s: %w", name, err)
+	}
+	var details groutInterfaceDetails
+	if err := json.Unmarshal([]byte(out), &details); err != nil {
+		return nil, fmt.Errorf("parsing interface details JSON for %s (raw %s): %w", name, out, err)
+	}
+	return &details, nil
 }
 
 // portExists checks whether a port with the given name exists in grout.
