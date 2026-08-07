@@ -25,9 +25,11 @@ import (
 )
 
 const (
-	// cniUnderlayInterfaceRenamed is used to exercise the in-place
+	lcUnderlayStaticInterface = "lc-static"
+	lcUnderlayDHCPInterface   = "lc-dhcp"
+	// cniUnderlayInterfaceRenamed is used to exercise the
 	// reprovisioning flow by changing the desired CNI interface name.
-	cniUnderlayInterfaceRenamed = "underlay1"
+	cniUnderlayInterfaceRenamed = "lc-rename"
 	// controllerLabelSelector selects the controller daemonset pods.
 	controllerLabelSelector = "app=controller"
 	// routerLabelSelector selects the router daemonset pods.
@@ -134,11 +136,11 @@ var _ = Describe("CNI underlay lifecycle", Ordered, func() {
 
 		Expect(infra.ConfigureLeafKind1ForCNIUnderlay(nodes)).To(Succeed())
 
-		err = Updater.Update(config.Resources{Underlays: infra.CNIUnderlaysForNodes(nodes, infra.CNIUnderlayInterface)})
+		err = Updater.Update(config.Resources{Underlays: infra.CNIUnderlaysForNodes(nodes, lcUnderlayStaticInterface)})
 		Expect(err).NotTo(HaveOccurred())
 
 		By("waiting for the CNI interfaces to be provisioned")
-		validateCNIInterfacesPresent(infra.CNIUnderlayInterface)
+		validateCNIInterfacesPresent(lcUnderlayStaticInterface)
 		By("checking the parent device stays in the host netns")
 		for _, node := range nodes {
 			Expect(openperouter.IsInterfaceInDefaultNetns(node.Name, "toswitch1")).To(BeTrue(),
@@ -168,7 +170,7 @@ var _ = Describe("CNI underlay lifecycle", Ordered, func() {
 	})
 
 	It("keeps the CNI interfaces when the controller pods are restarted", func() {
-		indexesBefore, err := cniInterfaceIndexes(nodes, infra.CNIUnderlayInterface)
+		indexesBefore, err := cniInterfaceIndexes(nodes, lcUnderlayStaticInterface)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("restarting the controllers")
@@ -176,7 +178,7 @@ var _ = Describe("CNI underlay lifecycle", Ordered, func() {
 
 		By("checking the interfaces are not reprovisioned by the fresh controllers")
 		Consistently(func() (map[string]string, error) {
-			return cniInterfaceIndexes(nodes, infra.CNIUnderlayInterface)
+			return cniInterfaceIndexes(nodes, lcUnderlayStaticInterface)
 		}, 30*time.Second, 5*time.Second).Should(Equal(indexesBefore),
 			"the interfaces should survive the controller restart untouched")
 
@@ -185,14 +187,14 @@ var _ = Describe("CNI underlay lifecycle", Ordered, func() {
 	})
 
 	It("keeps the CNI interfaces when the router pods are restarted", func() {
-		indexesBefore, err := cniInterfaceIndexes(nodes, infra.CNIUnderlayInterface)
+		indexesBefore, err := cniInterfaceIndexes(nodes, lcUnderlayStaticInterface)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("restarting the routers")
 		restartRouters()
 
 		By("checking the interfaces survived in the persistent netns")
-		indexesAfter, err := cniInterfaceIndexes(nodes, infra.CNIUnderlayInterface)
+		indexesAfter, err := cniInterfaceIndexes(nodes, lcUnderlayStaticInterface)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(indexesAfter).To(Equal(indexesBefore),
 			"the interfaces should survive the router restart untouched")
@@ -202,26 +204,26 @@ var _ = Describe("CNI underlay lifecycle", Ordered, func() {
 	})
 
 	It("reprovisions the CNI interface after external drift is caught by the next reconcile", func() {
-		indexesBefore, err := cniInterfaceIndexes(nodes, infra.CNIUnderlayInterface)
+		indexesBefore, err := cniInterfaceIndexes(nodes, lcUnderlayStaticInterface)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("deleting the CNI interface directly, behind the controller's back")
 		for _, node := range nodes {
 			exec := executor.ForContainer(node.Name)
-			_, err := exec.Exec("ip", "netns", "exec", openperouter.NamedNetns, "ip", "link", "del", infra.CNIUnderlayInterface)
+			_, err := exec.Exec("ip", "netns", "exec", openperouter.NamedNetns, "ip", "link", "del", lcUnderlayStaticInterface)
 			Expect(err).NotTo(HaveOccurred())
 		}
-		validateCNIInterfacesGone(infra.CNIUnderlayInterface)
 
 		// Reconciliation is event-driven, not on a timer: the dangling cache
-		// entry is only caught on the next reconcile. Restarting the
-		// controllers forces one without touching the Underlay.
+		// entry is only caught on the next reconcile which may or may not have
+		// been triggered at this point in time. Restarting the
+		// controllers forces a reconcile without touching the Underlay.
 		By("forcing a reconcile by restarting the controllers")
 		restartControllers()
 
 		By("checking cni check detects the drift and the interface is reprovisioned")
-		validateCNIInterfacesPresent(infra.CNIUnderlayInterface)
-		indexesAfter, err := cniInterfaceIndexes(nodes, infra.CNIUnderlayInterface)
+		validateCNIInterfacesPresent(lcUnderlayStaticInterface)
+		indexesAfter, err := cniInterfaceIndexes(nodes, lcUnderlayStaticInterface)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(indexesAfter).NotTo(Equal(indexesBefore),
 			"the interface should have been recreated with a new ifindex")
@@ -236,7 +238,7 @@ var _ = Describe("CNI underlay lifecycle", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		validateCNIInterfacesPresent(cniUnderlayInterfaceRenamed)
-		validateCNIInterfacesGone(infra.CNIUnderlayInterface)
+		validateCNIInterfacesGone(lcUnderlayStaticInterface)
 		validateSessionUp()
 	})
 
@@ -262,7 +264,7 @@ var _ = Describe("DHCP underlay lifecycle", Ordered, func() {
 			var ip string
 			Eventually(func(g Gomega) {
 				var err error
-				ip, err = infra.DHCPNeighborIP(node.Name, infra.CNIUnderlayInterface)
+				ip, err = infra.DHCPNeighborIP(node.Name, lcUnderlayDHCPInterface)
 				g.Expect(err).NotTo(HaveOccurred())
 			}, 3*time.Minute, time.Second).Should(Succeed())
 			validateSessionWithNeighbor(leafExec, validationParameters{
@@ -277,7 +279,7 @@ var _ = Describe("DHCP underlay lifecycle", Ordered, func() {
 	dhcpAddresses := func() (map[string]string, error) {
 		res := map[string]string{}
 		for _, node := range nodes {
-			ip, err := infra.DHCPNeighborIP(node.Name, infra.CNIUnderlayInterface)
+			ip, err := infra.DHCPNeighborIP(node.Name, lcUnderlayDHCPInterface)
 			if err != nil {
 				return nil, err
 			}
@@ -313,7 +315,7 @@ var _ = Describe("DHCP underlay lifecycle", Ordered, func() {
 		err := Updater.CleanAll()
 		Expect(err).NotTo(HaveOccurred())
 
-		err = Updater.Update(config.Resources{Underlays: infra.DHCPCNIUnderlaysForNodes(nodes, infra.CNIUnderlayInterface)})
+		err = Updater.Update(config.Resources{Underlays: infra.DHCPCNIUnderlaysForNodes(nodes, lcUnderlayDHCPInterface)})
 		Expect(err).NotTo(HaveOccurred())
 
 		By("waiting for DHCP addresses to be acquired")
@@ -323,7 +325,7 @@ var _ = Describe("DHCP underlay lifecycle", Ordered, func() {
 		}, 3*time.Minute, time.Second).Should(Succeed())
 
 		By("configuring leafkind1 with the DHCP-assigned addresses")
-		Expect(infra.ConfigureLeafKind1ForDHCPUnderlay(nodes, infra.CNIUnderlayInterface)).To(Succeed())
+		Expect(infra.ConfigureLeafKind1ForDHCPUnderlay(nodes, lcUnderlayDHCPInterface)).To(Succeed())
 
 		By("waiting for the sessions to be established")
 		validateDHCPSessionUp()
@@ -386,24 +388,23 @@ var _ = Describe("DHCP underlay lifecycle", Ordered, func() {
 		Expect(Updater.CleanAll()).To(Succeed())
 
 		for nodeName, nodeIP := range addrsBefore {
-			By(fmt.Sprintf("checking interface %q is gone from node %q", infra.CNIUnderlayInterface, nodeName))
+			By(fmt.Sprintf("checking interface %q is gone from node %q", lcUnderlayDHCPInterface, nodeName))
 			Eventually(func() bool {
-				return openperouter.IsInterfaceInNS(nodeName, infra.CNIUnderlayInterface, openperouter.NamedNetns)
+				return openperouter.IsInterfaceInNS(nodeName, lcUnderlayDHCPInterface, openperouter.NamedNetns)
 			}).
 				WithTimeout(time.Minute).
 				WithPolling(5*time.Second).
 				Should(BeFalse(),
 					fmt.Sprintf("interface %s should be gone from the router netns of %s",
-						infra.CNIUnderlayInterface, nodeName))
+						lcUnderlayDHCPInterface, nodeName))
 
-			// https://github.com/containernetworking/plugins/issues/1278
-			// DHCPRELEASE is sent with 0.0.0.0 source IP; dnsmasq ignores it
-			// and the lease remains valid until it expires.
-			// Once the upstream fix lands, change this to:
-			//   Expect(infra.DHCPServerLeaseValid(nodeIP)).To(MatchError(infra.ErrLeaseNotFound))
-			By(fmt.Sprintf("checking lease for IP %q on node %q is still valid (upstream bug #1278)", nodeIP, nodeName))
-			Expect(infra.DHCPServerLeaseValid(nodeIP)).To(Succeed(),
-				"lease should still be valid — upstream bug containernetworking/plugins#1278")
+			By(fmt.Sprintf("checking lease for IP %q on node %q is already cleaned", nodeIP, nodeName))
+			Eventually(func() error {
+				return infra.DHCPServerLeaseValid(nodeIP)
+			}).
+				WithTimeout(time.Minute).
+				WithPolling(5 * time.Second).
+				Should(MatchError(infra.ErrLeaseNotFound))
 		}
 	})
 })

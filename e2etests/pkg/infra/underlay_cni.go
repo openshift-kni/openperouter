@@ -19,10 +19,6 @@ import (
 )
 
 const (
-	// CNIUnderlayInterface is the name of the interface the CNI plugin
-	// creates inside the router netns for CNI provisioned underlays.
-	CNIUnderlayInterface = "underlay0"
-
 	// CNIUnderlayASN is the local AS number of the CNI provisioned underlays.
 	CNIUnderlayASN = 64514
 
