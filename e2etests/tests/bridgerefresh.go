@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	nad "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
@@ -213,6 +214,8 @@ var _ = Describe("BridgeRefresher E2E - Type 2 Route Persistence", Ordered, func
 	// In order to have a solid reproducer we need to ping the local gateway so the neighbor table is filled, and
 	// then trigger the migration to the other node.
 	Context("Pod migrates to a different node", func() {
+		var cancelIPNeighMonitorNodeSource, cancelIPNeighMonitorNodeDestination func() (string, error)
+
 		type migrationTestCase struct {
 			l2GatewayIP     string
 			migratingPodIP  string
@@ -291,6 +294,21 @@ var _ = Describe("BridgeRefresher E2E - Type 2 Route Persistence", Ordered, func
 
 				nodeSource := nodes[0]
 				nodeDestination := nodes[1]
+
+				By("Collecting ip neigh monitor during the test")
+				exec := executor.ForContainer(nodeSource.Name)
+				cancelIPNeighMonitorNodeSource = ipNeighMonitor(exec, openperouter.NamedNetns)
+				exec = executor.ForContainer(nodeDestination.Name)
+				cancelIPNeighMonitorNodeDestination = ipNeighMonitor(exec, openperouter.NamedNetns)
+				DeferCleanup(func() {
+					By("Printing ip neigh monitor output after the test for migration source node")
+					output, err := cancelIPNeighMonitorNodeSource()
+					fmt.Fprintf(GinkgoWriter, "ip neigh monitor output: %s; err: %q\n", output, err)
+
+					By("Printing ip neigh monitor output after the test for migration destination node")
+					output, err = cancelIPNeighMonitorNodeDestination()
+					fmt.Fprintf(GinkgoWriter, "ip neigh monitor output: %s; err: %q\n", output, err)
+				})
 
 				By(fmt.Sprintf("Creating stationary pod on migration destination node (%s)", nodeDestination.Name))
 				stationaryPod, err := k8s.CreateAgnhostPod(
@@ -439,4 +457,24 @@ func checkNeighborStale(cs clientset.Interface, podIP string, vni int, nodeName 
 		return nil
 	}
 	return fmt.Errorf("neighbor %s on %s in router %s is not STALE yet: %s", podIP, bridgeDev, exec.Name(), out)
+}
+
+func ipNeighMonitor(exec executor.ExecutorWithContext, namespace string) func() (string, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	var mu sync.Mutex
+	var output string
+	var err error
+	go func() {
+		mu.Lock()
+		defer mu.Unlock()
+		output, err = exec.CommandContext(ctx, "ip", "netns", "exec", namespace, "ip", "-ts", "monitor", "neigh")
+	}()
+
+	return func() (string, error) {
+		cancel()
+		mu.Lock()
+		defer mu.Unlock()
+		return output, err
+	}
 }
