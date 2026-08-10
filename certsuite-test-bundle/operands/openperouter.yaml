@@ -1,0 +1,13 @@
+# OpenPERouter CR for software-only certsuite testing.
+#
+# Creates the controller DaemonSet, router DaemonSet, and nodemarker
+# Deployment. runOnMaster is false so workloads schedule on worker-only
+# HyperShift EaaS guest clusters.
+apiVersion: network.openperouter.io/v1alpha1
+kind: OpenPERouter
+metadata:
+  name: openperouter
+  namespace: openperouter-system
+spec:
+  logLevel: info
+  runOnMaster: false
