@@ -7,7 +7,9 @@ apiVersion: network.openperouter.io/v1alpha1
 kind: OpenPERouter
 metadata:
   name: openperouter
-  namespace: openperouter-system
+  # Namespace omitted so `oc apply -n <install-ns>` from konflux-certsuite works.
+  # Target namespace comes from certsuite-test-bundle.yaml spec.namespace
+  # (openperouter-system).
 spec:
   logLevel: info
   runOnMaster: false
