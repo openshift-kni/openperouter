@@ -440,6 +440,7 @@ func TestReadRouterConfigsFromFiles(t *testing.T) {
 
 	if bgpPassthrough == nil {
 		t.Fatal("expected BGP passthrough configuration")
+		return
 	}
 	if !cmp.Equal(wantBGPPassthrough, *bgpPassthrough) {
 		t.Errorf("BGP passthrough mismatch (-want +got):\n%s", cmp.Diff(wantBGPPassthrough, *bgpPassthrough))

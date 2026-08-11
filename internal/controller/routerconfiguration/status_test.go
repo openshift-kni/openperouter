@@ -103,6 +103,7 @@ func TestBuildStatus(t *testing.T) {
 			ready := apimeta.FindStatusCondition(s.Conditions, v1alpha1.ConditionTypeReady)
 			if ready == nil {
 				t.Fatal("Ready condition not set")
+				return
 			}
 			if ready.Status != tt.expectedReady {
 				t.Errorf("Ready status = %s, want %s", ready.Status, tt.expectedReady)
@@ -117,6 +118,7 @@ func TestBuildStatus(t *testing.T) {
 			degraded := apimeta.FindStatusCondition(s.Conditions, v1alpha1.ConditionTypeDegraded)
 			if degraded == nil {
 				t.Fatal("Degraded condition not set")
+				return
 			}
 			if degraded.Status != tt.expectedDegraded {
 				t.Errorf("Degraded status = %s, want %s", degraded.Status, tt.expectedDegraded)
