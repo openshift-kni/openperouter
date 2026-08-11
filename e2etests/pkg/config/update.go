@@ -164,7 +164,7 @@ func (o Updater) CleanAll() error {
 		return err
 	}
 	if err := o.cli.DeleteAllOf(context.Background(), &corev1.Secret{},
-		client.InNamespace(o.namespace),
+		client.InNamespace(o.openpeNamespace),
 		client.MatchingLabels{k8s.TestSecretLabel: "true"}); err != nil {
 		return err
 	}

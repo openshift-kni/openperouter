@@ -1082,22 +1082,23 @@ func TestStaticConfigToAPIConfig_EmptyConfig(t *testing.T) {
 	}
 }
 
-func TestNeighborKey(t *testing.T) {
+func TestNeighborID(t *testing.T) {
 	tests := []struct {
 		name string
 		n    v1alpha1.Neighbor
 		want string
 	}{
-		{name: "address only", n: v1alpha1.Neighbor{Address: new("10.0.0.1")}, want: "addr:10.0.0.1"},
-		{name: "address with port", n: v1alpha1.Neighbor{Address: new("10.0.0.1"), Port: new(int32(1179))}, want: "addr:10.0.0.1"},
-		{name: "interface only", n: v1alpha1.Neighbor{Interface: new("eth0")}, want: "iface:eth0"},
-		{name: "interface with port", n: v1alpha1.Neighbor{Interface: new("eth0"), Port: new(int32(200))}, want: "iface:eth0"},
+		{name: "address only", n: v1alpha1.Neighbor{Address: new("10.0.0.1")}, want: "10.0.0.1"},
+		{name: "address with port", n: v1alpha1.Neighbor{Address: new("10.0.0.1"), Port: new(int32(1179))}, want: "10.0.0.1"},
+		{name: "interface only", n: v1alpha1.Neighbor{Interface: new("eth0")}, want: "eth0"},
+		{name: "interface with port", n: v1alpha1.Neighbor{Interface: new("eth0"), Port: new(int32(200))}, want: "eth0"},
+		{name: "listenRange", n: v1alpha1.Neighbor{ListenRange: new("10.0.0.0/24")}, want: "10.0.0.0/24"},
 		{name: "neither", n: v1alpha1.Neighbor{}, want: ""},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := neighborKey(&tt.n); got != tt.want {
-				t.Errorf("neighborKey() = %q, want %q", got, tt.want)
+			if got := conversion.NeighborID(tt.n); got != tt.want {
+				t.Errorf("NeighborID() = %q, want %q", got, tt.want)
 			}
 		})
 	}
@@ -1233,78 +1234,7 @@ func TestValidateStaticNeighbors(t *testing.T) {
 	})
 }
 
-func TestRestoreStaticPasswords(t *testing.T) {
-	tests := []struct {
-		name            string
-		neighbors       []v1alpha1.Neighbor
-		staticNeighbors []static.StaticNeighbor
-		wantPasswords   map[string]*string
-	}{
-		{
-			name: "restores password by address",
-			neighbors: []v1alpha1.Neighbor{
-				{Address: new("10.0.0.1")},
-			},
-			staticNeighbors: []static.StaticNeighbor{
-				{Neighbor: v1alpha1.Neighbor{Address: new("10.0.0.1")}, Password: new("secret")},
-			},
-			wantPasswords: map[string]*string{"10.0.0.1": new("secret")},
-		},
-		{
-			name: "no password stays nil",
-			neighbors: []v1alpha1.Neighbor{
-				{Address: new("10.0.0.1")},
-			},
-			staticNeighbors: []static.StaticNeighbor{
-				{Neighbor: v1alpha1.Neighbor{Address: new("10.0.0.1")}},
-			},
-			wantPasswords: map[string]*string{"10.0.0.1": nil},
-		},
-		{
-			name: "restores password by interface",
-			neighbors: []v1alpha1.Neighbor{
-				{Interface: new("eth0")},
-			},
-			staticNeighbors: []static.StaticNeighbor{
-				{Neighbor: v1alpha1.Neighbor{Interface: new("eth0")}, Password: new("ifacepw")},
-			},
-			wantPasswords: map[string]*string{"eth0": new("ifacepw")},
-		},
-		{
-			name: "multiple neighbors get correct passwords",
-			neighbors: []v1alpha1.Neighbor{
-				{Address: new("10.0.0.1")},
-				{Address: new("10.0.0.2")},
-			},
-			staticNeighbors: []static.StaticNeighbor{
-				{Neighbor: v1alpha1.Neighbor{Address: new("10.0.0.1")}, Password: new("pw1")},
-				{Neighbor: v1alpha1.Neighbor{Address: new("10.0.0.2")}, Password: new("pw2")},
-			},
-			wantPasswords: map[string]*string{
-				"10.0.0.1": new("pw1"),
-				"10.0.0.2": new("pw2"),
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			restoreStaticPasswords(tt.neighbors, tt.staticNeighbors)
-			for _, n := range tt.neighbors {
-				addr := neighborAddr(&n)
-				want := tt.wantPasswords[addr]
-				switch {
-				case want == nil && n.Password == nil:
-				case want == nil || n.Password == nil:
-					t.Errorf("neighbor %s: password = %v, want %v", addr, n.Password, want)
-				case *want != *n.Password:
-					t.Errorf("neighbor %s: password = %q, want %q", addr, *n.Password, *want)
-				}
-			}
-		})
-	}
-}
-
-func TestStaticConfigPasswordRoundTrip(t *testing.T) {
+func TestStaticConfigPasswordsMap(t *testing.T) {
 	cfg := &static.PERouterConfig{
 		Underlays: []static.StaticUnderlaySpec{
 			{
@@ -1316,8 +1246,15 @@ func TestStaticConfigPasswordRoundTrip(t *testing.T) {
 				},
 				Neighbors: []static.StaticNeighbor{
 					{
-						Neighbor: v1alpha1.Neighbor{ASN: new(int64(64512)), Address: new("192.168.11.2")},
-						Password: new("my-bgp-pass"),
+						Neighbor: v1alpha1.Neighbor{ASN: new(int64(64512)), Address: new("10.0.0.1")},
+						Password: new("pw1"),
+					},
+					{
+						Neighbor: v1alpha1.Neighbor{ASN: new(int64(64513)), Interface: new("eth1")},
+						Password: new("pw2"),
+					},
+					{
+						Neighbor: v1alpha1.Neighbor{ASN: new(int64(64514)), Address: new("10.0.0.3")},
 					},
 				},
 			},
@@ -1328,15 +1265,23 @@ func TestStaticConfigPasswordRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(result.Underlays) != 1 {
-		t.Fatalf("expected 1 underlay, got %d", len(result.Underlays))
+
+	wantPasswords := map[string]string{
+		"10.0.0.1": "pw1",
+		"eth1":     "pw2",
 	}
-	if len(result.Underlays[0].Spec.Neighbors) != 1 {
-		t.Fatalf("expected 1 neighbor, got %d", len(result.Underlays[0].Spec.Neighbors))
+	for key, want := range wantPasswords {
+		got, ok := result.Passwords[key]
+		if !ok {
+			t.Errorf("password for %q not found in Passwords map", key)
+			continue
+		}
+		if got != want {
+			t.Errorf("password for %q = %q, want %q", key, got, want)
+		}
 	}
-	pw := result.Underlays[0].Spec.Neighbors[0].Password
-	if pw == nil || *pw != "my-bgp-pass" {
-		t.Errorf("password not preserved through round-trip, got %v", pw)
+	if _, ok := result.Passwords["10.0.0.3"]; ok {
+		t.Error("neighbor without password should not be in Passwords map")
 	}
 }
 

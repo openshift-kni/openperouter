@@ -25,6 +25,7 @@ func TestResolvePasswordSecrets(t *testing.T) {
 		name              string
 		neighbors         []v1alpha1.Neighbor
 		secrets           []corev1.Secret
+		prePasswords      map[string]string
 		wantPassword      string
 		wantNeighborCount int
 		wantErrContains   string
@@ -52,11 +53,11 @@ func TestResolvePasswordSecrets(t *testing.T) {
 			name: "pre-resolved password preserved (systemd mode)",
 			neighbors: []v1alpha1.Neighbor{
 				{
-					Address:  new("192.168.1.2"),
-					ASN:      new(int64(64513)),
-					Password: new("inline-password"),
+					Address: new("192.168.1.2"),
+					ASN:     new(int64(64513)),
 				},
 			},
+			prePasswords:      map[string]string{"192.168.1.2": "inline-password"},
 			wantPassword:      "inline-password",
 			wantNeighborCount: 1,
 		},
@@ -249,6 +250,7 @@ func TestResolvePasswordSecrets(t *testing.T) {
 						},
 					},
 				},
+				Passwords: tt.prePasswords,
 			}
 
 			err := r.resolvePasswordSecrets(context.Background(), &config)
@@ -261,10 +263,7 @@ func TestResolvePasswordSecrets(t *testing.T) {
 			}
 
 			if tt.wantPassword != "" && len(neighbors) > 0 {
-				got := ""
-				if pw := neighbors[0].Password; pw != nil {
-					got = *pw
-				}
+				got := config.Passwords[*neighbors[0].Address]
 				if got != tt.wantPassword {
 					t.Errorf("password = %q, want %q", got, tt.wantPassword)
 				}

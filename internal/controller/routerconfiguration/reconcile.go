@@ -108,6 +108,7 @@ func Reconcile(ctx context.Context, apiConfig conversion.APIConfigData, nodeInde
 		L2VNIs:        validL2VNIs,
 		L3Passthrough: validPassthrough,
 		RawFRRConfigs: apiConfig.RawFRRConfigs,
+		Passwords:     apiConfig.Passwords,
 	}
 
 	// The FRR configuration must be applied before the datapath creates the kernel

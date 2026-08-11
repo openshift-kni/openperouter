@@ -62,11 +62,6 @@ type Neighbor struct {
 	// +kubebuilder:validation:Maximum=16384
 	Port *int32 `json:"port,omitempty"`
 
-	// Password is the resolved BGP session password, populated internally.
-	// Not part of the CRD API — Kubernetes users must use PasswordSecret.
-	// In systemd mode, set via the static config types.
-	Password *string `json:"-"`
-
 	// passwordSecret is name of the authentication secret for the neighbor.
 	// The secret must be of type "kubernetes.io/basic-auth", and created in the
 	// same namespace as the perouter daemon. The password is stored in the

@@ -845,11 +845,6 @@ func (in *Neighbor) DeepCopyInto(out *Neighbor) {
 		*out = new(int32)
 		**out = **in
 	}
-	if in.Password != nil {
-		in, out := &in.Password, &out.Password
-		*out = new(string)
-		**out = **in
-	}
 	if in.PasswordSecret != nil {
 		in, out := &in.PasswordSecret, &out.PasswordSecret
 		*out = new(string)
