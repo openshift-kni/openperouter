@@ -51,6 +51,10 @@ COPY systemdmode/frrconfig/daemons /etc/frr/daemons
 COPY systemdmode/frrconfig/vtysh.conf /etc/frr/vtysh.conf
 COPY systemdmode/frrconfig/frr.conf /etc/frr/frr.conf
 
+# Hack for https://github.com/FRRouting/frr/issues/20355
+#          https://github.com/FRRouting/frr/pull/20378
+COPY openshift/frr-reload.py.patched /usr/lib/frr/frr-reload.py
+
 LABEL com.redhat.component="openperouter" \
     name="openshift4-dev-preview-beta/openperouter-rhel9-operator" \
     summary="openperouter" \
