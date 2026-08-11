@@ -16,6 +16,7 @@ type APIConfigData struct {
 	L3VPNs        []v1alpha1.L3VPN
 	L3Passthrough []v1alpha1.L3Passthrough
 	RawFRRConfigs []v1alpha1.RawFRRConfig
+	Passwords     map[string]string
 }
 
 type HostConfigData struct {
@@ -45,6 +46,12 @@ func MergeAPIConfigs(configs ...APIConfigData) (APIConfigData, error) {
 		merged.L3VPNs = append(merged.L3VPNs, config.L3VPNs...)
 		merged.L3Passthrough = append(merged.L3Passthrough, config.L3Passthrough...)
 		merged.RawFRRConfigs = append(merged.RawFRRConfigs, config.RawFRRConfigs...)
+		for k, v := range config.Passwords {
+			if merged.Passwords == nil {
+				merged.Passwords = make(map[string]string)
+			}
+			merged.Passwords[k] = v
+		}
 	}
 
 	return merged, nil

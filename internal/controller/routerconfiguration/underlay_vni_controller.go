@@ -307,12 +307,20 @@ func (r *PERouterReconciler) getConfigFromAPI(ctx context.Context, logger *slog.
 }
 
 func (r *PERouterReconciler) resolvePasswordSecrets(ctx context.Context, config *conversion.APIConfigData) error {
+	if config.Passwords == nil {
+		config.Passwords = make(map[string]string)
+	}
 	var allErrors []error
 	for i := range config.Underlays {
 		underlay := &config.Underlays[i]
 		var validNeighbors []v1alpha1.Neighbor
 		for _, n := range underlay.Spec.Neighbors {
 			if n.PasswordSecret == nil || *n.PasswordSecret == "" {
+				validNeighbors = append(validNeighbors, n)
+				continue
+			}
+
+			if _, alreadyResolved := config.Passwords[conversion.NeighborID(n)]; alreadyResolved {
 				validNeighbors = append(validNeighbors, n)
 				continue
 			}
@@ -334,7 +342,7 @@ func (r *PERouterReconciler) resolvePasswordSecrets(ctx context.Context, config 
 				})
 				continue
 			}
-			n.Password = &password
+			config.Passwords[conversion.NeighborID(n)] = password
 			validNeighbors = append(validNeighbors, n)
 		}
 		underlay.Spec.Neighbors = validNeighbors

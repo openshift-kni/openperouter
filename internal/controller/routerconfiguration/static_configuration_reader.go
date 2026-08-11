@@ -69,7 +69,7 @@ func staticConfigToAPIConfig(staticConfig *static.PERouterConfig, nodeName, name
 		},
 	}
 
-	underlays, underlayErrs := staticUnderlaysToAPI(staticConfig.Underlays, nodeName, namespace, nodeSelector)
+	underlays, passwords, underlayErrs := staticUnderlaysToAPI(staticConfig.Underlays, nodeName, namespace, nodeSelector)
 	allErrors = append(allErrors, underlayErrs...)
 
 	staticName := func(name string) string {
@@ -228,6 +228,7 @@ func staticConfigToAPIConfig(staticConfig *static.PERouterConfig, nodeName, name
 		L3VPNs:        l3vpns,
 		L3Passthrough: l3passthrough,
 		RawFRRConfigs: rawFRRConfigs,
+		Passwords:     passwords,
 	}, nil
 }
 
@@ -282,14 +283,20 @@ func staticUnderlaysToAPI(
 	staticUnderlays []static.StaticUnderlaySpec,
 	nodeName, namespace string,
 	nodeSelector *metav1.LabelSelector,
-) ([]v1alpha1.Underlay, field.ErrorList) {
+) ([]v1alpha1.Underlay, map[string]string, field.ErrorList) {
 	var allErrors field.ErrorList
 	var underlays []v1alpha1.Underlay
+	passwords := make(map[string]string)
 	for i, staticUnderlay := range staticUnderlays {
 		neighborsPath := field.NewPath("underlays").Index(i).Child("neighbors")
 		if errs := validateStaticNeighbors(staticUnderlay.Neighbors, neighborsPath); len(errs) > 0 {
 			allErrors = append(allErrors, errs...)
 			continue
+		}
+		for _, sn := range staticUnderlay.Neighbors {
+			if sn.Password != nil {
+				passwords[conversion.NeighborID(sn.Neighbor)] = *sn.Password
+			}
 		}
 		spec := staticUnderlay.UnderlaySpec
 		spec.NodeSelector = nodeSelector
@@ -317,25 +324,9 @@ func staticUnderlaysToAPI(
 			allErrors = append(allErrors, errs...)
 			continue
 		}
-		restoreStaticPasswords(result.Spec.Neighbors, staticUnderlay.Neighbors)
 		underlays = append(underlays, *result)
 	}
-	return underlays, allErrors
-}
-
-// restoreStaticPasswords re-injects passwords from the static config into the
-// validated neighbors. The CRD round-trip strips Password (json:"-"), so we
-// match by address/interface identity rather than relying on index stability.
-func restoreStaticPasswords(neighbors []v1alpha1.Neighbor, staticNeighbors []static.StaticNeighbor) {
-	byKey := make(map[string]*string, len(staticNeighbors))
-	for _, sn := range staticNeighbors {
-		byKey[neighborKey(&sn.Neighbor)] = sn.Password
-	}
-	for i := range neighbors {
-		if pw, ok := byKey[neighborKey(&neighbors[i])]; ok {
-			neighbors[i].Password = pw
-		}
-	}
+	return underlays, passwords, allErrors
 }
 
 // validateStaticNeighbors validates neighbors from static (systemd) config.
@@ -348,7 +339,7 @@ func validateStaticNeighbors(staticNeighbors []static.StaticNeighbor, basePath *
 	for i := range staticNeighbors {
 		sn := &staticNeighbors[i]
 		p := basePath.Index(i)
-		key := neighborKey(&sn.Neighbor)
+		key := conversion.NeighborID(sn.Neighbor)
 		if key == "" {
 			return field.ErrorList{field.Invalid(p, nil, "neighbor has neither address nor interface")}
 		}
@@ -368,15 +359,4 @@ func validateStaticNeighbors(staticNeighbors []static.StaticNeighbor, basePath *
 		sn.PasswordSecret = nil
 	}
 	return nil
-}
-
-func neighborKey(n *v1alpha1.Neighbor) string {
-	switch {
-	case n.Address != nil:
-		return "addr:" + *n.Address
-	case n.Interface != nil:
-		return "iface:" + *n.Interface
-	default:
-		return ""
-	}
 }
