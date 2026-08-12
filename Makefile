@@ -472,7 +472,7 @@ generate-all-in-one: manifests kustomize ## Create manifests
 
 .PHONY: helm-docs
 helm-docs:
-	$(CONTAINER_ENGINE) run --rm -v $$(pwd):/app -w /app jnorwood/helm-docs:$(HELM_DOCS_VERSION) helm-docs
+	$(CONTAINER_ENGINE) run --rm -v $$(pwd):/app:Z -w /app jnorwood/helm-docs:$(HELM_DOCS_VERSION) helm-docs
 
 .PHONY: api-docs
 api-docs: crd-ref-docs
@@ -526,6 +526,10 @@ demo-metallb:
 .PHONY: demo-l2-evpn
 demo-l2:
 	examples/evpn/layer2/prepare.sh
+
+.PHONY: demo-route-reflector
+demo-route-reflector:
+	examples/evpn/route-reflector/prepare.sh
 
 .PHONY: demo-metallb-l3vpn
 demo-metallb-l3vpn:
