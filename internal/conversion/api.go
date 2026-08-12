@@ -4,6 +4,7 @@ package conversion
 
 import (
 	"errors"
+	"maps"
 
 	"github.com/openperouter/openperouter/api/v1alpha1"
 	"github.com/openperouter/openperouter/internal/hostnetwork"
@@ -37,6 +38,7 @@ func MergeAPIConfigs(configs ...APIConfigData) (APIConfigData, error) {
 		L2VNIs:        []v1alpha1.L2VNI{},
 		L3VPNs:        []v1alpha1.L3VPN{},
 		L3Passthrough: []v1alpha1.L3Passthrough{},
+		Passwords:     map[string]string{},
 	}
 
 	for _, config := range configs {
@@ -46,12 +48,7 @@ func MergeAPIConfigs(configs ...APIConfigData) (APIConfigData, error) {
 		merged.L3VPNs = append(merged.L3VPNs, config.L3VPNs...)
 		merged.L3Passthrough = append(merged.L3Passthrough, config.L3Passthrough...)
 		merged.RawFRRConfigs = append(merged.RawFRRConfigs, config.RawFRRConfigs...)
-		for k, v := range config.Passwords {
-			if merged.Passwords == nil {
-				merged.Passwords = make(map[string]string)
-			}
-			merged.Passwords[k] = v
-		}
+		maps.Copy(merged.Passwords, config.Passwords)
 	}
 
 	return merged, nil

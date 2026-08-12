@@ -34,11 +34,7 @@ router bgp {{ .ASN }}
  neighbor {{ .ID }} remote-as {{ $.PERouterASN }}
 {{- end }}
  neighbor {{ .ID }} timers connect 5
-{{- /* $.Password is the test-level password applied to all neighbors.
-       .Password is a per-neighbor override from the Neighbor struct. */ -}}
-{{- if $.Password }}
- neighbor {{ .ID }} password {{ $.Password }}
-{{- else if .Password }}
+{{- if .Password }}
  neighbor {{ .ID }} password {{ .Password }}
 {{- end }}
 {{- if $.EnableBFD }}

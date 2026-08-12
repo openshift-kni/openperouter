@@ -6,12 +6,11 @@ import (
 	"context"
 
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
 )
 
-const TestSecretLabel = "openperouter.io/test-resource"
+const testSecretLabel = "openperouter.io/test-resource"
 
 func CreateBasicAuthSecret(cs clientset.Interface, name, namespace, password string) error {
 	secret := corev1.Secret{
@@ -19,7 +18,7 @@ func CreateBasicAuthSecret(cs clientset.Interface, name, namespace, password str
 			Name:      name,
 			Namespace: namespace,
 			Labels: map[string]string{
-				TestSecretLabel: "true",
+				testSecretLabel: "true",
 			},
 		},
 		Type: corev1.SecretTypeBasicAuth,
@@ -41,10 +40,10 @@ func UpdateBasicAuthSecret(cs clientset.Interface, name, namespace, password str
 	return err
 }
 
-func RemoveSecret(cs clientset.Interface, name, namespace string) error {
-	err := cs.CoreV1().Secrets(namespace).Delete(context.Background(), name, metav1.DeleteOptions{})
-	if err != nil && !apierrors.IsNotFound(err) {
-		return err
-	}
-	return nil
+func RemoveAllBasicAuthSecrets(cs clientset.Interface, namespace string) error {
+	return cs.CoreV1().Secrets(namespace).DeleteCollection(
+		context.Background(),
+		metav1.DeleteOptions{},
+		metav1.ListOptions{LabelSelector: testSecretLabel + "=true"},
+	)
 }

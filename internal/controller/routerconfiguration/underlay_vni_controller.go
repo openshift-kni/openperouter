@@ -30,7 +30,6 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -330,14 +329,14 @@ func (r *PERouterReconciler) resolvePasswordSecrets(ctx context.Context, config 
 				var statusErr *apierrors.StatusError
 				if errors.As(err, &statusErr) && !apierrors.IsNotFound(err) {
 					return fmt.Errorf("failed to get password secret %q for neighbor %s: %w",
-						*n.PasswordSecret, neighborAddr(&n), err)
+						*n.PasswordSecret, conversion.NeighborID(n), err)
 				}
 				allErrors = append(allErrors, &openpeerrors.ResourceError{
 					Obj: v1alpha1.FailedResource{
 						Kind:    openpeerrors.KindUnderlay,
 						Name:    underlay.Name,
 						Reason:  v1alpha1.FailedResourceReasonValidationFailed,
-						Message: fmt.Sprintf("neighbor %s: %s", neighborAddr(&n), err),
+						Message: fmt.Sprintf("neighbor %s: %s", conversion.NeighborID(n), err),
 					},
 				})
 				continue
@@ -368,16 +367,6 @@ func (r *PERouterReconciler) fetchPasswordFromSecret(ctx context.Context, secret
 		return "", fmt.Errorf("password from secret %q: %w", secretName, err)
 	}
 	return resolved, nil
-}
-
-func neighborAddr(n *v1alpha1.Neighbor) string {
-	if n.Address != nil {
-		return *n.Address
-	}
-	if n.Interface != nil {
-		return *n.Interface
-	}
-	return "<unknown>"
 }
 
 const maxPasswordLength = 80
@@ -455,10 +444,6 @@ func (r *PERouterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 
-	filterSecretsInNamespace := predicate.NewPredicateFuncs(func(object client.Object) bool {
-		return object.GetNamespace() == r.MyNamespace
-	})
-
 	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.Underlay{}).
 		Watches(&v1.Node{}, &handler.EnqueueRequestForObject{}).
@@ -469,8 +454,7 @@ func (r *PERouterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(&v1alpha1.L3Passthrough{}, &handler.EnqueueRequestForObject{}).
 		Watches(&v1alpha1.RawFRRConfig{}, &handler.EnqueueRequestForObject{}).
 		Watches(&v1alpha1.RouterNodeConfigurationStatus{}, &handler.EnqueueRequestForObject{}).
-		Watches(&v1.Secret{}, &handler.EnqueueRequestForObject{},
-			builder.WithPredicates(filterSecretsInNamespace)).
+		Watches(&v1.Secret{}, &handler.EnqueueRequestForObject{}).
 		WithEventFilter(filterNonRouterPods).
 		WithEventFilter(filterLocalNodeStatus).
 		WithEventFilter(filterUpdates).
