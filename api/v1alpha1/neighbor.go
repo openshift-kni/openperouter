@@ -62,18 +62,10 @@ type Neighbor struct {
 	// +kubebuilder:validation:Maximum=16384
 	Port *int32 `json:"port,omitempty"`
 
-	// password to be used for establishing the BGP session.
-	// Password and PasswordSecret are mutually exclusive.
-	// +kubebuilder:validation:MaxLength=128
-	// +kubebuilder:validation:Pattern=`^\S+$`
-	// +optional
-	Password *string `json:"password,omitempty"`
-
 	// passwordSecret is name of the authentication secret for the neighbor.
-	// the secret must be of type "kubernetes.io/basic-auth", and created in the
+	// The secret must be of type "kubernetes.io/basic-auth", and created in the
 	// same namespace as the perouter daemon. The password is stored in the
 	// secret as the key "password".
-	// Password and PasswordSecret are mutually exclusive.
 	// +optional
 	PasswordSecret *string `json:"passwordSecret,omitempty"`
 

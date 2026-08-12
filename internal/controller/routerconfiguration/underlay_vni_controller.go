@@ -21,11 +21,14 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"regexp"
 	"time"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -125,6 +128,11 @@ func (r *PERouterReconciler) reconcile(ctx context.Context, logger *slog.Logger)
 		}
 	}
 
+	secretErr := r.resolvePasswordSecrets(ctx, &config)
+	if openpeerrors.IsNonResourceError(secretErr) {
+		return ctrl.Result{}, fmt.Errorf("failed to resolve password secrets: %w", secretErr)
+	}
+
 	router, err := r.RouterProvider.New(ctx)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to get router pod instance: %w", err)
@@ -151,13 +159,15 @@ func (r *PERouterReconciler) reconcile(ctx context.Context, logger *slog.Logger)
 		return ctrl.Result{}, err
 	}
 
-	err = Reconcile(ctx, config, nodeIndex, r.LogLevel, r.FRRConfigPath, targetNS, updater,
+	reconcileErr := Reconcile(ctx, config, nodeIndex, r.LogLevel, r.FRRConfigPath, targetNS, updater,
 		r.DatapathConfigurator, configureFRR)
-	if err != nil {
-		logger.Error("failed to reconcile host configuration", "error", err)
-		return ctrl.Result{}, err
+	if reconcileErr != nil {
+		logger.Error("failed to reconcile host configuration", "error", reconcileErr)
 	}
 
+	if err := errors.Join(secretErr, reconcileErr); err != nil {
+		return ctrl.Result{}, err
+	}
 	return ctrl.Result{}, nil
 }
 
@@ -276,7 +286,12 @@ func (r *PERouterReconciler) getConfigFromAPI(ctx context.Context, logger *slog.
 		logger.Info("RawFRRConfig is applied, but please note that this feature is for experimentation only and not supported")
 	}
 
-	logger.Debug("using config", "l3vnis", l3vnis.Items, "l2vnis", l2vnis.Items, "underlays", underlays.Items, "l3passthrough", l3passthrough.Items, "rawfrrconfigs", rawFRRConfigs.Items)
+	logger.Debug("using config",
+		"underlays", len(filteredUnderlays),
+		"l3vnis", l3vnis.Items,
+		"l2vnis", l2vnis.Items,
+		"l3passthrough", l3passthrough.Items,
+		"rawfrrconfigs", rawFRRConfigs.Items)
 
 	apiConfig := conversion.APIConfigData{
 		Underlays:     filteredUnderlays,
@@ -288,6 +303,84 @@ func (r *PERouterReconciler) getConfigFromAPI(ctx context.Context, logger *slog.
 	}
 
 	return apiConfig, nil
+}
+
+func (r *PERouterReconciler) resolvePasswordSecrets(ctx context.Context, config *conversion.APIConfigData) error {
+	if config.Passwords == nil {
+		config.Passwords = make(map[string]string)
+	}
+	var allErrors []error
+	for i := range config.Underlays {
+		underlay := &config.Underlays[i]
+		var validNeighbors []v1alpha1.Neighbor
+		for _, n := range underlay.Spec.Neighbors {
+			if n.PasswordSecret == nil || *n.PasswordSecret == "" {
+				validNeighbors = append(validNeighbors, n)
+				continue
+			}
+
+			if _, alreadyResolved := config.Passwords[conversion.NeighborID(n)]; alreadyResolved {
+				validNeighbors = append(validNeighbors, n)
+				continue
+			}
+
+			password, err := r.fetchPasswordFromSecret(ctx, *n.PasswordSecret)
+			if err != nil {
+				var statusErr *apierrors.StatusError
+				if errors.As(err, &statusErr) && !apierrors.IsNotFound(err) {
+					return fmt.Errorf("failed to get password secret %q for neighbor %s: %w",
+						*n.PasswordSecret, conversion.NeighborID(n), err)
+				}
+				allErrors = append(allErrors, &openpeerrors.ResourceError{
+					Obj: v1alpha1.FailedResource{
+						Kind:    openpeerrors.KindUnderlay,
+						Name:    underlay.Name,
+						Reason:  v1alpha1.FailedResourceReasonValidationFailed,
+						Message: fmt.Sprintf("neighbor %s: %s", conversion.NeighborID(n), err),
+					},
+				})
+				continue
+			}
+			config.Passwords[conversion.NeighborID(n)] = password
+			validNeighbors = append(validNeighbors, n)
+		}
+		underlay.Spec.Neighbors = validNeighbors
+	}
+	return errors.Join(allErrors...)
+}
+
+func (r *PERouterReconciler) fetchPasswordFromSecret(ctx context.Context, secretName string) (string, error) {
+	secret := &v1.Secret{}
+	key := types.NamespacedName{Name: secretName, Namespace: r.MyNamespace}
+	if err := r.Get(ctx, key, secret); err != nil {
+		return "", err
+	}
+	if secret.Type != v1.SecretTypeBasicAuth {
+		return "", fmt.Errorf("secret %q has type %q, expected %q", secretName, secret.Type, v1.SecretTypeBasicAuth)
+	}
+	pw, ok := secret.Data["password"]
+	if !ok {
+		return "", fmt.Errorf("secret %q missing key %q", secretName, "password")
+	}
+	resolved := string(pw)
+	if err := validatePassword(resolved); err != nil {
+		return "", fmt.Errorf("password from secret %q: %w", secretName, err)
+	}
+	return resolved, nil
+}
+
+const maxPasswordLength = 80
+
+var validPasswordPattern = regexp.MustCompile(`^\S+$`)
+
+func validatePassword(password string) error {
+	if len(password) > maxPasswordLength {
+		return fmt.Errorf("exceeds maximum length %d", maxPasswordLength)
+	}
+	if !validPasswordPattern.MatchString(password) {
+		return errors.New("contains whitespace or is empty")
+	}
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -361,6 +454,7 @@ func (r *PERouterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(&v1alpha1.L3Passthrough{}, &handler.EnqueueRequestForObject{}).
 		Watches(&v1alpha1.RawFRRConfig{}, &handler.EnqueueRequestForObject{}).
 		Watches(&v1alpha1.RouterNodeConfigurationStatus{}, &handler.EnqueueRequestForObject{}).
+		Watches(&v1.Secret{}, &handler.EnqueueRequestForObject{}).
 		WithEventFilter(filterNonRouterPods).
 		WithEventFilter(filterLocalNodeStatus).
 		WithEventFilter(filterUpdates).

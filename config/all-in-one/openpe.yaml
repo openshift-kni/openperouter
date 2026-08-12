@@ -1621,20 +1621,12 @@ spec:
                         rule: isCIDR(self)
                       - message: listenRange must not be an IPv6 link-local range
                         rule: '!isCIDR(self) || cidr(self).ip().family() != 6 || !cidr(self).ip().isLinkLocalUnicast()'
-                    password:
-                      description: |-
-                        password to be used for establishing the BGP session.
-                        Password and PasswordSecret are mutually exclusive.
-                      maxLength: 128
-                      pattern: ^\S+$
-                      type: string
                     passwordSecret:
                       description: |-
                         passwordSecret is name of the authentication secret for the neighbor.
-                        the secret must be of type "kubernetes.io/basic-auth", and created in the
+                        The secret must be of type "kubernetes.io/basic-auth", and created in the
                         same namespace as the perouter daemon. The password is stored in the
                         secret as the key "password".
-                        Password and PasswordSecret are mutually exclusive.
                       type: string
                     port:
                       description: |-

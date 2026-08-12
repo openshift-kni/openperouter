@@ -159,10 +159,7 @@ func (o Updater) CleanAll() error {
 		client.InNamespace(o.openpeNamespace)); err != nil {
 		return err
 	}
-	if err := o.CleanButUnderlay(); err != nil {
-		return err
-	}
-	return nil
+	return o.CleanButUnderlay()
 }
 
 // CleanButUnderlay deletes all resources but the underlays.

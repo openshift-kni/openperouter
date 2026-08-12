@@ -14,6 +14,7 @@ import (
 	"github.com/openperouter/openperouter/api/v1alpha1"
 	"github.com/openperouter/openperouter/internal/conversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 )
 
@@ -508,6 +509,7 @@ func TestReadStaticConfigs_ExistingTestdata(t *testing.T) {
 				},
 			},
 		},
+		Passwords: map[string]string{},
 	}
 
 	if diff := cmp.Diff(expected, apiConfig); diff != "" {
@@ -813,29 +815,33 @@ func writeYAMLFile(t *testing.T, dir, filename, content string) {
 
 func TestStaticConfigToAPIConfig_WithNodeName(t *testing.T) {
 	cfg := &static.PERouterConfig{
-		Underlays: []v1alpha1.UnderlaySpec{
+		Underlays: []static.StaticUnderlaySpec{
 			{
-				ASN: 64514,
-				Interfaces: []v1alpha1.UnderlayInterface{
-					{
-						Type:          "NetworkDevice",
-						NetworkDevice: &v1alpha1.NetworkDevice{InterfaceName: "eth0"},
+				UnderlaySpec: v1alpha1.UnderlaySpec{
+					ASN: 64514,
+					Interfaces: []v1alpha1.UnderlayInterface{
+						{
+							Type:          "NetworkDevice",
+							NetworkDevice: &v1alpha1.NetworkDevice{InterfaceName: "eth0"},
+						},
 					},
 				},
-				Neighbors: []v1alpha1.Neighbor{
-					{ASN: new(int64(64512)), Address: new("192.168.11.2")},
+				Neighbors: []static.StaticNeighbor{
+					{Neighbor: v1alpha1.Neighbor{ASN: new(int64(64512)), Address: new("192.168.11.2")}},
 				},
 			},
 			{
-				ASN: 64515,
-				Interfaces: []v1alpha1.UnderlayInterface{
-					{
-						Type:          "NetworkDevice",
-						NetworkDevice: &v1alpha1.NetworkDevice{InterfaceName: "eth1"},
+				UnderlaySpec: v1alpha1.UnderlaySpec{
+					ASN: 64515,
+					Interfaces: []v1alpha1.UnderlayInterface{
+						{
+							Type:          "NetworkDevice",
+							NetworkDevice: &v1alpha1.NetworkDevice{InterfaceName: "eth1"},
+						},
 					},
 				},
-				Neighbors: []v1alpha1.Neighbor{
-					{ASN: new(int64(64513)), Address: new("192.168.11.3")},
+				Neighbors: []static.StaticNeighbor{
+					{Neighbor: v1alpha1.Neighbor{ASN: new(int64(64513)), Address: new("192.168.11.3")}},
 				},
 			},
 		},
@@ -973,18 +979,20 @@ func TestStaticConfigToAPIConfig_L3PassthroughSkippedWhenZeroASN(t *testing.T) {
 
 func TestStaticConfigToAPIConfig_PreservesSpecFields(t *testing.T) {
 	cfg := &static.PERouterConfig{
-		Underlays: []v1alpha1.UnderlaySpec{
+		Underlays: []static.StaticUnderlaySpec{
 			{
-				ASN:          64514,
-				RouterIDCIDR: new("10.0.0.0/24"),
-				Interfaces: []v1alpha1.UnderlayInterface{
-					{
-						Type:          "NetworkDevice",
-						NetworkDevice: &v1alpha1.NetworkDevice{InterfaceName: "eth0"},
+				UnderlaySpec: v1alpha1.UnderlaySpec{
+					ASN:          64514,
+					RouterIDCIDR: new("10.0.0.0/24"),
+					Interfaces: []v1alpha1.UnderlayInterface{
+						{
+							Type:          "NetworkDevice",
+							NetworkDevice: &v1alpha1.NetworkDevice{InterfaceName: "eth0"},
+						},
 					},
 				},
-				Neighbors: []v1alpha1.Neighbor{
-					{ASN: new(int64(64512)), Address: new("192.168.11.2")},
+				Neighbors: []static.StaticNeighbor{
+					{Neighbor: v1alpha1.Neighbor{ASN: new(int64(64512)), Address: new("192.168.11.2")}},
 				},
 			},
 		},
@@ -1072,5 +1080,223 @@ func TestStaticConfigToAPIConfig_EmptyConfig(t *testing.T) {
 	}
 	if len(result.RawFRRConfigs) != 0 {
 		t.Errorf("expected 0 rawfrrconfigs, got %d", len(result.RawFRRConfigs))
+	}
+}
+
+func TestValidateStaticNeighbors(t *testing.T) {
+	basePath := field.NewPath("underlays").Index(0).Child("neighbors")
+
+	tests := []struct {
+		name            string
+		neighbors       []static.StaticNeighbor
+		wantErrContains string
+	}{
+		{
+			name: "valid neighbor without password",
+			neighbors: []static.StaticNeighbor{
+				{Neighbor: v1alpha1.Neighbor{Address: new("10.0.0.1"), ASN: new(int64(64512))}},
+			},
+		},
+		{
+			name: "valid neighbor with password",
+			neighbors: []static.StaticNeighbor{
+				{
+					Neighbor: v1alpha1.Neighbor{Address: new("10.0.0.1"), ASN: new(int64(64512))},
+					Password: new("validpass"),
+				},
+			},
+		},
+		{
+			name: "password too long",
+			neighbors: []static.StaticNeighbor{
+				{
+					Neighbor: v1alpha1.Neighbor{Address: new("10.0.0.1"), ASN: new(int64(64512))},
+					Password: new(strings.Repeat("a", 81)),
+				},
+			},
+			wantErrContains: "maximum length",
+		},
+		{
+			name: "password with newline",
+			neighbors: []static.StaticNeighbor{
+				{
+					Neighbor: v1alpha1.Neighbor{Address: new("10.0.0.1"), ASN: new(int64(64512))},
+					Password: new("x\n  redistribute connected"),
+				},
+			},
+			wantErrContains: "whitespace",
+		},
+		{
+			name: "password with space",
+			neighbors: []static.StaticNeighbor{
+				{
+					Neighbor: v1alpha1.Neighbor{Address: new("10.0.0.1"), ASN: new(int64(64512))},
+					Password: new("pass word"),
+				},
+			},
+			wantErrContains: "whitespace",
+		},
+		{
+			name: "duplicate address",
+			neighbors: []static.StaticNeighbor{
+				{Neighbor: v1alpha1.Neighbor{Address: new("10.0.0.1"), ASN: new(int64(64512))}},
+				{Neighbor: v1alpha1.Neighbor{Address: new("10.0.0.1"), ASN: new(int64(64513))}},
+			},
+			wantErrContains: "duplicate",
+		},
+		{
+			name: "same address different ports is duplicate",
+			neighbors: []static.StaticNeighbor{
+				{Neighbor: v1alpha1.Neighbor{Address: new("10.0.0.1"), ASN: new(int64(64512)), Port: new(int32(179))}},
+				{Neighbor: v1alpha1.Neighbor{Address: new("10.0.0.1"), ASN: new(int64(64513)), Port: new(int32(1179))}},
+			},
+			wantErrContains: "duplicate",
+		},
+		{
+			name: "nil address and interface",
+			neighbors: []static.StaticNeighbor{
+				{Neighbor: v1alpha1.Neighbor{ASN: new(int64(64512))}},
+			},
+			wantErrContains: "neither address nor interface",
+		},
+		{
+			name: "password clears passwordSecret",
+			neighbors: []static.StaticNeighbor{
+				{
+					Neighbor: v1alpha1.Neighbor{
+						Address:        new("10.0.0.1"),
+						ASN:            new(int64(64512)),
+						PasswordSecret: new("my-secret"),
+					},
+					Password: new("staticpass"),
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			errs := validateStaticNeighbors(tt.neighbors, basePath)
+			if tt.wantErrContains != "" {
+				if len(errs) == 0 {
+					t.Fatal("expected validation error, got none")
+				}
+				if !strings.Contains(errs.ToAggregate().Error(), tt.wantErrContains) {
+					t.Errorf("expected error containing %q, got %q", tt.wantErrContains, errs.ToAggregate().Error())
+				}
+				return
+			}
+			if len(errs) > 0 {
+				t.Fatalf("unexpected errors: %v", errs.ToAggregate())
+			}
+		})
+	}
+
+	// Verify passwordSecret was cleared when password takes priority.
+	t.Run("verify passwordSecret cleared", func(t *testing.T) {
+		neighbors := []static.StaticNeighbor{
+			{
+				Neighbor: v1alpha1.Neighbor{
+					Address:        new("10.0.0.1"),
+					ASN:            new(int64(64512)),
+					PasswordSecret: new("my-secret"),
+				},
+				Password: new("staticpass"),
+			},
+		}
+		errs := validateStaticNeighbors(neighbors, basePath)
+		if len(errs) > 0 {
+			t.Fatalf("unexpected errors: %v", errs.ToAggregate())
+		}
+		if neighbors[0].PasswordSecret != nil {
+			t.Error("expected PasswordSecret to be cleared, got non-nil")
+		}
+	})
+}
+
+func TestStaticConfigPasswordsMap(t *testing.T) {
+	cfg := &static.PERouterConfig{
+		Underlays: []static.StaticUnderlaySpec{
+			{
+				UnderlaySpec: v1alpha1.UnderlaySpec{
+					ASN: 64514,
+					Interfaces: []v1alpha1.UnderlayInterface{
+						{Type: "NetworkDevice", NetworkDevice: &v1alpha1.NetworkDevice{InterfaceName: "eth0"}},
+					},
+				},
+				Neighbors: []static.StaticNeighbor{
+					{
+						Neighbor: v1alpha1.Neighbor{ASN: new(int64(64512)), Address: new("10.0.0.1")},
+						Password: new("pw1"),
+					},
+					{
+						Neighbor: v1alpha1.Neighbor{ASN: new(int64(64513)), Interface: new("eth1")},
+						Password: new("pw2"),
+					},
+					{
+						Neighbor: v1alpha1.Neighbor{ASN: new(int64(64514)), Address: new("10.0.0.3")},
+					},
+				},
+			},
+		},
+	}
+
+	result, err := staticConfigToAPIConfig(cfg, "worker-1", "openperouter-system")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	wantPasswords := map[string]string{
+		"10.0.0.1": "pw1",
+		"eth1":     "pw2",
+	}
+	for key, want := range wantPasswords {
+		got, ok := result.Passwords[key]
+		if !ok {
+			t.Errorf("password for %q not found in Passwords map", key)
+			continue
+		}
+		if got != want {
+			t.Errorf("password for %q = %q, want %q", key, got, want)
+		}
+	}
+	if _, ok := result.Passwords["10.0.0.3"]; ok {
+		t.Error("neighbor without password should not be in Passwords map")
+	}
+}
+
+func TestStaticConfigInvalidPassword(t *testing.T) {
+	tests := []struct {
+		name     string
+		password string
+	}{
+		{name: "newline injection", password: "x\n  redistribute connected"},
+		{name: "too long", password: strings.Repeat("a", 81)},
+		{name: "contains space", password: "pass word"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &static.PERouterConfig{
+				Underlays: []static.StaticUnderlaySpec{
+					{
+						UnderlaySpec: v1alpha1.UnderlaySpec{
+							ASN: 64514,
+							Interfaces: []v1alpha1.UnderlayInterface{
+								{Type: "NetworkDevice", NetworkDevice: &v1alpha1.NetworkDevice{InterfaceName: "eth0"}},
+							},
+						},
+						Neighbors: []static.StaticNeighbor{
+							{
+								Neighbor: v1alpha1.Neighbor{ASN: new(int64(64512)), Address: new("192.168.11.2")},
+								Password: new(tt.password),
+							},
+						},
+					},
+				},
+			}
+			_, err := staticConfigToAPIConfig(cfg, "worker-1", "ns")
+			if err == nil {
+				t.Fatal("expected error for invalid password, got nil")
+			}
+		})
 	}
 }
