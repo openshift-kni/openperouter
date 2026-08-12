@@ -263,7 +263,7 @@ func TestResolvePasswordSecrets(t *testing.T) {
 			}
 
 			if tt.wantPassword != "" && len(neighbors) > 0 {
-				got := config.Passwords[*neighbors[0].Address]
+				got := config.Passwords[conversion.NeighborID(neighbors[0])]
 				if got != tt.wantPassword {
 					t.Errorf("password = %q, want %q", got, tt.wantPassword)
 				}

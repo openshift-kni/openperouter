@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 
 	"github.com/openperouter/openperouter/internal/conversion"
 	"github.com/openperouter/openperouter/internal/frr"
@@ -33,9 +34,21 @@ func configureFRR(ctx context.Context, data frrConfigData) error {
 		return fmt.Errorf("failed to generate the frr configuration: %w", err)
 	}
 
+	previousConfig, prevErr := os.ReadFile(data.configFile)
 	err = frr.ApplyConfig(ctx, &frrConfig, data.updater)
 	if err != nil {
 		return fmt.Errorf("failed to update the frr configuration: %w", err)
+	}
+	newConfig, newErr := os.ReadFile(data.configFile)
+	if newErr != nil {
+		slog.WarnContext(ctx, "failed to read FRR config after update", "error", newErr)
+		return nil
+	}
+	if prevErr != nil {
+		slog.InfoContext(ctx, "no previous FRR config to compare", "error", prevErr)
+	}
+	if prevErr != nil || string(previousConfig) != string(newConfig) {
+		slog.InfoContext(ctx, "FRR configuration updated", "config", frr.RedactPasswords(string(newConfig)))
 	}
 	return nil
 }

@@ -246,6 +246,7 @@ func (l LeafKind) UpdateConfig(nodes []corev1.Node, config LeafKindConfiguration
 		if err != nil {
 			return err
 		}
+		neighbor.Password = config.Password
 		neighbors = append(neighbors, neighbor)
 	}
 	config.Neighbors = neighbors

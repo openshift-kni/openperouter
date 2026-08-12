@@ -23,16 +23,16 @@ import (
 
 var _ = Describe("Neighbor passwordSecret", Ordered, func() {
 	const (
-		bgpPassword = "TestBGPSecret123"
-		secretName  = "bgp-auth-test"
+		bgpPassword     = "TestBGPSecret123"
+		rotatedPassword = "RotatedSecret456"
+		secretName      = "bgp-auth-test"
 	)
 
 	var cs clientset.Interface
 	nodes := []corev1.Node{}
 
 	BeforeAll(func() {
-		err := Updater.CleanAll()
-		Expect(err).NotTo(HaveOccurred())
+		Expect(Updater.CleanAll()).To(Succeed())
 		cs = k8sclient.New()
 		nodesItems, err := cs.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 		Expect(err).NotTo(HaveOccurred())
@@ -40,8 +40,12 @@ var _ = Describe("Neighbor passwordSecret", Ordered, func() {
 	})
 
 	AfterAll(func() {
-		err := Updater.CleanAll()
-		Expect(err).NotTo(HaveOccurred())
+		dumpIfFails(cs)
+		Expect(k8s.RemoveAllBasicAuthSecrets(cs, openperouter.Namespace)).To(Succeed())
+		Expect(Updater.CleanAll()).To(Succeed())
+
+		By("resetting leaf switches to no password")
+		Expect(infra.LeafKind1Config.UpdateConfig(nodes, infra.LeafKindConfiguration{})).To(Succeed())
 
 		By("waiting for the underlay to be removed from all nodes")
 		for _, node := range nodes {
@@ -53,18 +57,7 @@ var _ = Describe("Neighbor passwordSecret", Ordered, func() {
 		}
 	})
 
-	AfterEach(func() {
-		dumpIfFails(cs)
-		err := Updater.CleanAll()
-		Expect(err).NotTo(HaveOccurred())
-
-		By("resetting leaf switches to no password")
-		Expect(infra.LeafKind1Config.UpdateConfig(nodes, infra.LeafKindConfiguration{})).To(Succeed())
-	})
-
 	It("should resolve password from Secret and re-establish after rotation", func() {
-		const rotatedPassword = "RotatedSecret456"
-
 		By("creating a basic-auth Secret with the BGP password")
 		Expect(
 			k8s.CreateBasicAuthSecret(cs, secretName, openperouter.Namespace, bgpPassword),

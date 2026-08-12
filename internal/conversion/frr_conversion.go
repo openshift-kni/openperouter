@@ -219,10 +219,10 @@ func neighborsToFRR(apiNeighbors []v1alpha1.Neighbor, segmentRouting *frr.Underl
 			l3passthroughs,
 			tunnelEndpoint,
 			segmentRouting,
-			passwords[neighborID(n)],
+			passwords[NeighborID(n)],
 		)
 		if err != nil {
-			return nil, fmt.Errorf("failed to translate underlay neighbor %s to frr, err: %w", neighborID(n), err)
+			return nil, fmt.Errorf("failed to translate underlay neighbor %s to frr, err: %w", NeighborID(n), err)
 		}
 		neighbors = append(neighbors, *frrNeigh)
 	}
@@ -744,10 +744,10 @@ func neighborToFRR(n v1alpha1.Neighbor,
 ) (*frr.NeighborConfig, error) {
 	asn, err := frr.NewPeerASN(n.ASN, n.Type)
 	if err != nil {
-		return nil, fmt.Errorf("neighbor %s: could not parse ASN configuration, err: %w", neighborID(n), err)
+		return nil, fmt.Errorf("neighbor %s: could not parse ASN configuration, err: %w", NeighborID(n), err)
 	}
 
-	neighName := neighborName(asn, neighborID(n))
+	neighName := neighborName(asn, NeighborID(n))
 
 	var nlps []networklayerprotocol.NLP
 	if len(n.AddressFamilies) == 0 {
@@ -1091,12 +1091,8 @@ func NeighborID(n v1alpha1.Neighbor) string {
 	return ptr.Deref(n.Interface, "")
 }
 
-func neighborID(n v1alpha1.Neighbor) string {
-	return NeighborID(n)
-}
-
 func bfdProfileNameForNeighbor(n v1alpha1.Neighbor) string {
-	return fmt.Sprintf("neighbor-%s", neighborID(n))
+	return fmt.Sprintf("neighbor-%s", NeighborID(n))
 }
 
 func neighborName(asn frr.PeerASN, id string) string {

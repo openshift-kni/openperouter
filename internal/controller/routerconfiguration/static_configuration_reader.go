@@ -353,7 +353,7 @@ func validateStaticNeighbors(staticNeighbors []static.StaticNeighbor, basePath *
 		if err := validatePassword(*sn.Password); err != nil {
 			return field.ErrorList{field.Invalid(
 				p.Child("password"), nil,
-				fmt.Sprintf("static config password for neighbor %s: %s", neighborAddr(&sn.Neighbor), err),
+				fmt.Sprintf("static config password for neighbor %s: %s", conversion.NeighborID(sn.Neighbor), err),
 			)}
 		}
 		sn.PasswordSecret = nil
