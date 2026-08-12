@@ -3608,6 +3608,7 @@ func TestTunnelEndpointToFRRIPv6Only(t *testing.T) {
 	}
 	if got == nil {
 		t.Fatal("expected non-nil tunnel endpoint")
+		return
 	}
 	if got.IPv4CIDR != "" {
 		t.Errorf("IPv4CIDR = %q, want empty", got.IPv4CIDR)
@@ -3635,6 +3636,7 @@ func TestTunnelEndpointToFRRDualStack(t *testing.T) {
 	}
 	if got == nil {
 		t.Fatal("expected non-nil tunnel endpoint")
+		return
 	}
 	if got.IPv4CIDR != ipv4TestVTEP {
 		t.Errorf("IPv4CIDR = %q, want %q", got.IPv4CIDR, ipv4TestVTEP)
