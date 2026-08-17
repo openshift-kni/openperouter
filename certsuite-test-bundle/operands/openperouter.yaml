@@ -1,0 +1,15 @@
+# OpenPERouter CR for software-only certsuite testing.
+#
+# Creates the controller DaemonSet, router DaemonSet, and nodemarker
+# Deployment. runOnMaster is false so workloads schedule on worker-only
+# HyperShift EaaS guest clusters.
+apiVersion: network.openperouter.io/v1alpha1
+kind: OpenPERouter
+metadata:
+  name: openperouter
+  # Namespace omitted so `oc apply -n <install-ns>` from konflux-certsuite works.
+  # Target namespace comes from certsuite-test-bundle.yaml spec.namespace
+  # (openperouter-system).
+spec:
+  logLevel: info
+  runOnMaster: false
