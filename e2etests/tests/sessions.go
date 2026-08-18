@@ -600,6 +600,14 @@ var _ = Describe("Underlay external and internal configuration", Ordered, GroutS
 		Expect(infra.LeafKind2Config.UpdateConfig(nodes, infra.LeafKindConfiguration{})).To(Succeed())
 		err := Updater.CleanAll()
 		Expect(err).NotTo(HaveOccurred())
+		By("waiting for the underlay to be removed from all nodes")
+		for _, node := range nodes {
+			Eventually(func(g Gomega) {
+				isConfigured, err := openperouter.UnderlayConfigured(node.Name)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(isConfigured).To(BeFalse())
+			}, 2*time.Minute, time.Second).Should(Succeed())
+		}
 	})
 
 	validateTORSession := func() {
@@ -1043,6 +1051,14 @@ var _ = Describe("Underlay explicit address family configuration", Ordered, Grou
 		Expect(infra.LeafKind2Config.UpdateConfig(nodes, infra.LeafKindConfiguration{})).To(Succeed())
 		err := Updater.CleanAll()
 		Expect(err).NotTo(HaveOccurred())
+		By("waiting for the underlay to be removed from all nodes")
+		for _, node := range nodes {
+			Eventually(func(g Gomega) {
+				isConfigured, err := openperouter.UnderlayConfigured(node.Name)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(isConfigured).To(BeFalse())
+			}, 2*time.Minute, time.Second).Should(Succeed())
+		}
 	})
 
 	validateTORSession := func(nlps ...networklayerprotocol.NLP) {

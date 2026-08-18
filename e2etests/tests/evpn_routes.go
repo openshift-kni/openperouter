@@ -199,6 +199,14 @@ func evpnRoutesOverUnderlay(params evpnUnderlayParams) {
 	AfterAll(func() {
 		err := Updater.CleanAll()
 		Expect(err).NotTo(HaveOccurred())
+		By("waiting for the underlay to be removed from all nodes")
+		for _, node := range nodes {
+			Eventually(func(g Gomega) {
+				isConfigured, err := openperouter.UnderlayConfigured(node.Name)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(isConfigured).To(BeFalse())
+			}, 2*time.Minute, time.Second).Should(Succeed())
+		}
 		By("restoring the standard leaf configuration")
 		Expect(infra.LeafKind1Config.UpdateConfig(nodes, infra.LeafKindConfiguration{})).To(Succeed())
 		By("waiting for all router pods to be ready after removing the underlay")
@@ -637,6 +645,14 @@ var _ = Describe("Routes between bgp and the fabric with iBGP testing e2e integr
 
 		err = Updater.CleanAll()
 		Expect(err).NotTo(HaveOccurred())
+		By("waiting for the underlay to be removed from all nodes")
+		for _, node := range nodes {
+			Eventually(func(g Gomega) {
+				isConfigured, err := openperouter.UnderlayConfigured(node.Name)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(isConfigured).To(BeFalse())
+			}, 2*time.Minute, time.Second).Should(Succeed())
+		}
 		By("waiting for all router pods to be ready after removing the underlay")
 		Eventually(func() error {
 			routers, err := openperouter.Get(cs, HostMode)
