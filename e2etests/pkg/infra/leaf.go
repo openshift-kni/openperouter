@@ -107,6 +107,7 @@ type LeafKindConfiguration struct {
 	PERouterASN           uint32
 	PeerIPFamily          ipfamily.Family
 	BGPAddressFamilies    []networklayerprotocol.NLP
+	Password              string
 }
 
 // Neighbor represents a BGP neighbor with its ID (IP address or interface)
@@ -114,6 +115,7 @@ type LeafKindConfiguration struct {
 type Neighbor struct {
 	ID          string
 	IsInterface bool
+	Password    string
 }
 
 type RouteTargets struct {
@@ -244,6 +246,7 @@ func (l LeafKind) UpdateConfig(nodes []corev1.Node, config LeafKindConfiguration
 		if err != nil {
 			return err
 		}
+		neighbor.Password = config.Password
 		neighbors = append(neighbors, neighbor)
 	}
 	config.Neighbors = neighbors

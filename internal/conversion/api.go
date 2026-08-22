@@ -4,6 +4,7 @@ package conversion
 
 import (
 	"errors"
+	"maps"
 
 	"github.com/openperouter/openperouter/api/v1alpha1"
 	"github.com/openperouter/openperouter/internal/hostnetwork"
@@ -16,6 +17,7 @@ type APIConfigData struct {
 	L3VPNs        []v1alpha1.L3VPN
 	L3Passthrough []v1alpha1.L3Passthrough
 	RawFRRConfigs []v1alpha1.RawFRRConfig
+	Passwords     map[string]string
 }
 
 type HostConfigData struct {
@@ -36,6 +38,7 @@ func MergeAPIConfigs(configs ...APIConfigData) (APIConfigData, error) {
 		L2VNIs:        []v1alpha1.L2VNI{},
 		L3VPNs:        []v1alpha1.L3VPN{},
 		L3Passthrough: []v1alpha1.L3Passthrough{},
+		Passwords:     map[string]string{},
 	}
 
 	for _, config := range configs {
@@ -45,6 +48,7 @@ func MergeAPIConfigs(configs ...APIConfigData) (APIConfigData, error) {
 		merged.L3VPNs = append(merged.L3VPNs, config.L3VPNs...)
 		merged.L3Passthrough = append(merged.L3Passthrough, config.L3Passthrough...)
 		merged.RawFRRConfigs = append(merged.RawFRRConfigs, config.RawFRRConfigs...)
+		maps.Copy(merged.Passwords, config.Passwords)
 	}
 
 	return merged, nil
@@ -54,12 +58,6 @@ func MergeAPIConfigs(configs ...APIConfigData) (APIConfigData, error) {
 func validateAPIConfigData(config APIConfigData) error {
 	if len(config.L3Passthrough) > 1 {
 		return errors.New("multiple passthroughs defined, can only have one")
-	}
-
-	// TODO: This is a shortcut. We do not want L3VNIs and L3VPNs coexisting inside the same VRF. But across different
-	// VRFs, this should work, in theory, subject to testing.
-	if len(config.L3VNIs) > 0 && len(config.L3VPNs) > 0 {
-		return errors.New("cannot specify L3 VNI configuration and VPN configuration at the same time")
 	}
 
 	if len(config.Underlays) > 1 {
