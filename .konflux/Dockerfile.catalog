@@ -1,4 +1,5 @@
-ARG OPM_IMAGE=registry.redhat.io/openshift4/ose-operator-registry-rhel9:v5.0
+# v5.0 tag expired; v4.22 is the current live operator-registry stream.
+ARG OPM_IMAGE=registry.redhat.io/openshift4/ose-operator-registry-rhel9:v4.22
 
 # noop: touch path so Konflux FBC PR pipeline (on-path-change: .konflux/**) runs
 FROM ${OPM_IMAGE}
