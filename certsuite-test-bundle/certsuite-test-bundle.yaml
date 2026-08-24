@@ -5,11 +5,11 @@ metadata:
   labels:
     app.kubernetes.io/part-of: openperouter
 spec:
-  # Must match operand + certsuite_config targetNameSpaces. OwnNamespace avoids
-  # the resolver preferring AllNamespaces (both are supported on the CSV) and
-  # falling through to a generated oo-* install namespace.
+  # CSV only supports AllNamespaces. Keep namespace pinned so the resolver
+  # does not generate an oo-* install NS that would miss certsuite_config
+  # and the operand apply.
   namespace: openperouter-system
-  installMode: OwnNamespace
+  installMode: AllNamespaces
 
   description: |
     Software-only test deployment of openperouter-operator operands. Creates an
