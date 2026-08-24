@@ -11,6 +11,13 @@ spec:
   namespace: openperouter-system
   installMode: AllNamespaces
 
+  # FBC still catalogs a bundle whose relatedImages digest (e7282047) is
+  # gone from quay (manifest unknown). Rewrite to a live operator digest
+  # after OLM creates the CSV. Keep registry.redhat.io so guest IDMS maps
+  # it to telco-5g-tenant/openperouter-operator-5-0.
+  csvPatches:
+    - path: csv-patches/00-live-operator-image.json
+
   description: |
     Software-only test deployment of openperouter-operator operands. Creates an
     OpenPERouter CR that exercises the operator's reconciliation logic and
