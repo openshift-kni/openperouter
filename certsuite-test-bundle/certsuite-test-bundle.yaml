@@ -18,6 +18,16 @@ spec:
   csvPatches:
     - path: csv-patches/00-live-operator-image.json
 
+  # Default discovery kinds is DaemonSet only. Also label Deployments so
+  # nodemarker (and operator/webhook) match podsUnderTestLabels via the
+  # pod template; certsuite discovers Deployments by template labels.
+  discoveryLabels:
+    operator: "redhat-best-practices-for-k8s.com/operator=target"
+    pod: "redhat-best-practices-for-k8s.com/generic=target"
+    resources:
+      - kind: DaemonSet
+      - kind: Deployment
+
   description: |
     Software-only test deployment of openperouter-operator operands. Creates an
     OpenPERouter CR that exercises the operator's reconciliation logic and
