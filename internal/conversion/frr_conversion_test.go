@@ -3608,6 +3608,7 @@ func TestTunnelEndpointToFRRIPv6Only(t *testing.T) {
 	}
 	if got == nil {
 		t.Fatal("expected non-nil tunnel endpoint")
+		return
 	}
 	if got.IPv4CIDR != "" {
 		t.Errorf("IPv4CIDR = %q, want empty", got.IPv4CIDR)
@@ -3635,6 +3636,7 @@ func TestTunnelEndpointToFRRDualStack(t *testing.T) {
 	}
 	if got == nil {
 		t.Fatal("expected non-nil tunnel endpoint")
+		return
 	}
 	if got.IPv4CIDR != ipv4TestVTEP {
 		t.Errorf("IPv4CIDR = %q, want %q", got.IPv4CIDR, ipv4TestVTEP)
@@ -4052,6 +4054,28 @@ func TestAPItoFRRListenRange(t *testing.T) {
 
 			if !cmp.Equal(got.Underlay.Neighbors, tt.wantNeighbors) {
 				t.Errorf("Neighbors diff: %s", cmp.Diff(tt.wantNeighbors, got.Underlay.Neighbors))
+			}
+		})
+	}
+}
+
+func TestNeighborID(t *testing.T) {
+	tests := []struct {
+		name string
+		n    v1alpha1.Neighbor
+		want string
+	}{
+		{name: "address only", n: v1alpha1.Neighbor{Address: new("10.0.0.1")}, want: "10.0.0.1"},
+		{name: "address with port", n: v1alpha1.Neighbor{Address: new("10.0.0.1"), Port: new(int32(1179))}, want: "10.0.0.1"},
+		{name: "interface only", n: v1alpha1.Neighbor{Interface: new("eth0")}, want: "eth0"},
+		{name: "interface with port", n: v1alpha1.Neighbor{Interface: new("eth0"), Port: new(int32(200))}, want: "eth0"},
+		{name: "listenRange", n: v1alpha1.Neighbor{ListenRange: new("10.0.0.0/24")}, want: "10.0.0.0/24"},
+		{name: "neither", n: v1alpha1.Neighbor{}, want: ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := NeighborID(tt.n); got != tt.want {
+				t.Errorf("NeighborID() = %q, want %q", got, tt.want)
 			}
 		})
 	}
