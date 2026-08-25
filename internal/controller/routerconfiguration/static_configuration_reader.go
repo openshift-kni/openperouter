@@ -69,31 +69,8 @@ func staticConfigToAPIConfig(staticConfig *static.PERouterConfig, nodeName, name
 		},
 	}
 
-	underlays := make([]v1alpha1.Underlay, len(staticConfig.Underlays))
-	for i, spec := range staticConfig.Underlays {
-		spec.NodeSelector = nodeSelector
-		underlays[i] = v1alpha1.Underlay{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Underlay",
-				APIVersion: "network.openperouter.io/v1alpha1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      fmt.Sprintf("static-%s-underlay-%d", nodeName, i),
-				Namespace: namespace,
-				Labels: map[string]string{
-					StaticSourceLabel: StaticSourceValue,
-					StaticNodeLabel:   nodeName,
-				},
-			},
-			Spec: spec,
-		}
-		result, errs := applyDefaultsAndValidate(&underlays[i], underlayGVK)
-		if len(errs) > 0 {
-			allErrors = append(allErrors, errs...)
-			continue
-		}
-		underlays[i] = *result
-	}
+	underlays, passwords, underlayErrs := staticUnderlaysToAPI(staticConfig.Underlays, nodeName, namespace, nodeSelector)
+	allErrors = append(allErrors, underlayErrs...)
 
 	staticName := func(name string) string {
 		return fmt.Sprintf("static-%s-%s", nodeName, name)
@@ -251,6 +228,7 @@ func staticConfigToAPIConfig(staticConfig *static.PERouterConfig, nodeName, name
 		L3VPNs:        l3vpns,
 		L3Passthrough: l3passthrough,
 		RawFRRConfigs: rawFRRConfigs,
+		Passwords:     passwords,
 	}, nil
 }
 
@@ -299,4 +277,86 @@ func normalizeGoTypes(m map[string]any) (map[string]any, error) {
 		return nil, fmt.Errorf("unmarshalling from JSON: %w", err)
 	}
 	return normalized, nil
+}
+
+func staticUnderlaysToAPI(
+	staticUnderlays []static.StaticUnderlaySpec,
+	nodeName, namespace string,
+	nodeSelector *metav1.LabelSelector,
+) ([]v1alpha1.Underlay, map[string]string, field.ErrorList) {
+	var allErrors field.ErrorList
+	var underlays []v1alpha1.Underlay
+	passwords := make(map[string]string)
+	for i, staticUnderlay := range staticUnderlays {
+		neighborsPath := field.NewPath("underlays").Index(i).Child("neighbors")
+		if errs := validateStaticNeighbors(staticUnderlay.Neighbors, neighborsPath); len(errs) > 0 {
+			allErrors = append(allErrors, errs...)
+			continue
+		}
+		for _, sn := range staticUnderlay.Neighbors {
+			if sn.Password != nil {
+				passwords[conversion.NeighborID(sn.Neighbor)] = *sn.Password
+			}
+		}
+		spec := staticUnderlay.UnderlaySpec
+		spec.NodeSelector = nodeSelector
+		spec.Neighbors = make([]v1alpha1.Neighbor, len(staticUnderlay.Neighbors))
+		for j, sn := range staticUnderlay.Neighbors {
+			spec.Neighbors[j] = sn.Neighbor
+		}
+		underlay := v1alpha1.Underlay{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Underlay",
+				APIVersion: "network.openperouter.io/v1alpha1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      fmt.Sprintf("static-%s-underlay-%d", nodeName, i),
+				Namespace: namespace,
+				Labels: map[string]string{
+					StaticSourceLabel: StaticSourceValue,
+					StaticNodeLabel:   nodeName,
+				},
+			},
+			Spec: spec,
+		}
+		result, errs := applyDefaultsAndValidate(&underlay, underlayGVK)
+		if len(errs) > 0 {
+			allErrors = append(allErrors, errs...)
+			continue
+		}
+		underlays = append(underlays, *result)
+	}
+	return underlays, passwords, allErrors
+}
+
+// validateStaticNeighbors validates neighbors from static (systemd) config.
+// In static mode there are no Kubernetes Secrets, so passwords are set as
+// plaintext in StaticNeighbor.Password. When a plaintext password is present
+// it takes precedence and PasswordSecret is cleared so that the later
+// resolvePasswordSecrets call (which handles the CRD/Secret path) skips it.
+func validateStaticNeighbors(staticNeighbors []static.StaticNeighbor, basePath *field.Path) field.ErrorList {
+	seen := make(map[string]struct{}, len(staticNeighbors))
+	for i := range staticNeighbors {
+		sn := &staticNeighbors[i]
+		p := basePath.Index(i)
+		key := conversion.NeighborID(sn.Neighbor)
+		if key == "" {
+			return field.ErrorList{field.Invalid(p, nil, "neighbor has neither address nor interface")}
+		}
+		if _, dup := seen[key]; dup {
+			return field.ErrorList{field.Invalid(p, key, "duplicate neighbor")}
+		}
+		seen[key] = struct{}{}
+		if sn.Password == nil {
+			continue
+		}
+		if err := validatePassword(*sn.Password); err != nil {
+			return field.ErrorList{field.Invalid(
+				p.Child("password"), nil,
+				fmt.Sprintf("static config password for neighbor %s: %s", conversion.NeighborID(sn.Neighbor), err),
+			)}
+		}
+		sn.PasswordSecret = nil
+	}
+	return nil
 }
