@@ -191,7 +191,7 @@ func migrateAddressesToGrout(ctx context.Context, client *Client, underlayInterf
 			return fmt.Errorf("failed to remove address %s from underlay interface: %w", cidr, err)
 		}
 
-		// FRR needs kernel routes to enstabilish BGP connections. Grout requires that all the kernel
+		// FRR needs kernel routes to establish BGP connections. Grout requires that all the kernel
 		// traffic must enter grout via the `main` TAP device.
 		if err := ensureKernelSubnetRoute(defaultVRFName, addr.IPNet.String()); err != nil {
 			return fmt.Errorf("failed to add kernel route for underlay subnet %s: %w", addr, err)
@@ -205,7 +205,7 @@ func migrateAddressesToGrout(ctx context.Context, client *Client, underlayInterf
 	//    link/ether 00:09:a8:38:8e:3b brd ff:ff:ff:ff:ff:ff promiscuity 0 allmulti 0 minmtu 68 maxmtu 65521
 	//    tun type tap ...
 	//    alias Grout control plane interface
-	// bgpd packets will leave through the `main` intrerface and will come back on the `u_xxx` interface, hence the
+	// bgpd packets will leave through the `main` interface and will come back on the `u_xxx` interface, hence the
 	// need to disable rp_filter on the `u_xxx` interface.
 	if err := sysctl.Ensure(sysctl.DisableRPFilter(UnderlayPortNamePrefix + underlayInterface)); err != nil {
 		return fmt.Errorf("failed to disable rp_filter on underlay interface %s: %w", UnderlayPortNamePrefix+underlayInterface, err)
