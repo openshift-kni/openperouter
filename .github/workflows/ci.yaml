@@ -366,15 +366,10 @@ jobs:
         run: |
           cp /tmp/check_veths.log /tmp/kind_logs/check_veths.log 2>/dev/null || true
 
-      - name: Collect Logs
-        if: ${{ failure() }}
-        uses: ./.github/workflows/composite/collectlogs
-        with:
-          artifact-name: kind-logs-${{ matrix.deployment }}
-
       - name: Analyze e2e test failure
         if: ${{ failure() }}
         run: |
+          set -o pipefail
           PROMPT="A GitHub Actions e2e test job failed.
           Deployment/matrix variant: ${{ matrix.deployment }}
           Workflow: ${{ github.workflow }}
@@ -389,11 +384,18 @@ jobs:
           Be concise and concrete."
 
           curl -fsSL https://opencode.ai/install | bash
+          export PATH="$HOME/.opencode/bin:$PATH"
           opencode run \
             --model opencode/big-pickle \
             --auto \
             "$PROMPT" \
             | tee /tmp/kind_logs/e2e-failure-analysis.md
+
+      - name: Collect Logs
+        if: ${{ failure() }}
+        uses: ./.github/workflows/composite/collectlogs
+        with:
+          artifact-name: kind-logs-${{ matrix.deployment }}
 
   qemu-e2etests:
     runs-on: ubuntu-24.04
