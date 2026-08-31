@@ -388,7 +388,8 @@ jobs:
           4. Give specific, actionable fix suggestions referencing file paths where relevant
           Be concise and concrete."
 
-          npx --yes opencode@latest run \
+          curl -fsSL https://opencode.ai/install | bash
+          opencode run \
             --model opencode/big-pickle \
             --auto \
             "$PROMPT" \
