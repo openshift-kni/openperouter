@@ -37,7 +37,7 @@ func SetupPassthrough(ctx context.Context, client *Client, params hostnetwork.Pa
 		}
 	}()
 
-	if err := ensureTapPortInHostNamespace(ctx, client, portName, tapName, "main", peRouterNs); err != nil {
+	if err := ensureTapPortInHostNamespace(ctx, client, portName, tapName, defaultVRFName, peRouterNs); err != nil {
 		return err
 	}
 
@@ -53,6 +53,10 @@ func SetupPassthrough(ctx context.Context, client *Client, params hostnetwork.Pa
 	// Assign IPs to the grout port "pt-ns" via grcli.
 	if err := ensurePortAddresses(ctx, client, portName, params.LinkIPs.NSIPv4, params.LinkIPs.NSIPv6); err != nil {
 		return fmt.Errorf("failed to ensure IPs to grout port: %w", err)
+	}
+
+	if err := client.setPortUp(ctx, portName); err != nil {
+		return fmt.Errorf("failed to set grout port up: %w", err)
 	}
 
 	if err := netnamespace.In(peRouterNs, func() error {
