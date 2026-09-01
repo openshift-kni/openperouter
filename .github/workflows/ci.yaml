@@ -376,11 +376,10 @@ jobs:
           Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           Job: ${{ github.job }}
 
-          The e2e test logs for this job are in /tmp/kind_logs/. Analyze the failure:
-          1. Which e2e test(s) failed and why
-          2. Identify the root cause from the logs (router/FRR/CNI/kind logs, Ginkgo failures, etc.)
-          3. Determine if this looks like a flake or a real regression
-          4. Give specific, actionable fix suggestions referencing file paths where relevant
+          The e2e test logs for this job are in /tmp/kind_logs/. Analyze the first test failure:
+          - Identify the root cause from the logs (router/FRR/CNI/kind logs, Ginkgo failures, etc.)
+          - Determine if this looks like a flake or a real regression
+          - Give specific, actionable fix suggestions referencing file paths where relevant
           Be concise and concrete."
 
           curl -fsSL https://opencode.ai/install | bash
