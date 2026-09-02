@@ -32,5 +32,3 @@ Run `make lint` to lint the code.
 specific behavior. If there is nothing specific, just use deploy
 - To run e2e tests, use the /e2e-tests skill.
 - When triaging e2e test failures, use the /e2etriage skill.
-
-
