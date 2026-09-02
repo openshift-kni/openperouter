@@ -126,8 +126,6 @@ if err := fetchData(id); err != nil {
 - Controller lifecycle management makes goroutine cleanup complex
 - Prefer controller-runtime's built-in concurrency patterns
 
-
-
 ### Unnecessary Comments
 Remove obvious comments that restate what the code already says. Comments should explain *why*, never *what*. AI-generated boilerplate comments are especially problematic — they add noise without value.
 
@@ -214,6 +212,49 @@ Watch for:
 - Premature abstractions ("in case we need to support X later")
 
 The test: if removing the abstraction makes the code shorter and equally clear, remove it.
+
+### Writing tests
+On unit tests use only the go standard library / testify (at most).
+
+For e2e tests, use the ginkgo / gomega framework.
+
+### Writing gomega based tests
+Favor using "positive" logic (i.e. expect success) over expecting an error
+not to happen. Assert the outcome you want, not the absence of the outcome
+you don't.
+
+This reads better and fails better: `Succeed()` states the intent directly,
+and when the call does fail Gomega prints the actual error in the failure
+message.
+
+**Bad:** expect the error not to happen
+```go
+err := doStuff()
+Expect(err).NotTo(HaveOccurred())
+```
+
+**Good:** expect success
+```go
+Expect(doStuff()).To(Succeed())
+```
+
+The same idea applies to functions that return a value alongside the error.
+Assert on the value directly and let Gomega check the error for you.
+
+**Bad:** check the error, then the value
+```go
+got, err := lookup(id)
+Expect(err).NotTo(HaveOccurred())
+Expect(got).To(Equal(want))
+```
+
+**Good:** assert the value, error handled implicitly
+```go
+Expect(lookup(id)).To(Equal(want))
+```
+
+This applies to setup steps too: `Expect(k8sClient.Create(ctx, obj)).To(Succeed())`
+keeps the precondition and its assertion on one line.
 
 ## Code Review Focus Areas
 
