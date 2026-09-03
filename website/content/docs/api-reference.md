@@ -287,7 +287,7 @@ _Appears in:_
 | `asn` _integer_ | asn is the local AS number to use to establish a BGP session with<br />the default namespace. |  | Maximum: 4.294967295e+09 <br />Minimum: 1 <br />Required: \{\} <br /> |
 | `hostASN` _integer_ | hostASN is the expected AS number for a BGP speaking component running in<br />the default network namespace. Either HostASN or HostType must be set. |  | Maximum: 4.294967295e+09 <br />Minimum: 1 <br />Optional: \{\} <br /> |
 | `hostType` _string_ | hostType is the AS type of the BGP speaking component running in the<br />default network namespace. Either HostASN or HostType must be set. |  | Enum: [External Internal] <br />Optional: \{\} <br /> |
-| `localCIDR` _[LocalCIDRConfig](#localcidrconfig)_ | localCIDR is the CIDR configuration for the veth pair<br />to connect with the default namespace. The interface under<br />the PERouter side is going to use the first IP of the cidr on all the nodes.<br />At least one of IPv4 or IPv6 must be provided. |  | Required: \{\} <br /> |
+| `localCIDRs` _string array_ | localCIDRs is the list of CIDRs for the veth pair connecting to the<br />default namespace. The router side uses the first usable IP of each CIDR.<br />At most one IPv4 and one IPv6 CIDR may be set; list order is not significant. |  | MaxItems: 2 <br />MinItems: 1 <br />Required: \{\} <br /> |
 
 
 #### IPFamily
@@ -656,23 +656,6 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `lifecycle` _[BridgeLifecycle](#bridgelifecycle)_ | lifecycle determines if the bridge is managed by the controller or<br />provided by the user. |  | Enum: [Managed External] <br />Required: \{\} <br /> |
 | `name` _string_ | name of the Linux bridge interface. Required when lifecycle is<br />External, and must be omitted when it is Managed, in which case the<br />bridge is named br-hs-<VNI>. |  | MaxLength: 15 <br />Pattern: `^[a-zA-Z][a-zA-Z0-9_-]*$` <br />Optional: \{\} <br /> |
-
-
-#### LocalCIDRConfig
-
-
-
-
-
-
-
-_Appears in:_
-- [HostSession](#hostsession)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `ipv4` _string_ | ipv4 is the IPv4 CIDR to be used for the veth pair<br />to connect with the default namespace. The interface under<br />the PERouter side is going to use the first IP of the cidr on all the nodes. |  | Optional: \{\} <br /> |
-| `ipv6` _string_ | ipv6 is the IPv6 CIDR to be used for the veth pair<br />to connect with the default namespace. The interface under<br />the PERouter side is going to use the first IP of the cidr on all the nodes. |  | Optional: \{\} <br /> |
 
 
 #### Neighbor
