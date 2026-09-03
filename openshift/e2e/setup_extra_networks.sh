@@ -2,15 +2,11 @@
 # Add isolated libvirt networks and static node interfaces after installation.
 #
 # Required configuration (normally config_$USER.sh):
-POST_INSTALL_EXTRA_NETWORK_NAMES="toswitch1 toswitch2"
+POST_INSTALL_EXTRA_NETWORK_NAMES="toswitch1"
 POST_INSTALL_TOSWITCH1_GATEWAY_V4="192.168.11.1/24"
 POST_INSTALL_TOSWITCH1_GATEWAY_V6="2001:db8:11::1/64"
 POST_INSTALL_TOSWITCH1_NODE_IPS_V4="192.168.11.20/24 192.168.11.21/24 192.168.11.22/24 192.168.11.30/24 192.168.11.31/24"
 POST_INSTALL_TOSWITCH1_NODE_IPS_V6="2001:db8:11::14/64 2001:db8:11::15/64 2001:db8:11::16/64 2001:db8:11::1e/64 2001:db8:11::1f/64"
-POST_INSTALL_TOSWITCH2_GATEWAY_V4="192.168.12.1/24"
-POST_INSTALL_TOSWITCH2_GATEWAY_V6="2001:db8:12::1/64"
-POST_INSTALL_TOSWITCH2_NODE_IPS_V4="192.168.12.20/24 192.168.12.21/24 192.168.12.22/24 192.168.12.30/24 192.168.12.31/24"
-POST_INSTALL_TOSWITCH2_NODE_IPS_V6="2001:db8:12::14/64 2001:db8:12::15/64 2001:db8:12::16/64 2001:db8:12::1e/64 2001:db8:12::1f/64"
 
 # Node IP order: masters first, then workers. Repeat variables per network.
 set -euo pipefail
@@ -30,6 +26,11 @@ source "$config_file"
 : "${CLUSTER_NAME:?CLUSTER_NAME must be set}"
 : "${NUM_MASTERS:?NUM_MASTERS must be set}"
 : "${POST_INSTALL_EXTRA_NETWORK_NAMES:?Set POST_INSTALL_EXTRA_NETWORK_NAMES; do not set EXTRA_NETWORK_NAMES during install}"
+read -r -a extra_networks <<<"$POST_INSTALL_EXTRA_NETWORK_NAMES"
+if (( ${#extra_networks[@]} != 1 )); then
+  echo "POST_INSTALL_EXTRA_NETWORK_NAMES must contain exactly one network"
+  exit 2
+fi
 KUBECONFIG="${KUBECONFIG:-$PWD/ocp/$CLUSTER_NAME/auth/kubeconfig}"
 export KUBECONFIG
 BAREMETAL_NETWORK_NAME="${BAREMETAL_NETWORK_NAME:-${CLUSTER_NAME}bm}"
@@ -117,7 +118,7 @@ configure_node() {
 }
 
 network_index=0
-for network in $POST_INSTALL_EXTRA_NETWORK_NAMES; do
+for network in "${extra_networks[@]}"; do
   variable_prefix="$(prefix_name "$network")"
   gateway_v4_var="POST_INSTALL_${variable_prefix}_GATEWAY_V4"
   gateway_v6_var="POST_INSTALL_${variable_prefix}_GATEWAY_V6"
