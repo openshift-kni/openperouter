@@ -17,6 +17,7 @@ import (
 	"github.com/openperouter/openperouter/api/v1alpha1"
 	"github.com/openperouter/openperouter/e2etests/pkg/config"
 	"github.com/openperouter/openperouter/e2etests/pkg/executor"
+	"github.com/openperouter/openperouter/e2etests/pkg/ipfamily"
 	"github.com/openperouter/openperouter/e2etests/pkg/k8s"
 	"github.com/openperouter/openperouter/e2etests/pkg/k8sclient"
 	"github.com/openperouter/openperouter/e2etests/pkg/openperouter"
@@ -124,11 +125,9 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 				VRF: "first",
 				VNI: 100,
 				HostSession: &v1alpha1.HostSession{
-					ASN:     64514,
-					HostASN: new(int64(64515)),
-					LocalCIDR: v1alpha1.LocalCIDRConfig{
-						IPv4: new("192.169.10.0/24"),
-					},
+					ASN:        64514,
+					HostASN:    new(int64(64515)),
+					LocalCIDRs: []string{"192.169.10.0/24"},
 				},
 			},
 		}
@@ -141,11 +140,9 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 				VRF: "second",
 				VNI: 200,
 				HostSession: &v1alpha1.HostSession{
-					ASN:     64514,
-					HostASN: new(int64(64515)),
-					LocalCIDR: v1alpha1.LocalCIDRConfig{
-						IPv4: new("192.169.11.0/24"),
-					},
+					ASN:        64514,
+					HostASN:    new(int64(64515)),
+					LocalCIDRs: []string{"192.169.11.0/24"},
 				},
 			},
 		}
@@ -158,11 +155,9 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 				VRF: "ipv6-only",
 				VNI: 300,
 				HostSession: &v1alpha1.HostSession{
-					ASN:     64514,
-					HostASN: new(int64(64515)),
-					LocalCIDR: v1alpha1.LocalCIDRConfig{
-						IPv6: new("2001:db8:1::/64"),
-					},
+					ASN:        64514,
+					HostASN:    new(int64(64515)),
+					LocalCIDRs: []string{"2001:db8:1::/64"},
 				},
 			},
 		}
@@ -175,12 +170,9 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 				VRF: "dual-stack",
 				VNI: 400,
 				HostSession: &v1alpha1.HostSession{
-					ASN:     64514,
-					HostASN: new(int64(64515)),
-					LocalCIDR: v1alpha1.LocalCIDRConfig{
-						IPv4: new("192.169.12.0/24"),
-						IPv6: new("2001:db8:2::/64"),
-					},
+					ASN:        64514,
+					HostASN:    new(int64(64515)),
+					LocalCIDRs: []string{"192.169.12.0/24", "2001:db8:2::/64"},
 				},
 			},
 		}
@@ -204,8 +196,8 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 				validateConfig(l3vniParams{
 					VRF: l3vni100.Name,
 					LinkIPs: &linkIPs{
-						NSIPv4: routerIPWithNetmask(l3vni100.Spec.HostSession.LocalCIDR.IPv4),
-						NSIPv6: routerIPWithNetmask(l3vni100.Spec.HostSession.LocalCIDR.IPv6),
+						NSIPv4: routerIPWithNetmask(ipfamily.CIDRForFamily(l3vni100.Spec.HostSession.LocalCIDRs, ipfamily.IPv4)),
+						NSIPv6: routerIPWithNetmask(ipfamily.CIDRForFamily(l3vni100.Spec.HostSession.LocalCIDRs, ipfamily.IPv6)),
 					},
 					VNI:       100,
 					VXLanPort: 4789,
@@ -242,8 +234,8 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 				validateConfig(l3vniParams{
 					VRF: l3vni100.Name,
 					LinkIPs: &linkIPs{
-						NSIPv4: routerIPWithNetmask(l3vni100.Spec.HostSession.LocalCIDR.IPv4),
-						NSIPv6: routerIPWithNetmask(l3vni100.Spec.HostSession.LocalCIDR.IPv6),
+						NSIPv4: routerIPWithNetmask(ipfamily.CIDRForFamily(l3vni100.Spec.HostSession.LocalCIDRs, ipfamily.IPv4)),
+						NSIPv6: routerIPWithNetmask(ipfamily.CIDRForFamily(l3vni100.Spec.HostSession.LocalCIDRs, ipfamily.IPv6)),
 					},
 					VNI:       100,
 					VXLanPort: 4789,
@@ -253,8 +245,8 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 				validateConfig(l3vniParams{
 					VRF: l3vni200.Name,
 					LinkIPs: &linkIPs{
-						NSIPv4: routerIPWithNetmask(l3vni200.Spec.HostSession.LocalCIDR.IPv4),
-						NSIPv6: routerIPWithNetmask(l3vni200.Spec.HostSession.LocalCIDR.IPv6),
+						NSIPv4: routerIPWithNetmask(ipfamily.CIDRForFamily(l3vni200.Spec.HostSession.LocalCIDRs, ipfamily.IPv4)),
+						NSIPv6: routerIPWithNetmask(ipfamily.CIDRForFamily(l3vni200.Spec.HostSession.LocalCIDRs, ipfamily.IPv6)),
 					},
 					VNI:       200,
 					VXLanPort: 4789,
@@ -273,8 +265,8 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 				validateConfig(l3vniParams{
 					VRF: l3vni200.Name,
 					LinkIPs: &linkIPs{
-						NSIPv4: routerIPWithNetmask(l3vni200.Spec.HostSession.LocalCIDR.IPv4),
-						NSIPv6: routerIPWithNetmask(l3vni200.Spec.HostSession.LocalCIDR.IPv6),
+						NSIPv4: routerIPWithNetmask(ipfamily.CIDRForFamily(l3vni200.Spec.HostSession.LocalCIDRs, ipfamily.IPv4)),
+						NSIPv6: routerIPWithNetmask(ipfamily.CIDRForFamily(l3vni200.Spec.HostSession.LocalCIDRs, ipfamily.IPv6)),
 					},
 					VNI:       200,
 					VXLanPort: 4789,
@@ -285,8 +277,8 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 				validateConfig(l3vniParams{
 					VRF: l3vni100.Name,
 					LinkIPs: &linkIPs{
-						NSIPv4: routerIPWithNetmask(l3vni100.Spec.HostSession.LocalCIDR.IPv4),
-						NSIPv6: routerIPWithNetmask(l3vni100.Spec.HostSession.LocalCIDR.IPv6),
+						NSIPv4: routerIPWithNetmask(ipfamily.CIDRForFamily(l3vni100.Spec.HostSession.LocalCIDRs, ipfamily.IPv4)),
+						NSIPv6: routerIPWithNetmask(ipfamily.CIDRForFamily(l3vni100.Spec.HostSession.LocalCIDRs, ipfamily.IPv6)),
 					},
 					VNI:       100,
 					VXLanPort: 4789,
@@ -328,8 +320,8 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 				validateConfig(l3vniParams{
 					VRF: l3vni100.Name,
 					LinkIPs: &linkIPs{
-						NSIPv4: routerIPWithNetmask(l3vni100.Spec.HostSession.LocalCIDR.IPv4),
-						NSIPv6: routerIPWithNetmask(l3vni100.Spec.HostSession.LocalCIDR.IPv6),
+						NSIPv4: routerIPWithNetmask(ipfamily.CIDRForFamily(l3vni100.Spec.HostSession.LocalCIDRs, ipfamily.IPv4)),
+						NSIPv6: routerIPWithNetmask(ipfamily.CIDRForFamily(l3vni100.Spec.HostSession.LocalCIDRs, ipfamily.IPv6)),
 					},
 					VNI:       100,
 					VXLanPort: 4789,
@@ -353,8 +345,8 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 				validateConfig(l3vniParams{
 					VRF: changedVni.Name,
 					LinkIPs: &linkIPs{
-						NSIPv4: routerIPWithNetmask(changedVni.Spec.HostSession.LocalCIDR.IPv4),
-						NSIPv6: routerIPWithNetmask(changedVni.Spec.HostSession.LocalCIDR.IPv6),
+						NSIPv4: routerIPWithNetmask(ipfamily.CIDRForFamily(changedVni.Spec.HostSession.LocalCIDRs, ipfamily.IPv4)),
+						NSIPv6: routerIPWithNetmask(ipfamily.CIDRForFamily(changedVni.Spec.HostSession.LocalCIDRs, ipfamily.IPv6)),
 					},
 					VNI:       300,
 					VXLanPort: 4789,
@@ -397,8 +389,8 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 					validateConfig(l3vniParams{
 						VRF: l3vni100.Name,
 						LinkIPs: &linkIPs{
-							NSIPv4: routerIPWithNetmask(l3vni100.Spec.HostSession.LocalCIDR.IPv4),
-							NSIPv6: routerIPWithNetmask(l3vni100.Spec.HostSession.LocalCIDR.IPv6),
+							NSIPv4: routerIPWithNetmask(ipfamily.CIDRForFamily(l3vni100.Spec.HostSession.LocalCIDRs, ipfamily.IPv4)),
+							NSIPv6: routerIPWithNetmask(ipfamily.CIDRForFamily(l3vni100.Spec.HostSession.LocalCIDRs, ipfamily.IPv6)),
 						},
 						VNI:       100,
 						VXLanPort: 4789,
@@ -476,8 +468,8 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 				validateConfig(l3vniParams{
 					VRF: l3vni300.Name,
 					LinkIPs: &linkIPs{
-						NSIPv4: routerIPWithNetmask(l3vni300.Spec.HostSession.LocalCIDR.IPv4),
-						NSIPv6: routerIPWithNetmask(l3vni300.Spec.HostSession.LocalCIDR.IPv6),
+						NSIPv4: routerIPWithNetmask(ipfamily.CIDRForFamily(l3vni300.Spec.HostSession.LocalCIDRs, ipfamily.IPv4)),
+						NSIPv6: routerIPWithNetmask(ipfamily.CIDRForFamily(l3vni300.Spec.HostSession.LocalCIDRs, ipfamily.IPv6)),
 					},
 					VNI:       uint32(l3vni300.Spec.VNI),
 					VXLanPort: 4789,
@@ -513,8 +505,8 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 				validateConfig(l3vniParams{
 					VRF: l3vni400.Name,
 					LinkIPs: &linkIPs{
-						NSIPv4: routerIPWithNetmask(l3vni400.Spec.HostSession.LocalCIDR.IPv4),
-						NSIPv6: routerIPWithNetmask(l3vni400.Spec.HostSession.LocalCIDR.IPv6),
+						NSIPv4: routerIPWithNetmask(ipfamily.CIDRForFamily(l3vni400.Spec.HostSession.LocalCIDRs, ipfamily.IPv4)),
+						NSIPv6: routerIPWithNetmask(ipfamily.CIDRForFamily(l3vni400.Spec.HostSession.LocalCIDRs, ipfamily.IPv6)),
 					},
 					VNI:       uint32(l3vni400.Spec.VNI),
 					VXLanPort: 4789,
@@ -553,8 +545,8 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 				validateConfig(l3vniParams{
 					VRF: l3vni100.Name,
 					LinkIPs: &linkIPs{
-						NSIPv4: routerIPWithNetmask(l3vni100.Spec.HostSession.LocalCIDR.IPv4),
-						NSIPv6: routerIPWithNetmask(l3vni100.Spec.HostSession.LocalCIDR.IPv6),
+						NSIPv4: routerIPWithNetmask(ipfamily.CIDRForFamily(l3vni100.Spec.HostSession.LocalCIDRs, ipfamily.IPv4)),
+						NSIPv6: routerIPWithNetmask(ipfamily.CIDRForFamily(l3vni100.Spec.HostSession.LocalCIDRs, ipfamily.IPv6)),
 					},
 					VNI:       uint32(l3vni100.Spec.VNI),
 					VXLanPort: 4789,
@@ -564,8 +556,8 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 				validateConfig(l3vniParams{
 					VRF: l3vni300.Name,
 					LinkIPs: &linkIPs{
-						NSIPv4: routerIPWithNetmask(l3vni300.Spec.HostSession.LocalCIDR.IPv4),
-						NSIPv6: routerIPWithNetmask(l3vni300.Spec.HostSession.LocalCIDR.IPv6),
+						NSIPv4: routerIPWithNetmask(ipfamily.CIDRForFamily(l3vni300.Spec.HostSession.LocalCIDRs, ipfamily.IPv4)),
+						NSIPv6: routerIPWithNetmask(ipfamily.CIDRForFamily(l3vni300.Spec.HostSession.LocalCIDRs, ipfamily.IPv6)),
 					},
 					VNI:       uint32(l3vni300.Spec.VNI),
 					VXLanPort: 4789,
@@ -575,8 +567,8 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 				validateConfig(l3vniParams{
 					VRF: l3vni400.Name,
 					LinkIPs: &linkIPs{
-						NSIPv4: routerIPWithNetmask(l3vni400.Spec.HostSession.LocalCIDR.IPv4),
-						NSIPv6: routerIPWithNetmask(l3vni400.Spec.HostSession.LocalCIDR.IPv6),
+						NSIPv4: routerIPWithNetmask(ipfamily.CIDRForFamily(l3vni400.Spec.HostSession.LocalCIDRs, ipfamily.IPv4)),
+						NSIPv6: routerIPWithNetmask(ipfamily.CIDRForFamily(l3vni400.Spec.HostSession.LocalCIDRs, ipfamily.IPv6)),
 					},
 					VNI:       uint32(l3vni400.Spec.VNI),
 					VXLanPort: 4789,
@@ -636,8 +628,8 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 			l3VNI100Params := l3vniParams{
 				VRF: l3vni100.Name,
 				LinkIPs: &linkIPs{
-					NSIPv4: routerIPWithNetmask(l3vni100.Spec.HostSession.LocalCIDR.IPv4),
-					NSIPv6: routerIPWithNetmask(l3vni100.Spec.HostSession.LocalCIDR.IPv6),
+					NSIPv4: routerIPWithNetmask(ipfamily.CIDRForFamily(l3vni100.Spec.HostSession.LocalCIDRs, ipfamily.IPv4)),
+					NSIPv6: routerIPWithNetmask(ipfamily.CIDRForFamily(l3vni100.Spec.HostSession.LocalCIDRs, ipfamily.IPv6)),
 				},
 				VNI:       100,
 				VXLanPort: 4789,
@@ -645,8 +637,8 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 			l3VNI200Params := l3vniParams{
 				VRF: l3vni200.Name,
 				LinkIPs: &linkIPs{
-					NSIPv4: routerIPWithNetmask(l3vni200.Spec.HostSession.LocalCIDR.IPv4),
-					NSIPv6: routerIPWithNetmask(l3vni200.Spec.HostSession.LocalCIDR.IPv6),
+					NSIPv4: routerIPWithNetmask(ipfamily.CIDRForFamily(l3vni200.Spec.HostSession.LocalCIDRs, ipfamily.IPv4)),
+					NSIPv6: routerIPWithNetmask(ipfamily.CIDRForFamily(l3vni200.Spec.HostSession.LocalCIDRs, ipfamily.IPv6)),
 				},
 				VNI:       200,
 				VXLanPort: 4789,
@@ -1431,11 +1423,9 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 				Spec: v1alpha1.L3PassthroughSpec{
 					NodeSelector: nodeSelectorPassthrough,
 					HostSession: v1alpha1.HostSession{
-						ASN:     64514,
-						HostASN: new(int64(64515)),
-						LocalCIDR: v1alpha1.LocalCIDRConfig{
-							IPv4: new("192.169.10.0/24"),
-						},
+						ASN:        64514,
+						HostASN:    new(int64(64515)),
+						LocalCIDRs: []string{"192.169.10.0/24"},
 					},
 				},
 			}
@@ -1451,8 +1441,8 @@ var _ = ginkgo.Describe("Router Host configuration", func() {
 
 			l3PassthroughParams := l3passthroughParams{
 				LinkIPs: &linkIPs{
-					NSIPv4: routerIPWithNetmask(passthroughWithNodeSelector.Spec.HostSession.LocalCIDR.IPv4),
-					NSIPv6: routerIPWithNetmask(passthroughWithNodeSelector.Spec.HostSession.LocalCIDR.IPv6),
+					NSIPv4: routerIPWithNetmask(ipfamily.CIDRForFamily(passthroughWithNodeSelector.Spec.HostSession.LocalCIDRs, ipfamily.IPv4)),
+					NSIPv6: routerIPWithNetmask(ipfamily.CIDRForFamily(passthroughWithNodeSelector.Spec.HostSession.LocalCIDRs, ipfamily.IPv6)),
 				},
 			}
 
@@ -1584,14 +1574,14 @@ func vtepIPv4ForPod(cs clientset.Interface, tunnelEndpoint *v1alpha1.TunnelEndpo
 	return vtepIP
 }
 
-func routerIPWithNetmask(cidr *string) string {
-	if cidr == nil || *cidr == "" {
+func routerIPWithNetmask(cidr string) string {
+	if cidr == "" {
 		return ""
 	}
-	routerIP, err := openperouter.RouterIPFromCIDR(*cidr)
+	routerIP, err := openperouter.RouterIPFromCIDR(cidr)
 	Expect(err).NotTo(HaveOccurred())
 
-	_, ipNet, err := net.ParseCIDR(*cidr)
+	_, ipNet, err := net.ParseCIDR(cidr)
 	Expect(err).NotTo(HaveOccurred())
 
 	ones, _ := ipNet.Mask.Size()

@@ -23,7 +23,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/utils/ptr"
 )
 
 var (
@@ -44,12 +43,9 @@ var _ = Describe("Routes between bgp and the fabric with Underlay in ipv4", Labe
 		},
 		Spec: v1alpha1.L3PassthroughSpec{
 			HostSession: v1alpha1.HostSession{
-				ASN:     64514,
-				HostASN: new(int64(64515)),
-				LocalCIDR: v1alpha1.LocalCIDRConfig{
-					IPv4: new("192.169.10.0/24"),
-					IPv6: new("2001:db8:1::/64"),
-				},
+				ASN:        64514,
+				HostASN:    new(int64(64515)),
+				LocalCIDRs: []string{"192.169.10.0/24", "2001:db8:1::/64"},
 			},
 		},
 	}
@@ -238,7 +234,7 @@ var _ = Describe("Routes between bgp and the fabric with Underlay in ipv4", Labe
 		})
 
 		It("host and the pod from each other with the expected ips", func() {
-			hostSide, err := openperouter.HostIPFromCIDRForNode(ptr.Deref(passthrough.Spec.HostSession.LocalCIDR.IPv4, ""), podNode)
+			hostSide, err := openperouter.HostIPFromCIDRForNode(ipfamily.CIDRForFamily(passthrough.Spec.HostSession.LocalCIDRs, ipfamily.IPv4), podNode)
 			Expect(err).NotTo(HaveOccurred())
 
 			podIP, err := getPodIPByFamily(testPod, ipfamily.IPv4)

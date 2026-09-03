@@ -25,7 +25,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/utils/ptr"
 )
 
 var _ = Describe("SRV6 routes between bgp and the fabric", Ordered, func() {
@@ -47,12 +46,9 @@ var _ = Describe("SRV6 routes between bgp and the fabric", Ordered, func() {
 		Spec: v1alpha1.L3VPNSpec{
 			VRF: "red",
 			HostSession: &v1alpha1.HostSession{
-				ASN:     64514,
-				HostASN: new(int64(64515)),
-				LocalCIDR: v1alpha1.LocalCIDRConfig{
-					IPv4: new("192.169.10.0/24"),
-					IPv6: new("2001:db8:1::/64"),
-				},
+				ASN:        64514,
+				HostASN:    new(int64(64515)),
+				LocalCIDRs: []string{"192.169.10.0/24", "2001:db8:1::/64"},
 			},
 			RDAssignedNumber: 100,
 			ExportRTs: []v1alpha1.RouteTarget{
@@ -75,12 +71,9 @@ var _ = Describe("SRV6 routes between bgp and the fabric", Ordered, func() {
 		Spec: v1alpha1.L3VPNSpec{
 			VRF: "blue",
 			HostSession: &v1alpha1.HostSession{
-				ASN:     64514,
-				HostASN: new(int64(64515)),
-				LocalCIDR: v1alpha1.LocalCIDRConfig{
-					IPv4: new("192.169.11.0/24"),
-					IPv6: new("2001:db8:2::/64"),
-				},
+				ASN:        64514,
+				HostASN:    new(int64(64515)),
+				LocalCIDRs: []string{"192.169.11.0/24", "2001:db8:2::/64"},
 			},
 			RDAssignedNumber: 200,
 			ImportRTs: []v1alpha1.RouteTarget{
@@ -366,9 +359,9 @@ var _ = Describe("SRV6 routes between bgp and the fabric", Ordered, func() {
 			ipFamily, err := ipfamily.ForAddresses(externalHostIP)
 			Expect(err).NotTo(HaveOccurred())
 
-			localCIDR := ptr.Deref(l3vpn.Spec.HostSession.LocalCIDR.IPv4, "")
+			localCIDR := ipfamily.CIDRForFamily(l3vpn.Spec.HostSession.LocalCIDRs, ipfamily.IPv4)
 			if ipFamily == ipfamily.IPv6 {
-				localCIDR = ptr.Deref(l3vpn.Spec.HostSession.LocalCIDR.IPv6, "")
+				localCIDR = ipfamily.CIDRForFamily(l3vpn.Spec.HostSession.LocalCIDRs, ipfamily.IPv6)
 			}
 
 			// hostSide is the IP address that was assigned to the host on the localCIDR.
@@ -455,12 +448,9 @@ var _ = Describe("SRV6 routes between bgp and the fabric with iBGP testing e2e i
 		Spec: v1alpha1.L3VPNSpec{
 			VRF: "red",
 			HostSession: &v1alpha1.HostSession{
-				ASN:     64514,
-				HostASN: new(int64(64515)),
-				LocalCIDR: v1alpha1.LocalCIDRConfig{
-					IPv4: new("192.169.10.0/24"),
-					IPv6: new("2001:db8:1::/64"),
-				},
+				ASN:        64514,
+				HostASN:    new(int64(64515)),
+				LocalCIDRs: []string{"192.169.10.0/24", "2001:db8:1::/64"},
 			},
 			RDAssignedNumber: 100,
 			ExportRTs: []v1alpha1.RouteTarget{
@@ -558,7 +548,7 @@ var _ = Describe("SRV6 routes between bgp and the fabric with iBGP testing e2e i
 		externalHostIP := infra.HostSRV6RedIPv4
 		ipFamily := ipfamily.IPv4
 
-		localCIDR := ptr.Deref(l3vpnRed.Spec.HostSession.LocalCIDR.IPv4, "")
+		localCIDR := ipfamily.CIDRForFamily(l3vpnRed.Spec.HostSession.LocalCIDRs, ipfamily.IPv4)
 
 		// hostSide is the IP address that was assigned to the host on the localCIDR.
 		// E.g.: OpenPERouter: pe-100 (192.169.10.1) <-> Host OS: host-100 (192.169.10.3)
