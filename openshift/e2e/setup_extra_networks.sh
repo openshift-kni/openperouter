@@ -2,11 +2,15 @@
 # Add isolated libvirt networks and static node interfaces after installation.
 #
 # Required configuration (normally config_$USER.sh):
-POST_INSTALL_EXTRA_NETWORK_NAMES="toswitch1"
+POST_INSTALL_EXTRA_NETWORK_NAMES="toswitch1 toswitch2"
 POST_INSTALL_TOSWITCH1_GATEWAY_V4="192.168.11.1/24"
 POST_INSTALL_TOSWITCH1_GATEWAY_V6="2001:db8:11::1/64"
 POST_INSTALL_TOSWITCH1_NODE_IPS_V4="192.168.11.20/24 192.168.11.21/24 192.168.11.22/24 192.168.11.30/24 192.168.11.31/24"
 POST_INSTALL_TOSWITCH1_NODE_IPS_V6="2001:db8:11::14/64 2001:db8:11::15/64 2001:db8:11::16/64 2001:db8:11::1e/64 2001:db8:11::1f/64"
+POST_INSTALL_TOSWITCH2_GATEWAY_V4="192.168.12.1/24"
+POST_INSTALL_TOSWITCH2_GATEWAY_V6="2001:db8:12::1/64"
+POST_INSTALL_TOSWITCH2_NODE_IPS_V4="192.168.12.20/24 192.168.12.21/24 192.168.12.22/24 192.168.12.30/24 192.168.12.31/24"
+POST_INSTALL_TOSWITCH2_NODE_IPS_V6="2001:db8:12::14/64 2001:db8:12::15/64 2001:db8:12::16/64 2001:db8:12::1e/64 2001:db8:12::1f/64"
 
 # Node IP order: masters first, then workers. Repeat variables per network.
 set -euo pipefail
@@ -27,13 +31,23 @@ source "$config_file"
 : "${NUM_MASTERS:?NUM_MASTERS must be set}"
 : "${POST_INSTALL_EXTRA_NETWORK_NAMES:?Set POST_INSTALL_EXTRA_NETWORK_NAMES; do not set EXTRA_NETWORK_NAMES during install}"
 read -r -a extra_networks <<<"$POST_INSTALL_EXTRA_NETWORK_NAMES"
-if (( ${#extra_networks[@]} != 1 )); then
-  echo "POST_INSTALL_EXTRA_NETWORK_NAMES must contain exactly one network"
-  exit 2
-fi
 KUBECONFIG="${KUBECONFIG:-$PWD/ocp/$CLUSTER_NAME/auth/kubeconfig}"
 export KUBECONFIG
 BAREMETAL_NETWORK_NAME="${BAREMETAL_NETWORK_NAME:-${CLUSTER_NAME}bm}"
+POST_INSTALL_VM_SHUTDOWN_TIMEOUT="${POST_INSTALL_VM_SHUTDOWN_TIMEOUT:-300}"
+POST_INSTALL_VM_START_TIMEOUT="${POST_INSTALL_VM_START_TIMEOUT:-600}"
+POST_INSTALL_CLUSTER_TIMEOUT="${POST_INSTALL_CLUSTER_TIMEOUT:-900}"
+expected_nodes=$((NUM_MASTERS + ${NUM_WORKERS:-0}))
+declare -A domains_need_restart=()
+cluster_domains=()
+for node_index in $(seq 0 $((NUM_MASTERS - 1))); do
+  cluster_domains+=("${CLUSTER_NAME}_master_${node_index}")
+done
+if (( ${NUM_WORKERS:-0} > 0 )); then
+  for node_index in $(seq 0 $((NUM_WORKERS - 1))); do
+    cluster_domains+=("${CLUSTER_NAME}_worker_${node_index}")
+  done
+fi
 
 if ! oc get nodes >/dev/null; then
   echo "Cluster unavailable through KUBECONFIG=$KUBECONFIG"
@@ -83,20 +97,104 @@ define_network() {
   fi
 }
 
-configure_node() {
-  local network="$1" net_index="$2" role="$3" node_index="$4" ip4="$5" ip6="$6"
-  local domain="${CLUSTER_NAME}_${role}_${node_index}"
-  local node_ip host_mac mac iface profile mac_node_index="$node_index"
-  host_mac="$(sudo virsh domiflist "$domain" | awk -v network="$BAREMETAL_NETWORK_NAME" '$3 == network { print $5; exit }')"
-  node_ip="$(sudo virsh net-dhcp-leases "$BAREMETAL_NETWORK_NAME" | awk -v mac="$host_mac" '$3 == mac && $4 == "ipv4" { sub(/\/.*/, "", $5); print $5; exit }')"
-  [[ -n "$node_ip" ]] || { echo "No IPv4 lease for $domain on $BAREMETAL_NETWORK_NAME"; return 1; }
+node_ip_for_domain() {
+  local domain="$1" host_mac
+  host_mac="$(sudo virsh domiflist "$domain" --inactive | awk -v network="$BAREMETAL_NETWORK_NAME" '$3 == network { print $5; exit }')"
+  sudo virsh net-dhcp-leases "$BAREMETAL_NETWORK_NAME" | awk -v mac="$host_mac" \
+    '$3 == mac && $4 == "ipv4" { sub(/\/.*/, "", $5); print $5; exit }'
+}
 
-  mac="$(sudo virsh domiflist "$domain" | awk -v network="$network" '$3 == network { print $5; exit }')"
+wait_for_cluster() {
+  local deadline=$((SECONDS + POST_INSTALL_CLUSTER_TIMEOUT)) node_count
+  echo "Waiting for the API and all $expected_nodes nodes to be Ready"
+  while (( SECONDS < deadline )); do
+    node_count="$(oc get nodes -o name 2>/dev/null | wc -l || true)"
+    if (( node_count >= expected_nodes )) && \
+       oc get --raw=/readyz >/dev/null 2>&1 && \
+       oc wait --for=condition=Ready nodes --all --timeout=10s >/dev/null 2>&1; then
+      echo "API is reachable and all nodes are Ready"
+      return 0
+    fi
+    sleep 10
+  done
+  echo "Timed out waiting for the API and all $expected_nodes nodes to be Ready"
+  return 1
+}
+
+attach_node_interface() {
+  local network="$1" net_index="$2" role="$3" node_index="$4"
+  local domain="${CLUSTER_NAME}_${role}_${node_index}" mac mac_node_index="$node_index"
+
+  mac="$(sudo virsh domiflist "$domain" --inactive | awk -v network="$network" '$3 == network { print $5; exit }')"
   if [[ -z "$mac" ]]; then
     [[ "$role" == worker ]] && mac_node_index=$((node_index + 128))
     printf -v mac '52:54:00:ee:%02x:%02x' "$net_index" "$mac_node_index"
-    sudo virsh attach-interface "$domain" network "$network" --model virtio --mac "$mac" --live --config
+    sudo virsh attach-interface "$domain" network "$network" --model virtio --mac "$mac" --config
+    domains_need_restart["$domain"]=1
   fi
+
+  if ! sudo virsh domiflist "$domain" | awk -v network="$network" '$3 == network { found=1 } END { exit !found }'; then
+    domains_need_restart["$domain"]=1
+  fi
+  if ! sudo virsh domstate "$domain" | grep -q '^running$'; then
+    domains_need_restart["$domain"]=1
+  fi
+}
+
+request_domain_shutdown() {
+  local domain="$1"
+  [[ -n "${domains_need_restart[$domain]:-}" ]] || return 0
+  echo "Requesting shutdown of $domain"
+  if sudo virsh domstate "$domain" | grep -q '^running$'; then
+    sudo virsh shutdown "$domain"
+  fi
+}
+
+wait_for_domain_shutdown() {
+  local domain="$1" deadline=$((SECONDS + POST_INSTALL_VM_SHUTDOWN_TIMEOUT))
+  [[ -n "${domains_need_restart[$domain]:-}" ]] || return 0
+  until sudo virsh domstate "$domain" | grep -q '^shut off$'; do
+    if (( SECONDS >= deadline )); then
+      echo "Timed out waiting for $domain to shut down; refusing to force it off"
+      return 1
+    fi
+    sleep 5
+  done
+  echo "$domain is shut off"
+}
+
+start_domain() {
+  local domain="$1"
+  [[ -n "${domains_need_restart[$domain]:-}" ]] || return 0
+  echo "Starting $domain"
+  sudo virsh start "$domain"
+}
+
+wait_for_domain() {
+  local domain="$1" deadline=$((SECONDS + POST_INSTALL_VM_START_TIMEOUT)) node_ip
+  [[ -n "${domains_need_restart[$domain]:-}" ]] || return 0
+  while (( SECONDS < deadline )); do
+    node_ip="$(node_ip_for_domain "$domain")"
+    if [[ -n "$node_ip" ]] && ssh -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no \
+      -o UserKnownHostsFile=/dev/null "core@$node_ip" true >/dev/null 2>&1; then
+      echo "$domain is running and reachable at $node_ip"
+      return 0
+    fi
+    sleep 5
+  done
+  echo "Timed out waiting for $domain to become reachable"
+  return 1
+}
+
+configure_node() {
+  local network="$1" net_index="$2" role="$3" node_index="$4" ip4="$5" ip6="$6"
+  local domain="${CLUSTER_NAME}_${role}_${node_index}"
+  local node_ip mac iface profile
+  node_ip="$(node_ip_for_domain "$domain")"
+  [[ -n "$node_ip" ]] || { echo "No IPv4 lease for $domain on $BAREMETAL_NETWORK_NAME"; return 1; }
+
+  mac="$(sudo virsh domiflist "$domain" | awk -v network="$network" '$3 == network { print $5; exit }')"
+  [[ -n "$mac" ]] || { echo "No $network interface found on $domain after restart"; return 1; }
 
   for _ in {1..12}; do
     iface="$(ssh -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "core@$node_ip" \
@@ -117,6 +215,7 @@ configure_node() {
      sudo nmcli connection up '$profile'; ip -brief address show dev '$iface'"
 }
 
+# Define every network and add every persistent interface before restarting any VM.
 network_index=0
 for network in "${extra_networks[@]}"; do
   variable_prefix="$(prefix_name "$network")"
@@ -131,9 +230,43 @@ for network in "${extra_networks[@]}"; do
   [[ -n "$gateway_v4$gateway_v6" ]] || { echo "$network needs gateway IPv4 or IPv6"; exit 2; }
 
   define_network "$network" "$gateway_v4" "$gateway_v6"
+  for node_index in $(seq 0 $((NUM_MASTERS - 1))); do
+    attach_node_interface "$network" "$network_index" master "$node_index"
+  done
+  if (( ${NUM_WORKERS:-0} > 0 )); then
+    for node_index in $(seq 0 $((NUM_WORKERS - 1))); do
+      attach_node_interface "$network" "$network_index" worker "$node_index"
+    done
+  fi
+  network_index=$((network_index + 1))
+done
+
+# Restart affected VMs as a batch, then require every VM and the cluster to recover.
+for domain in "${cluster_domains[@]}"; do
+  request_domain_shutdown "$domain"
+done
+for domain in "${cluster_domains[@]}"; do
+  wait_for_domain_shutdown "$domain"
+done
+for domain in "${cluster_domains[@]}"; do
+  start_domain "$domain"
+done
+for domain in "${cluster_domains[@]}"; do
+  wait_for_domain "$domain"
+done
+wait_for_cluster
+
+# Configure addresses only after every VM and the Kubernetes API are available.
+network_index=0
+for network in "${extra_networks[@]}"; do
+  variable_prefix="$(prefix_name "$network")"
+  ips_v4_var="POST_INSTALL_${variable_prefix}_NODE_IPS_V4"
+  ips_v6_var="POST_INSTALL_${variable_prefix}_NODE_IPS_V6"
+  read -r -a ips_v4 <<<"${!ips_v4_var:-}"
+  read -r -a ips_v6 <<<"${!ips_v6_var:-}"
   node_position=0
   for node_index in $(seq 0 $((NUM_MASTERS - 1))); do
-    configure_node "$network" "$network_index" master "$node_index" "${ips_v4[$node_index]:-}" "${ips_v6[$node_index]:-}"
+    configure_node "$network" "$network_index" master "$node_index" "${ips_v4[$node_position]:-}" "${ips_v6[$node_position]:-}"
     node_position=$((node_position + 1))
   done
   if (( ${NUM_WORKERS:-0} > 0 )); then
@@ -144,5 +277,6 @@ for network in "${extra_networks[@]}"; do
   fi
   network_index=$((network_index + 1))
 done
+wait_for_cluster
 
 echo "Done. Output: $output_dir"
