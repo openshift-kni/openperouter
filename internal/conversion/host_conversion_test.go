@@ -93,7 +93,7 @@ func TestAPItoHostConfig(t *testing.T) {
 				},
 			},
 			vnis: []v1alpha1.L3VNI{
-				{Spec: v1alpha1.L3VNISpec{VRF: "red", HostSession: &v1alpha1.HostSession{LocalCIDR: v1alpha1.LocalCIDRConfig{IPv4: new("10.1.0.0/24")}}, VNI: 100, VXLanPort: new(int32(4789))}},
+				{Spec: v1alpha1.L3VNISpec{VRF: "red", HostSession: &v1alpha1.HostSession{LocalCIDRs: []string{"10.1.0.0/24"}}, VNI: 100, VXLanPort: new(int32(4789))}},
 			},
 			l2vnis:        []v1alpha1.L2VNI{},
 			l3Passthrough: []v1alpha1.L3Passthrough{},
@@ -153,9 +153,7 @@ func TestAPItoHostConfig(t *testing.T) {
 					Spec: v1alpha1.L3VNISpec{
 						VRF: "red",
 						HostSession: &v1alpha1.HostSession{
-							LocalCIDR: v1alpha1.LocalCIDRConfig{
-								IPv4: new("10.1.0.0/24"),
-							},
+							LocalCIDRs: []string{"10.1.0.0/24"},
 						},
 						VNI:       100,
 						VXLanPort: new(int32(4789)),
@@ -221,9 +219,7 @@ func TestAPItoHostConfig(t *testing.T) {
 					Spec: v1alpha1.L3VPNSpec{
 						VRF: "red",
 						HostSession: &v1alpha1.HostSession{
-							LocalCIDR: v1alpha1.LocalCIDRConfig{
-								IPv4: new("10.1.0.0/24"),
-							},
+							LocalCIDRs: []string{"10.1.0.0/24"},
 						},
 						ImportRTs:        []v1alpha1.RouteTarget{"65000:100"},
 						ExportRTs:        []v1alpha1.RouteTarget{"65001:100"},
@@ -288,7 +284,7 @@ func TestAPItoHostConfig(t *testing.T) {
 				{Spec: v1alpha1.UnderlaySpec{Interfaces: []v1alpha1.UnderlayInterface{{Type: "NetworkDevice", NetworkDevice: &v1alpha1.NetworkDevice{InterfaceName: "eth0"}}}, TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{CIDRs: []string{"10.0.0.0/24"}}}},
 			},
 			vnis: []v1alpha1.L3VNI{
-				{Spec: v1alpha1.L3VNISpec{VRF: "red", HostSession: &v1alpha1.HostSession{LocalCIDR: v1alpha1.LocalCIDRConfig{IPv6: new("2001:db8::/64")}}, VNI: 100, VXLanPort: new(int32(4789))}},
+				{Spec: v1alpha1.L3VNISpec{VRF: "red", HostSession: &v1alpha1.HostSession{LocalCIDRs: []string{"2001:db8::/64"}}, VNI: 100, VXLanPort: new(int32(4789))}},
 			},
 			l2vnis:        []v1alpha1.L2VNI{},
 			l3Passthrough: []v1alpha1.L3Passthrough{},
@@ -328,7 +324,7 @@ func TestAPItoHostConfig(t *testing.T) {
 				{Spec: v1alpha1.UnderlaySpec{Interfaces: []v1alpha1.UnderlayInterface{{Type: "NetworkDevice", NetworkDevice: &v1alpha1.NetworkDevice{InterfaceName: "eth0"}}}, TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{CIDRs: []string{"10.0.0.0/24"}}}},
 			},
 			vnis: []v1alpha1.L3VNI{
-				{Spec: v1alpha1.L3VNISpec{VRF: "red", HostSession: &v1alpha1.HostSession{LocalCIDR: v1alpha1.LocalCIDRConfig{IPv4: new("10.1.0.0/24"), IPv6: new("2001:db8::/64")}}, VNI: 100, VXLanPort: new(int32(4789))}},
+				{Spec: v1alpha1.L3VNISpec{VRF: "red", HostSession: &v1alpha1.HostSession{LocalCIDRs: []string{"10.1.0.0/24", "2001:db8::/64"}}, VNI: 100, VXLanPort: new(int32(4789))}},
 			},
 			l2vnis:        []v1alpha1.L2VNI{},
 			l3Passthrough: []v1alpha1.L3Passthrough{},
@@ -569,11 +565,8 @@ func TestAPItoHostConfig(t *testing.T) {
 				{
 					Spec: v1alpha1.L3PassthroughSpec{
 						HostSession: v1alpha1.HostSession{
-							ASN: 65000,
-							LocalCIDR: v1alpha1.LocalCIDRConfig{
-								IPv4: new("192.168.2.0/24"),
-								IPv6: new("2001:db8::/64"),
-							},
+							ASN:        65000,
+							LocalCIDRs: []string{"192.168.2.0/24", "2001:db8::/64"},
 						},
 					},
 				},
@@ -698,8 +691,7 @@ func TestAPItoHostConfig(t *testing.T) {
 				{Spec: v1alpha1.L3VNISpec{
 					VRF: "red",
 					HostSession: &v1alpha1.HostSession{
-						LocalCIDR: v1alpha1.LocalCIDRConfig{
-							IPv4: new("10.1.0.0/24")},
+						LocalCIDRs: []string{"10.1.0.0/24"},
 					},
 					VNI:       100,
 					VXLanPort: new(int32(4789)),
@@ -739,8 +731,7 @@ func TestAPItoHostConfig(t *testing.T) {
 					Spec: v1alpha1.L3VNISpec{
 						VRF: "red",
 						HostSession: &v1alpha1.HostSession{
-							LocalCIDR: v1alpha1.LocalCIDRConfig{
-								IPv4: new("10.1.0.0/24")},
+							LocalCIDRs: []string{"10.1.0.0/24"},
 						},
 						VNI:       100,
 						VXLanPort: new(int32(4789)),
@@ -755,9 +746,7 @@ func TestAPItoHostConfig(t *testing.T) {
 					Spec: v1alpha1.L3VPNSpec{
 						VRF: "blue",
 						HostSession: &v1alpha1.HostSession{
-							LocalCIDR: v1alpha1.LocalCIDRConfig{
-								IPv4: new("10.1.0.0/24"),
-							},
+							LocalCIDRs: []string{"10.1.0.0/24"},
 						},
 						ImportRTs:        []v1alpha1.RouteTarget{"65000:100"},
 						ExportRTs:        []v1alpha1.RouteTarget{"65001:100"},
@@ -771,9 +760,7 @@ func TestAPItoHostConfig(t *testing.T) {
 					Spec: v1alpha1.L3VPNSpec{
 						VRF: "green",
 						HostSession: &v1alpha1.HostSession{
-							LocalCIDR: v1alpha1.LocalCIDRConfig{
-								IPv4: new("10.1.0.0/24"),
-							},
+							LocalCIDRs: []string{"10.1.0.0/24"},
 						},
 						ImportRTs:        []v1alpha1.RouteTarget{"65000:100"},
 						ExportRTs:        []v1alpha1.RouteTarget{"65001:100"},
