@@ -1,0 +1,32 @@
+[
+  {
+    "op": "replace",
+    "path": "/spec/install/spec/deployments/0/spec/template/spec/containers/0/env/1/value",
+    "value": "registry.redhat.io/openshift4-dev-preview-beta/openperouter-rhel9-operator@sha256:c49c3cfcabd54e0e7de3a146a4eace50899e1498c3d562fab57d7282b9574423"
+  },
+  {
+    "op": "replace",
+    "path": "/spec/install/spec/deployments/0/spec/template/spec/containers/0/env/2/value",
+    "value": "registry.redhat.io/openshift4-dev-preview-beta/openperouter-rhel9-operator@sha256:c49c3cfcabd54e0e7de3a146a4eace50899e1498c3d562fab57d7282b9574423"
+  },
+  {
+    "op": "replace",
+    "path": "/spec/install/spec/deployments/0/spec/template/spec/containers/0/env/5/value",
+    "value": "registry.redhat.io/openshift4-dev-preview-beta/openperouter-rhel9-operator@sha256:c49c3cfcabd54e0e7de3a146a4eace50899e1498c3d562fab57d7282b9574423"
+  },
+  {
+    "op": "replace",
+    "path": "/spec/install/spec/deployments/0/spec/template/spec/containers/0/image",
+    "value": "registry.redhat.io/openshift4-dev-preview-beta/openperouter-rhel9-operator@sha256:c49c3cfcabd54e0e7de3a146a4eace50899e1498c3d562fab57d7282b9574423"
+  },
+  {
+    "op": "replace",
+    "path": "/spec/install/spec/deployments/1/spec/template/spec/containers/0/image",
+    "value": "registry.redhat.io/openshift4-dev-preview-beta/openperouter-rhel9-operator@sha256:c49c3cfcabd54e0e7de3a146a4eace50899e1498c3d562fab57d7282b9574423"
+  },
+  {
+    "op": "replace",
+    "path": "/spec/relatedImages/0/image",
+    "value": "registry.redhat.io/openshift4-dev-preview-beta/openperouter-rhel9-operator@sha256:c49c3cfcabd54e0e7de3a146a4eace50899e1498c3d562fab57d7282b9574423"
+  }
+]
