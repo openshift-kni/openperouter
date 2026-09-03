@@ -72,6 +72,12 @@ v4_netmask() {
   printf '%s\n' "$mask"
 }
 
+network_is_active() {
+  local network="$1"
+  sudo virsh net-list --name | awk -v network="$network" \
+    '$0 == network { found=1 } END { exit !found }'
+}
+
 define_network() {
   local network="$1" gateway_v4="$2" gateway_v6="$3" xml="$output_dir/$network.xml"
   local ip prefix mask
@@ -90,10 +96,10 @@ define_network() {
 
   if ! sudo virsh net-info "$network" >/dev/null 2>&1; then
     sudo virsh net-define "$xml"
-    sudo virsh net-autostart "$network"
   fi
-  if ! sudo virsh net-info "$network" | grep -q 'Active:.*yes'; then
-    sudo virsh net-start "$network"
+  sudo virsh net-autostart "$network"
+  if ! network_is_active "$network"; then
+    sudo virsh net-start "$network" || network_is_active "$network"
   fi
 }
 
