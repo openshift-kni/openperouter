@@ -5,7 +5,7 @@
 #   - OCP cluster running via dev-scripts with EXTRA_NETWORK_NAMES="toswitch1 toswitch2"
 #     and both _V4 and _V6 subnets configured for dual-stack
 #   - OpenPerOuter operator deployed on the cluster
-#   - containerlab installed
+#   - curl available (used to install containerlab when missing)
 #   - podman available
 #
 # Produces:
@@ -27,6 +27,15 @@ NODELINK_OUT="${SCRIPT_DIR}/nodelink.json"
 
 
 CLI="sudo podman"
+
+if ! command -v containerlab >/dev/null 2>&1; then
+    echo "containerlab not found; installing it"
+    command -v curl >/dev/null 2>&1 || {
+        echo "curl is required to install containerlab" >&2
+        exit 1
+    }
+    bash -c "$(curl -fsSL https://get.containerlab.dev)"
+fi
 
 echo "=== Step 1: Disable DHCP on extra networks ==="
 # dev-scripts enables DHCP by default. DHCP IPs compete with our static IPs
