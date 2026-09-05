@@ -121,7 +121,7 @@ for node in ${NODES}; do
     short_name="${node%%.*}"
     vm_name="ostest_${short_name//-/_}"
     for i in 1 2; do
-        BRIDGE_MAC=$(virsh domiflist "${vm_name}" 2>/dev/null | grep "toswitch${i}" | awk '{print $5}')
+        BRIDGE_MAC=$(sudo virsh domiflist "${vm_name}" 2>/dev/null | awk -v network="toswitch${i}" '$3 == network { print $5; exit }')
         if [ -n "${BRIDGE_MAC}" ]; then
             node_exec "${node}" bash -c "
                 echo 'SUBSYSTEM==\"net\", ATTR{address}==\"${BRIDGE_MAC}\", NAME=\"toswitch${i}\"' \
