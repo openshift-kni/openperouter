@@ -61,7 +61,9 @@ COPY openshift/deps/frr /src/subprojects/frr-frr-10.6.1
 WORKDIR /src
 
 # Apply dpdk patches (meson skips diff_files for pre-existing directories)
-RUN for p in subprojects/packagefiles/dpdk/*.patch; do patch -d subprojects/dpdk-stable-25.11.2 -p1 < "$p"; done
+RUN for p in `sed -En 's%[[:space:]]*(dpdk/.*\.patch),?$%\1%p' subprojects/dpdk-25.11.wrap`; do \
+               patch -d subprojects/dpdk-stable-25.11.2 -p1 < "subprojects/packagefiles/$p" || exit; \
+       done
 
 # Apply frr overlay files (meson skips patch_directory for pre-existing directories)
 RUN cp subprojects/packagefiles/frr/* subprojects/frr-frr-10.6.1/
@@ -109,6 +111,16 @@ RUN dnf --nogpgcheck install --setopt=install_weak_deps=0 --nodocs -y \
 	libyang elfutils-libelf protobuf-c python3 readline catatonit \
   wget
 RUN ln -s /usr/libexec/podman/catatonit /sbin/tini
+
+# Pin FRR GIDs before RPM install so they match the supplementalGroups
+# in the Kubernetes pod spec. The grout FRR RPM uses sysusers.d which
+# assigns dynamic GIDs; pre-creating the groups forces stable values.
+# GID 92: frr group (VTY sockets are owned frr:frr in this image)
+# GID 102: frrvty group (VTY sockets are owned frr:frrvty in the Alpine image)
+RUN groupadd --system --gid 92 frr && \
+    useradd --system --uid 92 --gid frr --home-dir /var/run/frr --shell /sbin/nologin --comment "FRRouting suite" frr && \
+    groupadd --system --gid 102 frrvty && \
+    usermod --append --groups frrvty frr
 
 COPY --from=grout-builder /src/*.rpm /grout/
 RUN dnf --nogpgcheck install -y \

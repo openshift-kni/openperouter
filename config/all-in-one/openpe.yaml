@@ -1621,21 +1621,26 @@ spec:
                         rule: isCIDR(self)
                       - message: listenRange must not be an IPv6 link-local range
                         rule: '!isCIDR(self) || cidr(self).ip().family() != 6 || !cidr(self).ip().isLinkLocalUnicast()'
-                    password:
-                      description: |-
-                        password to be used for establishing the BGP session.
-                        Password and PasswordSecret are mutually exclusive.
-                      maxLength: 128
-                      pattern: ^\S+$
-                      type: string
                     passwordSecret:
                       description: |-
-                        passwordSecret is name of the authentication secret for the neighbor.
-                        the secret must be of type "kubernetes.io/basic-auth", and created in the
-                        same namespace as the perouter daemon. The password is stored in the
-                        secret as the key "password".
-                        Password and PasswordSecret are mutually exclusive.
-                      type: string
+                        passwordSecret references a key in a Kubernetes Secret containing the
+                        BGP session password. The Secret must be created in the same namespace
+                        as the Underlay.
+                      properties:
+                        key:
+                          description: |-
+                            key is the key within the Secret's data to select.
+                            The controller defaults this to "password" when unset.
+                          minLength: 1
+                          type: string
+                        name:
+                          description: name is the name of the Secret in the same
+                            namespace.
+                          minLength: 1
+                          type: string
+                      required:
+                      - name
+                      type: object
                     port:
                       description: |-
                         port is the port to dial when establishing the session.
@@ -1939,6 +1944,21 @@ metadata:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
+  name: controller-privileged-scc-role
+  namespace: openperouter-system
+rules:
+- apiGroups:
+  - security.openshift.io
+  resourceNames:
+  - privileged
+  resources:
+  - securitycontextconstraints
+  verbs:
+  - use
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: openperouter
@@ -1988,6 +2008,21 @@ rules:
   - secrets
   verbs:
   - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: perouter-privileged-scc-role
+  namespace: openperouter-system
+rules:
+- apiGroups:
+  - security.openshift.io
+  resourceNames:
+  - privileged
+  resources:
+  - securitycontextconstraints
+  verbs:
+  - use
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -2114,6 +2149,23 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: openperouter
+  name: controller-privileged-scc-rolebinding
+  namespace: openperouter-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: controller-privileged-scc-role
+subjects:
+- kind: ServiceAccount
+  name: controller
+  namespace: openperouter-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: openperouter
   name: controller-rolebinding
   namespace: openperouter-system
 roleRef:
@@ -2140,6 +2192,23 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: nodemarker
+  namespace: openperouter-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: openperouter
+  name: perouter-privileged-scc-rolebinding
+  namespace: openperouter-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: perouter-privileged-scc-role
+subjects:
+- kind: ServiceAccount
+  name: perouter
   namespace: openperouter-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1

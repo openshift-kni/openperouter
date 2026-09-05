@@ -26,11 +26,12 @@ type Resources struct {
 }
 
 type Updater struct {
-	cli       client.Client
-	namespace string
+	cli             client.Client
+	openpeNamespace string
+	frrk8sNamespace string
 }
 
-func UpdaterForCRs(r *rest.Config, ns string) (*Updater, error) {
+func UpdaterForCRs(r *rest.Config, openpeNs, frrk8sNs string) (*Updater, error) {
 	myScheme := runtime.NewScheme()
 
 	if err := v1alpha1.AddToScheme(myScheme); err != nil {
@@ -54,8 +55,9 @@ func UpdaterForCRs(r *rest.Config, ns string) (*Updater, error) {
 	}
 
 	return &Updater{
-		cli:       cl,
-		namespace: ns,
+		cli:             cl,
+		openpeNamespace: openpeNs,
+		frrk8sNamespace: frrk8sNs,
 	}, nil
 }
 
@@ -105,7 +107,13 @@ func (o Updater) Update(r Resources) error {
 
 	// Iterating over the map will return the items in a random order.
 	for i, obj := range objects {
-		obj.SetNamespace(o.namespace)
+		switch obj.(type) {
+		case *frrk8sv1beta1.FRRConfiguration:
+			obj.SetNamespace(o.frrk8sNamespace)
+		default:
+			obj.SetNamespace(o.openpeNamespace)
+		}
+
 		_, err := controllerutil.CreateOrUpdate(context.Background(), o.cli, obj, func() error {
 			// the mutate function is expected to change the object when updating.
 			// we always override with the old version, and we change only the spec part.
@@ -148,13 +156,10 @@ func (o Updater) Update(r Resources) error {
 // CleanAll deletes all relevant resources in the namespace.
 func (o Updater) CleanAll() error {
 	if err := o.cli.DeleteAllOf(context.Background(), &v1alpha1.Underlay{},
-		client.InNamespace(o.namespace)); err != nil {
+		client.InNamespace(o.openpeNamespace)); err != nil {
 		return err
 	}
-	if err := o.CleanButUnderlay(); err != nil {
-		return err
-	}
-	return nil
+	return o.CleanButUnderlay()
 }
 
 // CleanButUnderlay deletes all resources but the underlays.
@@ -162,27 +167,27 @@ func (o Updater) CleanAll() error {
 // will cause the router pods to be recreated.
 func (o Updater) CleanButUnderlay() error {
 	if err := o.cli.DeleteAllOf(context.Background(), &v1alpha1.L3VNI{},
-		client.InNamespace(o.namespace)); err != nil {
+		client.InNamespace(o.openpeNamespace)); err != nil {
 		return err
 	}
 	if err := o.cli.DeleteAllOf(context.Background(), &v1alpha1.L2VNI{},
-		client.InNamespace(o.namespace)); err != nil {
+		client.InNamespace(o.openpeNamespace)); err != nil {
 		return err
 	}
 	if err := o.cli.DeleteAllOf(context.Background(), &v1alpha1.L3VPN{},
-		client.InNamespace(o.namespace)); err != nil {
+		client.InNamespace(o.openpeNamespace)); err != nil {
 		return err
 	}
 	if err := o.cli.DeleteAllOf(context.Background(), &v1alpha1.L3Passthrough{},
-		client.InNamespace(o.namespace)); err != nil {
+		client.InNamespace(o.openpeNamespace)); err != nil {
 		return err
 	}
 	if err := o.cli.DeleteAllOf(context.Background(), &v1alpha1.RawFRRConfig{},
-		client.InNamespace(o.namespace)); err != nil {
+		client.InNamespace(o.openpeNamespace)); err != nil {
 		return err
 	}
 	if err := o.cli.DeleteAllOf(context.Background(), &frrk8sv1beta1.FRRConfiguration{},
-		client.InNamespace(o.namespace)); err != nil {
+		client.InNamespace(o.frrk8sNamespace)); err != nil {
 		return err
 	}
 	return nil
@@ -193,5 +198,5 @@ func (o Updater) Client() client.Client {
 }
 
 func (o Updater) Namespace() string {
-	return o.namespace
+	return o.openpeNamespace
 }
