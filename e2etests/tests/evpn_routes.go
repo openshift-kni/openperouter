@@ -480,16 +480,13 @@ func evpnRoutesOverUnderlay(params evpnUnderlayParams) {
 
 				By(fmt.Sprintf("trying to hit pod %s on the %s network from host %s", podIP, vni.Name, hostName))
 
-				urlStr = url.Format("http://%s:8090/clientip", podIP)
+				urlStr = url.Format("http://%s:8090/hostname", podIP)
 				res, err = externalHostExecutor.Exec("curl", "-sS", urlStr)
 				if err != nil {
 					return fmt.Errorf("curl from %s to %s:8090 failed: %s", hostName, podIP, res)
 				}
-				hostClientIP, err := extractClientIP(res)
-				Expect(err).NotTo(HaveOccurred())
-
-				if hostClientIP != externalHostIP {
-					return fmt.Errorf("curl from %s to %s:8090 returned %s, expected %s", hostName, podIP, clientIP, externalHostIP)
+				if res != testPod.Name {
+					return fmt.Errorf("curl from %s to %s:8090 returned hostname %s, expected %s", hostName, podIP, res, testPod.Name)
 				}
 				return nil
 			}, 5*time.Minute, 5*time.Second).ShouldNot(HaveOccurred())
@@ -695,16 +692,13 @@ var _ = Describe("Routes between bgp and the fabric with iBGP testing e2e integr
 
 			By(fmt.Sprintf("trying to hit pod %s on the %s network from host %s", podIP, vni.Name, hostName))
 
-			urlStr = url.Format("http://%s:8090/clientip", podIP)
+			urlStr = url.Format("http://%s:8090/hostname", podIP)
 			res, err = externalHostExecutor.Exec("curl", "-sS", urlStr)
 			if err != nil {
 				return fmt.Errorf("curl from %s to %s:8090 failed: %s", hostName, podIP, res)
 			}
-			hostClientIP, err := extractClientIP(res)
-			Expect(err).NotTo(HaveOccurred())
-
-			if hostClientIP != externalHostIP {
-				return fmt.Errorf("curl from %s to %s:8090 returned %s, expected %s", hostName, podIP, clientIP, externalHostIP)
+			if res != testPod.Name {
+				return fmt.Errorf("curl from %s to %s:8090 returned hostname %s, expected %s", hostName, podIP, res, testPod.Name)
 			}
 			return nil
 		}, 5*time.Minute, 5*time.Second).ShouldNot(HaveOccurred())
