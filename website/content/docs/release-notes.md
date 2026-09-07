@@ -14,7 +14,7 @@ toc: true
 
 ### New Features
 
-- The underlay `interfaces` union supports a new `CNI` type: the controller provisions underlay interfaces in the router namespace by invoking a CNI plugin defined inline in the Underlay spec (`cniDevice.rawConfig`), with IPAM delegated to the plugin. The macvlan and static CNI plugins are bundled in the controller image. The non-functional `multusNetworkAnnotation` chart value and operator API field were removed. (#543, @qinqon)
+- The underlay `interfaces` union supports a new `CNI` type: the controller provisions underlay interfaces in the router namespace by invoking a CNI plugin defined inline in the Underlay spec (`cniDevice.rawConfig`), with IPAM delegated to the plugin. The non-functional `multusNetworkAnnotation` chart value and operator API field were removed. (#543, @qinqon)
 - The controller now bundles CNI plugin binaries (macvlan, ipvlan, static, dhcp) and exposes a libcni-based invoker, preparing for direct underlay interface provisioning in the router netns without Multus. (#544, @maiqueb)
 - Introduce route reflector support: some nodes can be instructed to have route reflector clients. This enables scenarios where the TOR can't be modified in order to propagate routes across the nodes. (#509, @qinqon)
 - The controller now manages a DHCP daemon subprocess that handles lease acquisition and renewal for CNI-provisioned underlay interfaces, with automatic lease re-acquisition after controller restarts. (#596, @maiqueb)
