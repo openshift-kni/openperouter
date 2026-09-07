@@ -27,6 +27,10 @@ Each failed test directory contains these files:
 | `UnderlayList.log` | JSON dump of all Underlay CRD instances |
 | `L3VNIList.log` | JSON dump of all L3VNI CRD instances |
 | `L2VNIList.log` | JSON dump of all L2VNI CRD instances |
+| `L3VPNList.log` | JSON dump of all L3VPN CRD instances |
+| `L3PassthroughList.log` | JSON dump of all L3Passthrough CRD instances |
+| `RawFRRConfigList.log` | JSON dump of all RawFRRConfig CRD instances |
+| `RouterNodeConfigurationStatusList.log` | JSON dump of all RouterNodeConfigurationStatus CRD instances |
 | `FRRConfigurationList.log` | JSON dump of all FRRConfiguration CRD instances |
 
 ### FRR state (from dumpFRRInfo)
@@ -90,6 +94,10 @@ For a failed test `L3VNI - VRF Traffic - should allow traffic between pods in th
     UnderlayList.log
     L3VNIList.log
     L2VNIList.log
+    L3VPNList.log
+    L3PassthroughList.log
+    RawFRRConfigList.log
+    RouterNodeConfigurationStatusList.log
     FRRConfigurationList.log
     frrdump-pe-kind-worker.log
     frrdump-pe-kind-control-plane.log
