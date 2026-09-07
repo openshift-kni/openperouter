@@ -83,6 +83,7 @@ define_network() {
   local ip prefix mask
   {
     printf '<network>\n  <name>%s</name>\n  <bridge name="%s" stp="on" delay="0"/>\n' "$network" "$network"
+    printf '  <forward mode="nat">\n    <nat>\n      <port start="1024" end="65535"/>\n    </nat>\n  </forward>\n'
     if [[ -n "$gateway_v4" ]]; then
       ip="${gateway_v4%/*}"; prefix="${gateway_v4#*/}"; mask="$(v4_netmask "$prefix")"
       printf '  <ip address="%s" netmask="%s"/>\n' "$ip" "$mask"
@@ -94,9 +95,16 @@ define_network() {
     printf '</network>\n'
   } >"$xml"
 
-  if ! sudo virsh net-info "$network" >/dev/null 2>&1; then
-    sudo virsh net-define "$xml"
+  if sudo virsh net-info "$network" >/dev/null 2>&1; then
+    if network_is_active "$network"; then
+      sudo virsh net-destroy "$network"
+    fi
+    sudo virsh net-undefine "$network"
+    for domain in "${cluster_domains[@]}"; do
+      domains_need_restart["$domain"]=1
+    done
   fi
+  sudo virsh net-define "$xml"
   sudo virsh net-autostart "$network"
   if ! network_is_active "$network"; then
     sudo virsh net-start "$network" || network_is_active "$network"
