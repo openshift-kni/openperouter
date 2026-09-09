@@ -14,7 +14,20 @@ spec:
     singular: underlay
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.asn
+      name: ASN
+      type: integer
+    - jsonPath: .spec.routerIDCIDR
+      name: Router ID Pool
+      type: string
+    - jsonPath: .spec.tunnelEndpoint.cidrs
+      name: VTEP CIDR
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: Underlay is the Schema for the underlays API.

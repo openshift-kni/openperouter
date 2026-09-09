@@ -23,7 +23,20 @@ spec:
     singular: l2vni
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.vni
+      name: VNI
+      type: integer
+    - jsonPath: .spec.routingDomain.*.name
+      name: Routing Domain
+      type: string
+    - jsonPath: .spec.gatewayIPs
+      name: Gateway IPs
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: |-
@@ -293,7 +306,17 @@ spec:
     singular: l3passthrough
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.hostSession.asn
+      name: ASN
+      type: integer
+    - jsonPath: .spec.hostSession.hostASN
+      name: HostASN
+      type: integer
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: |-
@@ -456,7 +479,17 @@ spec:
     singular: l3vni
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.vni
+      name: VNI
+      type: integer
+    - jsonPath: .spec.vrf
+      name: VRF
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: |-
@@ -675,7 +708,14 @@ spec:
     singular: l3vpn
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.vrf
+      name: VRF
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: L3VPN represents an SRv6 IP VPN.
@@ -1162,7 +1202,20 @@ spec:
     singular: underlay
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.asn
+      name: ASN
+      type: integer
+    - jsonPath: .spec.routerIDCIDR
+      name: Router ID Pool
+      type: string
+    - jsonPath: .spec.tunnelEndpoint.cidrs
+      name: VTEP CIDR
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: Underlay is the Schema for the underlays API.
@@ -1935,6 +1988,21 @@ metadata:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
+  name: controller-privileged-scc-role
+  namespace: openperouter-system
+rules:
+- apiGroups:
+  - security.openshift.io
+  resourceNames:
+  - privileged
+  resources:
+  - securitycontextconstraints
+  verbs:
+  - use
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: openperouter
@@ -1958,21 +2026,6 @@ rules:
   - get
   - list
   - watch
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: perouter-privileged-scc-role
-  namespace: openperouter-system
-rules:
-- apiGroups:
-  - security.openshift.io
-  resourceNames:
-  - privileged
-  resources:
-  - securitycontextconstraints
-  verbs:
-  - use
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -2003,7 +2056,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: controller-privileged-scc-role
+  name: perouter-privileged-scc-role
   namespace: openperouter-system
 rules:
 - apiGroups:
@@ -2140,12 +2193,12 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: openperouter
-  name: controller-rolebinding
+  name: controller-privileged-scc-rolebinding
   namespace: openperouter-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: controller-role
+  name: controller-privileged-scc-role
 subjects:
 - kind: ServiceAccount
   name: controller
@@ -2157,15 +2210,15 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: openperouter
-  name: perouter-privileged-scc-rolebinding
+  name: controller-rolebinding
   namespace: openperouter-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: perouter-privileged-scc-role
+  name: controller-role
 subjects:
 - kind: ServiceAccount
-  name: perouter
+  name: controller
   namespace: openperouter-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -2191,15 +2244,15 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: openperouter
-  name: controller-privileged-scc-rolebinding
+  name: perouter-privileged-scc-rolebinding
   namespace: openperouter-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: controller-privileged-scc-role
+  name: perouter-privileged-scc-role
 subjects:
 - kind: ServiceAccount
-  name: controller
+  name: perouter
   namespace: openperouter-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1

@@ -14,7 +14,17 @@ spec:
     singular: l3passthrough
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.hostSession.asn
+      name: ASN
+      type: integer
+    - jsonPath: .spec.hostSession.hostASN
+      name: HostASN
+      type: integer
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: |-
