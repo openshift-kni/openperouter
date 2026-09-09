@@ -25,7 +25,7 @@ import (
 	clientset "k8s.io/client-go/kubernetes"
 )
 
-var _ = Describe("Router Host configuration", Ordered, GroutSupport, func() {
+var _ = Describe("Router BGP sessions", Ordered, GroutSupport, func() {
 	var cs clientset.Interface
 	frrk8sPods := []*corev1.Pod{}
 	nodes := []corev1.Node{}
@@ -114,11 +114,9 @@ var _ = Describe("Router Host configuration", Ordered, GroutSupport, func() {
 			Spec: v1alpha1.L3VNISpec{
 				VRF: "red",
 				HostSession: &v1alpha1.HostSession{
-					ASN:     64514,
-					HostASN: new(int64(64515)),
-					LocalCIDR: v1alpha1.LocalCIDRConfig{
-						IPv4: new("192.169.10.0/24"),
-					},
+					ASN:        64514,
+					HostASN:    new(int64(64515)),
+					LocalCIDRs: []string{"192.169.10.0/24"},
 				},
 				VNI: 100,
 			},
@@ -159,11 +157,9 @@ var _ = Describe("Router Host configuration", Ordered, GroutSupport, func() {
 			Spec: v1alpha1.L3VNISpec{
 				VRF: "red",
 				HostSession: &v1alpha1.HostSession{
-					ASN:      64514,
-					HostType: new("External"),
-					LocalCIDR: v1alpha1.LocalCIDRConfig{
-						IPv4: new("192.169.10.0/24"),
-					},
+					ASN:        64514,
+					HostType:   new("External"),
+					LocalCIDRs: []string{"192.169.10.0/24"},
 				},
 				VNI: 100,
 			},
@@ -208,11 +204,9 @@ var _ = Describe("Router Host configuration", Ordered, GroutSupport, func() {
 			Spec: v1alpha1.L3VNISpec{
 				VRF: "red",
 				HostSession: &v1alpha1.HostSession{
-					ASN:      64514,
-					HostType: new("Internal"),
-					LocalCIDR: v1alpha1.LocalCIDRConfig{
-						IPv4: new("192.169.10.0/24"),
-					},
+					ASN:        64514,
+					HostType:   new("Internal"),
+					LocalCIDRs: []string{"192.169.10.0/24"},
 				},
 				VNI: 100,
 			},
@@ -257,11 +251,9 @@ var _ = Describe("Router Host configuration", Ordered, GroutSupport, func() {
 			Spec: v1alpha1.L3VNISpec{
 				VRF: "red",
 				HostSession: &v1alpha1.HostSession{
-					ASN:      64514,
-					HostType: new("Internal"),
-					LocalCIDR: v1alpha1.LocalCIDRConfig{
-						IPv4: new("192.169.10.0/24"),
-					},
+					ASN:        64514,
+					HostType:   new("Internal"),
+					LocalCIDRs: []string{"192.169.10.0/24"},
 				},
 				VNI: 100,
 			},
@@ -307,10 +299,8 @@ var _ = Describe("Router Host configuration", Ordered, GroutSupport, func() {
 				Spec: v1alpha1.L3VNISpec{
 					VRF: "red",
 					HostSession: &v1alpha1.HostSession{
-						ASN: 64514,
-						LocalCIDR: v1alpha1.LocalCIDRConfig{
-							IPv4: new("192.169.10.0/24"),
-						},
+						ASN:        64514,
+						LocalCIDRs: []string{"192.169.10.0/24"},
 					},
 					VNI: 100,
 				},
@@ -334,12 +324,10 @@ var _ = Describe("Router Host configuration", Ordered, GroutSupport, func() {
 				Spec: v1alpha1.L3VNISpec{
 					VRF: "red",
 					HostSession: &v1alpha1.HostSession{
-						ASN:      64514,
-						HostASN:  new(int64(100)),
-						HostType: new("Internal"),
-						LocalCIDR: v1alpha1.LocalCIDRConfig{
-							IPv4: new("192.169.10.0/24"),
-						},
+						ASN:        64514,
+						HostASN:    new(int64(100)),
+						HostType:   new("Internal"),
+						LocalCIDRs: []string{"192.169.10.0/24"},
 					},
 					VNI: 100,
 				},
@@ -361,11 +349,9 @@ var _ = Describe("Router Host configuration", Ordered, GroutSupport, func() {
 			},
 			Spec: v1alpha1.L3PassthroughSpec{
 				HostSession: v1alpha1.HostSession{
-					ASN:     64514,
-					HostASN: new(int64(64515)),
-					LocalCIDR: v1alpha1.LocalCIDRConfig{
-						IPv4: new("192.169.10.0/24"),
-					},
+					ASN:        64514,
+					HostASN:    new(int64(64515)),
+					LocalCIDRs: []string{"192.169.10.0/24"},
 				},
 			},
 		}
@@ -404,11 +390,9 @@ var _ = Describe("Router Host configuration", Ordered, GroutSupport, func() {
 			},
 			Spec: v1alpha1.L3PassthroughSpec{
 				HostSession: v1alpha1.HostSession{
-					ASN:      64514,
-					HostType: new("External"),
-					LocalCIDR: v1alpha1.LocalCIDRConfig{
-						IPv4: new("192.169.10.0/24"),
-					},
+					ASN:        64514,
+					HostType:   new("External"),
+					LocalCIDRs: []string{"192.169.10.0/24"},
 				},
 			},
 		}
@@ -452,11 +436,9 @@ var _ = Describe("Router Host configuration", Ordered, GroutSupport, func() {
 			},
 			Spec: v1alpha1.L3PassthroughSpec{
 				HostSession: v1alpha1.HostSession{
-					ASN:      64514,
-					HostType: new("Internal"),
-					LocalCIDR: v1alpha1.LocalCIDRConfig{
-						IPv4: new("192.169.10.0/24"),
-					},
+					ASN:        64514,
+					HostType:   new("Internal"),
+					LocalCIDRs: []string{"192.169.10.0/24"},
 				},
 			},
 		}
@@ -500,11 +482,9 @@ var _ = Describe("Router Host configuration", Ordered, GroutSupport, func() {
 			},
 			Spec: v1alpha1.L3PassthroughSpec{
 				HostSession: v1alpha1.HostSession{
-					ASN:     64514,
-					HostASN: new(int64(64514)),
-					LocalCIDR: v1alpha1.LocalCIDRConfig{
-						IPv4: new("192.169.10.0/24"),
-					},
+					ASN:        64514,
+					HostASN:    new(int64(64514)),
+					LocalCIDRs: []string{"192.169.10.0/24"},
 				},
 			},
 		}

@@ -155,13 +155,12 @@ func passthroughConfigToHost(l3Passthrough []v1alpha1.L3Passthrough, targetNS st
 		return nil, nil
 	}
 	vethIPs, err := ipam.VethIPsFromPool(
-		l3Passthrough[0].Spec.HostSession.LocalCIDR.IPv4,
-		l3Passthrough[0].Spec.HostSession.LocalCIDR.IPv6,
+		l3Passthrough[0].Spec.HostSession.LocalCIDRs,
 		nodeIndex,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get veth ips, cidr %v, nodeIndex %d, err: %w",
-			l3Passthrough[0].Spec.HostSession.LocalCIDR, nodeIndex, err)
+			l3Passthrough[0].Spec.HostSession.LocalCIDRs, nodeIndex, err)
 	}
 
 	return &hostnetwork.PassthroughParams{
@@ -278,12 +277,11 @@ func l3vniToHost(
 	}
 
 	vethIPs, err := ipam.VethIPsFromPool(
-		l3vni.Spec.HostSession.LocalCIDR.IPv4,
-		l3vni.Spec.HostSession.LocalCIDR.IPv6,
+		l3vni.Spec.HostSession.LocalCIDRs,
 		nodeIndex)
 	if err != nil {
 		return hostnetwork.L3VNIParams{}, fmt.Errorf("failed to get veth ips, cidr %v, nodeIndex %d, err: %w",
-			l3vni.Spec.HostSession.LocalCIDR, nodeIndex, err)
+			l3vni.Spec.HostSession.LocalCIDRs, nodeIndex, err)
 	}
 
 	hostL3VNI.LinkIPs = &hostnetwork.LinkIPs{
@@ -406,12 +404,11 @@ func l3vpnToHost(
 	}
 
 	vethIPs, err := ipam.VethIPsFromPool(
-		l3vpn.Spec.HostSession.LocalCIDR.IPv4,
-		l3vpn.Spec.HostSession.LocalCIDR.IPv6,
+		l3vpn.Spec.HostSession.LocalCIDRs,
 		nodeIndex)
 	if err != nil {
 		return hostnetwork.L3VPNParams{}, fmt.Errorf("failed to get veth ips, cidr %v, nodeIndex %d, err: %w",
-			l3vpn.Spec.HostSession.LocalCIDR, nodeIndex, err)
+			l3vpn.Spec.HostSession.LocalCIDRs, nodeIndex, err)
 	}
 
 	hostL3VPN.LinkIPs = &hostnetwork.LinkIPs{
