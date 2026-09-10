@@ -14,7 +14,14 @@ spec:
     singular: l3vpn
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.vrf
+      name: VRF
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: L3VPN represents an SRv6 IP VPN.
