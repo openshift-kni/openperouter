@@ -199,6 +199,10 @@ type L2VNIStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:webhook:verbs=create;update,path=/validate-openperouter-io-v1alpha1-l2vni,mutating=false,failurePolicy=fail,groups=network.openperouter.io,resources=l2vnis,versions=v1alpha1,name=l2vnivalidationwebhook.openperouter.io,sideEffects=None,admissionReviewVersions=v1
+// +kubebuilder:printcolumn:name="VNI",type=integer,JSONPath=`.spec.vni`
+// +kubebuilder:printcolumn:name="Routing Domain",type=string,JSONPath=`.spec.routingDomain.*.name`
+// +kubebuilder:printcolumn:name="Gateway IPs",type=string,JSONPath=`.spec.gatewayIPs`
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
 // L2VNI represents a VXLan VNI to receive EVPN type 2 routes
 // from.
