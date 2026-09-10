@@ -1,0 +1,48 @@
+apiVersion: certsuite.redhat.com/v1alpha1
+kind: TestBundle
+metadata:
+  name: openperouter-test-bundle
+  labels:
+    app.kubernetes.io/part-of: openperouter
+spec:
+  # CSV only supports AllNamespaces. Keep namespace pinned so the resolver
+  # does not generate an oo-* install NS that would miss certsuite_config
+  # and the operand apply.
+  namespace: openperouter-system
+  installMode: AllNamespaces
+
+  # FBC still catalogs a bundle whose relatedImages digest (e7282047) is
+  # gone from quay (manifest unknown). Rewrite to a live operator digest
+  # after OLM creates the CSV. Keep registry.redhat.io so guest IDMS maps
+  # it to telco-5g-tenant/openperouter-operator-5-0.
+  csvPatches:
+    - path: csv-patches/00-live-operator-image.json
+
+  # Default discovery kinds is DaemonSet only. Also label Deployments so
+  # nodemarker (and operator/webhook) match podsUnderTestLabels via the
+  # pod template; certsuite discovers Deployments by template labels.
+  discoveryLabels:
+    operator: "redhat-best-practices-for-k8s.com/operator=target"
+    pod: "redhat-best-practices-for-k8s.com/generic=target"
+    resources:
+      - kind: DaemonSet
+      - kind: Deployment
+
+  description: |
+    Software-only test deployment of openperouter-operator operands. Creates an
+    OpenPERouter CR that exercises the operator's reconciliation logic and
+    deploys the controller DaemonSet, router DaemonSet, and nodemarker
+    Deployment without requiring specialized networking hardware. Network CRs
+    (Underlay, L3VNI, etc.) are omitted because they depend on real NICs.
+
+  readiness:
+    timeout: 300
+    checks:
+      - kind: DaemonSet
+        name: controller
+      - kind: DaemonSet
+        name: router
+      - kind: Deployment
+        name: nodemarker
+      - kind: OpenPERouter
+        name: openperouter

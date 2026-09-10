@@ -1,0 +1,12 @@
+targetNameSpaces:
+  - name: openperouter-system
+
+podsUnderTestLabels:
+  - "redhat-best-practices-for-k8s.com/generic: target"
+
+operatorsUnderTestLabels:
+  - "redhat-best-practices-for-k8s.com/operator: target"
+
+targetCrdFilters:
+  - nameSuffix: "network.openperouter.io"
+    scalable: false
