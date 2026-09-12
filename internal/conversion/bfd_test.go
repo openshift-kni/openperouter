@@ -31,6 +31,7 @@ func TestBFDProfileSessionMode(t *testing.T) {
 			profile := bfdProfileForNeighbor(n)
 			if profile == nil {
 				t.Fatal("expected a BFD profile, got nil")
+				return
 			}
 			if profile.PassiveMode != tc.wantPassiveMode {
 				t.Errorf("PassiveMode = %v, want %v", profile.PassiveMode, tc.wantPassiveMode)

@@ -90,16 +90,6 @@ func validateL3VNICreate(l3vni *v1alpha1.L3VNI) error {
 	Logger.Debug("webhook l3vni", "action", "create", "name", l3vni.Name, "namespace", l3vni.Namespace)
 	defer Logger.Debug("webhook l3vni", "action", "end create", "name", l3vni.Name, "namespace", l3vni.Namespace)
 
-	existingL3VPNs, err := getL3VPNs()
-	if err != nil {
-		return err
-	}
-	if len(existingL3VPNs.Items) > 0 {
-		return fmt.Errorf("cannot create L3VNI %s/%s when L3VPNs already exist",
-			l3vni.GetNamespace(), l3vni.GetName(),
-		)
-	}
-
 	return validateL3VNI(l3vni)
 }
 
@@ -155,7 +145,17 @@ func validateL3VNI(l3vni *v1alpha1.L3VNI) error {
 		return err
 	}
 
-	if err := conversion.ValidateOverlayResourcesForNodes(nodeList.Items, toValidateL2.Items, toValidate, nil); err != nil {
+	l3vpnList, err := getL3VPNs()
+	if err != nil {
+		return err
+	}
+
+	if err := conversion.ValidateOverlayResourcesForNodes(
+		nodeList.Items,
+		toValidateL2.Items,
+		toValidate,
+		l3vpnList.Items,
+	); err != nil {
 		return fmt.Errorf("validation failed: %w", err)
 	}
 

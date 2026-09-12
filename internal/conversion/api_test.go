@@ -24,6 +24,7 @@ func TestMergeAPIConfigs_SingleConfig(t *testing.T) {
 		L2VNIs:        []v1alpha1.L2VNI{},
 		L3VPNs:        []v1alpha1.L3VPN{},
 		L3Passthrough: []v1alpha1.L3Passthrough{},
+		Passwords:     map[string]string{},
 	}
 
 	merged, err := MergeAPIConfigs(config)
@@ -110,6 +111,7 @@ func TestMergeAPIConfigs_MultipleConfigs(t *testing.T) {
 			},
 		},
 		L3Passthrough: []v1alpha1.L3Passthrough{},
+		Passwords:     map[string]string{},
 	}
 
 	if !cmp.Equal(want, merged) {
@@ -133,6 +135,7 @@ func TestMergeAPIConfigs_AllResourceTypes(t *testing.T) {
 		L3Passthrough: []v1alpha1.L3Passthrough{
 			{ObjectMeta: metav1.ObjectMeta{Name: "passthrough1"}},
 		},
+		Passwords: map[string]string{},
 	}
 
 	merged, err := MergeAPIConfigs(config)
@@ -174,6 +177,7 @@ func TestMergeAPIConfigs_ResourcesConcatenated(t *testing.T) {
 		L2VNIs:        []v1alpha1.L2VNI{},
 		L3VPNs:        []v1alpha1.L3VPN{},
 		L3Passthrough: []v1alpha1.L3Passthrough{},
+		Passwords:     map[string]string{},
 	}
 
 	if !cmp.Equal(want, merged) {
