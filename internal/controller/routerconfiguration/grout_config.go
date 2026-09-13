@@ -123,7 +123,7 @@ func (g *GroutDatapathConfigurator) Configure(ctx context.Context, config interf
 			continue
 		}
 		slog.InfoContext(ctx, "setting up L2VNI", "vni", vni.VNI)
-		if err := grout.SetupL2VNI(ctx, groutClient, vni); err != nil {
+		if err := grout.SetupL2VNI(ctx, groutClient, vni, g.deviceStateStore, g.sysfs); err != nil {
 			resourceErrors = append(resourceErrors, &openpeerrors.ResourceError{
 				Obj: v1alpha1.FailedResource{
 					Kind: openpeerrors.KindL2VNI, Name: vni.Name, Reason: reason, Message: err.Error(),
@@ -172,6 +172,11 @@ func (g *GroutDatapathConfigurator) Configure(ctx context.Context, config interf
 		return fmt.Errorf("failed to remove deleted vnis: %w", err)
 	}
 	bridgerefresh.StopForRemovedVNIs(configuredL2VNIs)
+
+	slog.InfoContext(ctx, "removing stale VF-pair resources")
+	if err := grout.RemoveStaleVFPairResources(ctx, groutClient, configuredL2VNIs, g.deviceStateStore, g.sysfs); err != nil {
+		return fmt.Errorf("failed to remove stale VF-pair resources: %w", err)
+	}
 
 	slog.InfoContext(ctx, "removing deleted l3vpns")
 	if err := grout.RemoveNonConfiguredL3VPNs(ctx, groutClient, configuredL3VPNs); err != nil {

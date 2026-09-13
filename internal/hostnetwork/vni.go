@@ -58,6 +58,20 @@ type L2VNIParams struct {
 	Name         string
 	L2GatewayIPs []string
 	HostMaster   *HostMaster
+	VFPair       *VFPairParams
+}
+
+// VFPairParams describes the SR-IOV VF pair backing an L2VNI: the trunk VF
+// handed to the grout datapath and the VLAN carrying the VNI traffic
+// between it and the workload VF.
+type VFPairParams struct {
+	PCIAddress  *string
+	PFName      *string
+	VFIndex     *int32
+	NetlinkName *string
+	VLAN        int32
+	RXQueues    *int32
+	QSize       *int32
 }
 
 type HostMaster struct {
