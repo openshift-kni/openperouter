@@ -167,7 +167,7 @@ func resolveFromNetlinkName(netlinkName string, store devicestate.Store, sysfs p
 	}
 
 	slog.Info("device state not found, resolving PCI address from netlink name", "netlinkName", netlinkName)
-	pciAddr, err := sysfs.PCIAddressForNetDevice(netlinkName)
+	pciAddr, err := sysfs.PCIAddressForNetlinkName(netlinkName)
 	if err != nil {
 		return "", fmt.Errorf("failed to resolve PCI address for %s: %w", netlinkName, err)
 	}
