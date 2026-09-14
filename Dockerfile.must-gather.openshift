@@ -1,0 +1,32 @@
+# must-gather image for OpenPERouter.
+#
+# Packages the repository inspect toolkit (tools/inspect) together with a
+# must-gather compatible entrypoint, on top of the OpenShift CLI image so that
+# `oc` is available at collection time. Meant to be consumed with:
+#   oc adm must-gather --image=<openperouter-must-gather-image>
+FROM registry.redhat.io/openshift4/ose-cli-rhel9:v4.22
+
+# Embed the inspect toolkit and the must-gather entrypoint.
+COPY tools/inspect /usr/share/openperouter/inspect
+COPY must-gather/gather /usr/bin/gather
+
+RUN chmod +x /usr/bin/gather \
+    /usr/share/openperouter/inspect/inspect \
+    /usr/share/openperouter/inspect/inspect_host \
+    /usr/share/openperouter/inspect/net_info \
+    /usr/share/openperouter/inspect/router_info
+
+LABEL com.redhat.component="openperouter-must-gather" \
+    name="openshift4-dev-preview-beta/openperouter-must-gather-rhel9" \
+    summary="must-gather plugin for openperouter" \
+    io.openshift.expose-services="" \
+    io.openshift.tags="openperouter,must-gather" \
+    io.k8s.display-name="openperouter must-gather" \
+    io.k8s.description="must-gather plugin for collecting openperouter related info" \
+    description="must-gather plugin for collecting openperouter related info" \
+    distribution-scope="public" \
+    release="5.1" \
+    url="https://github.com/openperouter/openperouter" \
+    vendor="Red Hat, Inc."
+
+ENTRYPOINT ["/usr/bin/gather"]
