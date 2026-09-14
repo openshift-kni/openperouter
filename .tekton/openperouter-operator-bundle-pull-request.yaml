@@ -12,10 +12,10 @@ metadata:
     pipelinesascode.tekton.dev/on-target-branch: "[refs/heads/main,refs/heads/release-*]"
   creationTimestamp:
   labels:
-    appstudio.openshift.io/application: openperouter-operator-5-0
-    appstudio.openshift.io/component: openperouter-operator-bundle-5-0
+    appstudio.openshift.io/application: openperouter-operator-5-1
+    appstudio.openshift.io/component: openperouter-operator-bundle-5-1
     pipelines.appstudio.openshift.io/type: build
-  name: openperouter-operator-bundle-5-0-on-pull-request
+  name: openperouter-operator-bundle-5-1-on-pull-request
   namespace: telco-5g-tenant
 spec:
   params:
@@ -24,7 +24,7 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-bundle-5-0:on-pr-{{revision}}
+    value: quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-bundle-5-1:on-pr-{{revision}}
   - name: image-expires-after
     value: 5d
   - name: build-platforms
@@ -44,7 +44,7 @@ spec:
     value: 'false'
   - name: build-args
     value:
-    - OPERATOR_IMAGE=quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-5-0:on-pr-{{revision}}
+    - OPERATOR_IMAGE=quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-5-1:on-pr-{{revision}}
   - name: skip-sast-coverity
     value: 'true'
   pipelineSpec:
@@ -208,7 +208,7 @@ spec:
         value:
         - build-date=$SOURCE_DATE
         - short-commit=$(tasks.clone-repository.results.short-commit)
-        - version=v5.0-$SOURCE_DATE_EPOCH
+        - version=v5.1-$SOURCE_DATE_EPOCH
       - name: source-date-epoch
         value: $(tasks.clone-repository.results.commit-timestamp)
       runAfter:
@@ -682,7 +682,7 @@ spec:
     - name: netrc
       optional: true
   taskRunTemplate:
-    serviceAccountName: build-pipeline-openperouter-operator-bundle-5-0
+    serviceAccountName: build-pipeline-openperouter-operator-bundle-5-1
   workspaces:
   - name: git-auth
     secret:

@@ -14,8 +14,8 @@ metadata:
       (target_branch == "main" || target_branch.startsWith("release-"))
   creationTimestamp:
   labels:
-    appstudio.openshift.io/application: openperouter-operator-5-0
-    appstudio.openshift.io/component: openperouter-operator-bundle-5-0
+    appstudio.openshift.io/application: openperouter-operator-5-1
+    appstudio.openshift.io/component: openperouter-operator-bundle-5-1
     pipelines.appstudio.openshift.io/type: build
   name: openperouter-operator-bundle-dev-push
   namespace: telco-5g-tenant
@@ -26,9 +26,9 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-bundle-5-0:test-{{revision}}
+    value: quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-bundle-5-1:test-{{revision}}
   - name: output-image-edge
-    value: quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-bundle-5-0:edge-{{revision}}
+    value: quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-bundle-5-1:edge-{{revision}}
   - name: image-expires-after
     value: 20d
   - name: build-platforms
@@ -47,9 +47,9 @@ spec:
   - name: skip-checks
     value: 'true'
   - name: operator-image-test
-    value: quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-5-0:{{revision}}
+    value: quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-5-1:{{revision}}
   - name: operator-image-edge
-    value: quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-edge-5-0:{{revision}}
+    value: quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-edge-5-1:{{revision}}
   - name: additional-tags-test
     value:
     - test-latest
@@ -59,7 +59,7 @@ spec:
   pipelineRef:
     name: dev-pipeline
   taskRunTemplate:
-    serviceAccountName: build-pipeline-openperouter-operator-bundle-5-0
+    serviceAccountName: build-pipeline-openperouter-operator-bundle-5-1
   workspaces:
   - name: git-auth
     secret:
