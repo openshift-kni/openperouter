@@ -109,7 +109,7 @@ RUN dnf --nogpgcheck install --setopt=install_weak_deps=0 --nodocs -y \
 	glibc-minimal-langpack less shadow-utils tcpdump \
 	libedit libevent libmnl rdma-core libibverbs numactl json-c libcap \
 	libyang elfutils-libelf protobuf-c python3 readline catatonit \
-  wget
+  wget iproute
 RUN ln -s /usr/libexec/podman/catatonit /sbin/tini
 
 # Pin FRR GIDs before RPM install so they match the supplementalGroups

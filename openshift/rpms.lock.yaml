@@ -1271,6 +1271,13 @@ arches:
     name: hwdata
     evr: 0.379-10.6.el10
     sourcerpm: hwdata-0.379-10.6.el10.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/baseos/os/Packages/i/iproute-6.14.0-2.el10.x86_64.rpm
+    repoid: rhel-10-for-x86_64-baseos-rpms
+    size: 868654
+    checksum: sha256:c4d7c44c843ba8734725fdbc4cd6c1ce38379d798793604456ff39bc0639e3a3
+    name: iproute
+    evr: 6.14.0-2.el10
+    sourcerpm: iproute-6.14.0-2.el10.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/baseos/os/Packages/j/jansson-2.14-3.el10.x86_64.rpm
     repoid: rhel-10-for-x86_64-baseos-rpms
     size: 49616
@@ -1803,6 +1810,13 @@ arches:
     name: protobuf-c
     evr: 1.5.0-6.el10
     sourcerpm: protobuf-c-1.5.0-6.el10.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/baseos/os/Packages/p/psmisc-23.6-8.el10.x86_64.rpm
+    repoid: rhel-10-for-x86_64-baseos-rpms
+    size: 331009
+    checksum: sha256:81b7e9ef6c3af52a486321cc1f40a20663c4d8ff3289626dc89ed81bb110cb52
+    name: psmisc
+    evr: 23.6-8.el10
+    sourcerpm: psmisc-23.6-8.el10.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/baseos/os/Packages/p/publicsuffix-list-dafsa-20240107-5.el10.noarch.rpm
     repoid: rhel-10-for-x86_64-baseos-rpms
     size: 61540
