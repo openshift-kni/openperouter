@@ -84,16 +84,6 @@ func validateL3VPNCreate(l3vpn *v1alpha1.L3VPN) error {
 	Logger.Debug("webhook l3vpn", "action", "create", "name", l3vpn.Name, "namespace", l3vpn.Namespace)
 	defer Logger.Debug("webhook l3vpn", "action", "end create", "name", l3vpn.Name, "namespace", l3vpn.Namespace)
 
-	existingL3VNIs, err := getL3VNIs()
-	if err != nil {
-		return err
-	}
-	if len(existingL3VNIs.Items) > 0 {
-		return fmt.Errorf("cannot create L3VPN %s/%s when L3VNIs already exist",
-			l3vpn.GetNamespace(), l3vpn.GetName(),
-		)
-	}
-
 	return validateL3VPN(l3vpn)
 }
 
@@ -102,7 +92,7 @@ func validateL3VPNUpdate(l3vpn *v1alpha1.L3VPN, oldL3VPN *v1alpha1.L3VPN) error 
 	defer Logger.Debug("webhook l3vpn", "action", "end update", "name", l3vpn.Name, "namespace", l3vpn.Namespace)
 
 	if !reflect.DeepEqual(localCIDR(oldL3VPN.Spec.HostSession), localCIDR(l3vpn.Spec.HostSession)) {
-		return errors.New("LocalCIDR cannot be changed")
+		return errors.New("localCIDRs cannot be changed")
 	}
 
 	return validateL3VPN(l3vpn)
@@ -152,8 +142,17 @@ func validateL3VPN(l3vpn *v1alpha1.L3VPN) error {
 		return fmt.Errorf("validation failed: %w", err)
 	}
 
-	if err := conversion.ValidateOverlayResourcesForNodes(nodeList.Items, l2vniList.Items, nil,
-		toValidate); err != nil {
+	l3vniList, err := getL3VNIs()
+	if err != nil {
+		return err
+	}
+
+	if err := conversion.ValidateOverlayResourcesForNodes(
+		nodeList.Items,
+		l2vniList.Items,
+		l3vniList.Items,
+		toValidate,
+	); err != nil {
 		return fmt.Errorf("validation failed: %w", err)
 	}
 

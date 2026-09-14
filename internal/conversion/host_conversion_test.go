@@ -93,7 +93,7 @@ func TestAPItoHostConfig(t *testing.T) {
 				},
 			},
 			vnis: []v1alpha1.L3VNI{
-				{Spec: v1alpha1.L3VNISpec{VRF: "red", HostSession: &v1alpha1.HostSession{LocalCIDR: v1alpha1.LocalCIDRConfig{IPv4: new("10.1.0.0/24")}}, VNI: 100, VXLanPort: new(int32(4789))}},
+				{Spec: v1alpha1.L3VNISpec{VRF: "red", HostSession: &v1alpha1.HostSession{LocalCIDRs: []string{"10.1.0.0/24"}}, VNI: 100, VXLanPort: new(int32(4789))}},
 			},
 			l2vnis:        []v1alpha1.L2VNI{},
 			l3Passthrough: []v1alpha1.L3Passthrough{},
@@ -107,11 +107,12 @@ func TestAPItoHostConfig(t *testing.T) {
 			wantL3VNIParams: []hostnetwork.L3VNIParams{
 				{
 					VNIParams: hostnetwork.VNIParams{
-						VRF:       "red",
-						TargetNS:  "namespace",
-						VTEPIP:    "10.0.0.0/32",
-						VNI:       100,
-						VXLanPort: new(int32(4789)),
+						VRF:            "red",
+						TargetNS:       "namespace",
+						VTEPIP:         "10.0.0.0/32",
+						VNI:            100,
+						VXLanPort:      new(int32(4789)),
+						TunnelOverhead: hostnetwork.VXLanOverhead,
 					},
 					LinkIPs: &hostnetwork.LinkIPs{
 						HostIPv4: "10.1.0.2/24",
@@ -152,9 +153,7 @@ func TestAPItoHostConfig(t *testing.T) {
 					Spec: v1alpha1.L3VNISpec{
 						VRF: "red",
 						HostSession: &v1alpha1.HostSession{
-							LocalCIDR: v1alpha1.LocalCIDRConfig{
-								IPv4: new("10.1.0.0/24"),
-							},
+							LocalCIDRs: []string{"10.1.0.0/24"},
 						},
 						VNI:       100,
 						VXLanPort: new(int32(4789)),
@@ -173,11 +172,12 @@ func TestAPItoHostConfig(t *testing.T) {
 			wantL3VNIParams: []hostnetwork.L3VNIParams{
 				{
 					VNIParams: hostnetwork.VNIParams{
-						VRF:       "red",
-						TargetNS:  "namespace",
-						VTEPIP:    "10.0.0.0/32",
-						VNI:       100,
-						VXLanPort: new(int32(4789)),
+						VRF:            "red",
+						TargetNS:       "namespace",
+						VTEPIP:         "10.0.0.0/32",
+						VNI:            100,
+						VXLanPort:      new(int32(4789)),
+						TunnelOverhead: hostnetwork.VXLanOverhead,
 					},
 					LinkIPs: &hostnetwork.LinkIPs{
 						HostIPv4: "10.1.0.2/24",
@@ -212,21 +212,27 @@ func TestAPItoHostConfig(t *testing.T) {
 				},
 			},
 			l3vpns: []v1alpha1.L3VPN{
-				{Spec: v1alpha1.L3VPNSpec{
-					VRF: "red",
-					HostSession: &v1alpha1.HostSession{
-						LocalCIDR: v1alpha1.LocalCIDRConfig{
-							IPv4: new("10.1.0.0/24"),
-						},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "vpn1",
 					},
-					ImportRTs:        []v1alpha1.RouteTarget{"65000:100"},
-					ExportRTs:        []v1alpha1.RouteTarget{"65001:100"},
-					RDAssignedNumber: 100,
-				},
+					Spec: v1alpha1.L3VPNSpec{
+						VRF: "red",
+						HostSession: &v1alpha1.HostSession{
+							LocalCIDRs: []string{"10.1.0.0/24"},
+						},
+						ImportRTs:        []v1alpha1.RouteTarget{"65000:100"},
+						ExportRTs:        []v1alpha1.RouteTarget{"65001:100"},
+						RDAssignedNumber: 100,
+					},
 				},
 			},
 			l2vnis: []v1alpha1.L2VNI{
-				{Spec: v1alpha1.L2VNISpec{VNI: 200, VXLanPort: new(int32(4789))}},
+				{Spec: v1alpha1.L2VNISpec{
+					VNI:           200,
+					VXLanPort:     new(int32(4789)),
+					RoutingDomain: l3vpnRoutingDomain("vpn1"),
+				}},
 			},
 			l3Passthrough: []v1alpha1.L3Passthrough{},
 			wantUnderlay: hostnetwork.UnderlayParams{
@@ -240,9 +246,12 @@ func TestAPItoHostConfig(t *testing.T) {
 			wantL3VNIParams: []hostnetwork.L3VNIParams{},
 			wantL3VPNParams: []hostnetwork.L3VPNParams{
 				{
+					Name:             "vpn1",
 					VRF:              "red",
 					RDAssignedNumber: 100,
 					TargetNS:         "namespace",
+					// SRv6 normal encaps (64) > VXLan (50), so the L2VNI in this VRF inherits SRv6 overhead.
+					TunnelOverhead: hostnetwork.SRv6Overhead,
 					LinkIPs: &hostnetwork.LinkIPs{
 						HostIPv4: "10.1.0.2/24",
 						NSIPv4:   "10.1.0.1/24",
@@ -252,10 +261,13 @@ func TestAPItoHostConfig(t *testing.T) {
 			wantL2VNIParams: []hostnetwork.L2VNIParams{
 				{
 					VNIParams: hostnetwork.VNIParams{
+						VRF:       "red",
 						TargetNS:  "namespace",
 						VTEPIP:    "10.0.0.0/32",
 						VNI:       200,
 						VXLanPort: new(int32(4789)),
+						// SRv6 normal encaps (64) > VXLan (50), so the L2VNI in this VRF inherits SRv6 overhead.
+						TunnelOverhead: hostnetwork.SRv6Overhead,
 					},
 					L2GatewayIPs: nil,
 					HostMaster:   nil,
@@ -272,7 +284,7 @@ func TestAPItoHostConfig(t *testing.T) {
 				{Spec: v1alpha1.UnderlaySpec{Interfaces: []v1alpha1.UnderlayInterface{{Type: "NetworkDevice", NetworkDevice: &v1alpha1.NetworkDevice{InterfaceName: "eth0"}}}, TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{CIDRs: []string{"10.0.0.0/24"}}}},
 			},
 			vnis: []v1alpha1.L3VNI{
-				{Spec: v1alpha1.L3VNISpec{VRF: "red", HostSession: &v1alpha1.HostSession{LocalCIDR: v1alpha1.LocalCIDRConfig{IPv6: new("2001:db8::/64")}}, VNI: 100, VXLanPort: new(int32(4789))}},
+				{Spec: v1alpha1.L3VNISpec{VRF: "red", HostSession: &v1alpha1.HostSession{LocalCIDRs: []string{"2001:db8::/64"}}, VNI: 100, VXLanPort: new(int32(4789))}},
 			},
 			l2vnis:        []v1alpha1.L2VNI{},
 			l3Passthrough: []v1alpha1.L3Passthrough{},
@@ -286,11 +298,12 @@ func TestAPItoHostConfig(t *testing.T) {
 			wantL3VNIParams: []hostnetwork.L3VNIParams{
 				{
 					VNIParams: hostnetwork.VNIParams{
-						VRF:       "red",
-						TargetNS:  "namespace",
-						VTEPIP:    "10.0.0.0/32",
-						VNI:       100,
-						VXLanPort: new(int32(4789)),
+						VRF:            "red",
+						TargetNS:       "namespace",
+						VTEPIP:         "10.0.0.0/32",
+						VNI:            100,
+						VXLanPort:      new(int32(4789)),
+						TunnelOverhead: hostnetwork.VXLanOverhead,
 					},
 					LinkIPs: &hostnetwork.LinkIPs{
 						HostIPv6: "2001:db8::2/64",
@@ -311,7 +324,7 @@ func TestAPItoHostConfig(t *testing.T) {
 				{Spec: v1alpha1.UnderlaySpec{Interfaces: []v1alpha1.UnderlayInterface{{Type: "NetworkDevice", NetworkDevice: &v1alpha1.NetworkDevice{InterfaceName: "eth0"}}}, TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{CIDRs: []string{"10.0.0.0/24"}}}},
 			},
 			vnis: []v1alpha1.L3VNI{
-				{Spec: v1alpha1.L3VNISpec{VRF: "red", HostSession: &v1alpha1.HostSession{LocalCIDR: v1alpha1.LocalCIDRConfig{IPv4: new("10.1.0.0/24"), IPv6: new("2001:db8::/64")}}, VNI: 100, VXLanPort: new(int32(4789))}},
+				{Spec: v1alpha1.L3VNISpec{VRF: "red", HostSession: &v1alpha1.HostSession{LocalCIDRs: []string{"10.1.0.0/24", "2001:db8::/64"}}, VNI: 100, VXLanPort: new(int32(4789))}},
 			},
 			l2vnis:        []v1alpha1.L2VNI{},
 			l3Passthrough: []v1alpha1.L3Passthrough{},
@@ -325,11 +338,12 @@ func TestAPItoHostConfig(t *testing.T) {
 			wantL3VNIParams: []hostnetwork.L3VNIParams{
 				{
 					VNIParams: hostnetwork.VNIParams{
-						VRF:       "red",
-						TargetNS:  "namespace",
-						VTEPIP:    "10.0.0.0/32",
-						VNI:       100,
-						VXLanPort: new(int32(4789)),
+						VRF:            "red",
+						TargetNS:       "namespace",
+						VTEPIP:         "10.0.0.0/32",
+						VNI:            100,
+						VXLanPort:      new(int32(4789)),
+						TunnelOverhead: hostnetwork.VXLanOverhead,
 					},
 					LinkIPs: &hostnetwork.LinkIPs{
 						HostIPv4: "10.1.0.2/24",
@@ -367,10 +381,11 @@ func TestAPItoHostConfig(t *testing.T) {
 			wantL2VNIParams: []hostnetwork.L2VNIParams{
 				{
 					VNIParams: hostnetwork.VNIParams{
-						TargetNS:  "namespace",
-						VTEPIP:    "10.0.0.0/32",
-						VNI:       200,
-						VXLanPort: new(int32(4789)),
+						TargetNS:       "namespace",
+						VTEPIP:         "10.0.0.0/32",
+						VNI:            200,
+						VXLanPort:      new(int32(4789)),
+						TunnelOverhead: hostnetwork.VXLanOverhead,
 					},
 					L2GatewayIPs: nil,
 					HostMaster:   nil,
@@ -407,11 +422,12 @@ func TestAPItoHostConfig(t *testing.T) {
 				{
 					Name: "my-l2vni",
 					VNIParams: hostnetwork.VNIParams{
-						VRF:       "",
-						TargetNS:  "namespace",
-						VTEPIP:    "10.0.0.0/32",
-						VNI:       200,
-						VXLanPort: new(int32(4789)),
+						VRF:            "",
+						TargetNS:       "namespace",
+						VTEPIP:         "10.0.0.0/32",
+						VNI:            200,
+						VXLanPort:      new(int32(4789)),
+						TunnelOverhead: hostnetwork.VXLanOverhead,
 					},
 					L2GatewayIPs: nil,
 					HostMaster:   nil,
@@ -453,11 +469,12 @@ func TestAPItoHostConfig(t *testing.T) {
 			wantL3VNIParams: []hostnetwork.L3VNIParams{
 				{
 					VNIParams: hostnetwork.VNIParams{
-						VRF:       "red",
-						TargetNS:  "namespace",
-						VTEPIP:    "10.0.0.0/32",
-						VNI:       300,
-						VXLanPort: new(int32(4789)),
+						VRF:            "red",
+						TargetNS:       "namespace",
+						VTEPIP:         "10.0.0.0/32",
+						VNI:            300,
+						VXLanPort:      new(int32(4789)),
+						TunnelOverhead: hostnetwork.VXLanOverhead,
 					},
 					Name: "gw-l3",
 				},
@@ -465,11 +482,12 @@ func TestAPItoHostConfig(t *testing.T) {
 			wantL2VNIParams: []hostnetwork.L2VNIParams{
 				{
 					VNIParams: hostnetwork.VNIParams{
-						VRF:       "red",
-						TargetNS:  "namespace",
-						VTEPIP:    "10.0.0.0/32",
-						VNI:       201,
-						VXLanPort: new(int32(4789)),
+						VRF:            "red",
+						TargetNS:       "namespace",
+						VTEPIP:         "10.0.0.0/32",
+						VNI:            201,
+						VXLanPort:      new(int32(4789)),
+						TunnelOverhead: hostnetwork.VXLanOverhead,
 					},
 					L2GatewayIPs: []string{"192.168.100.1/24"},
 					HostMaster:   &hostnetwork.HostMaster{Name: new("br0"), Type: "LinuxBridge", AutoCreate: new(false)},
@@ -501,11 +519,12 @@ func TestAPItoHostConfig(t *testing.T) {
 			wantL3VNIParams: []hostnetwork.L3VNIParams{
 				{
 					VNIParams: hostnetwork.VNIParams{
-						VRF:       "red",
-						TargetNS:  "namespace",
-						VTEPIP:    "10.0.0.0/32",
-						VNI:       100,
-						VXLanPort: new(int32(4789)),
+						VRF:            "red",
+						TargetNS:       "namespace",
+						VTEPIP:         "10.0.0.0/32",
+						VNI:            100,
+						VXLanPort:      new(int32(4789)),
+						TunnelOverhead: hostnetwork.VXLanOverhead,
 					},
 					LinkIPs: nil,
 				},
@@ -546,11 +565,8 @@ func TestAPItoHostConfig(t *testing.T) {
 				{
 					Spec: v1alpha1.L3PassthroughSpec{
 						HostSession: v1alpha1.HostSession{
-							ASN: 65000,
-							LocalCIDR: v1alpha1.LocalCIDRConfig{
-								IPv4: new("192.168.2.0/24"),
-								IPv6: new("2001:db8::/64"),
-							},
+							ASN:        65000,
+							LocalCIDRs: []string{"192.168.2.0/24", "2001:db8::/64"},
 						},
 					},
 				},
@@ -675,8 +691,7 @@ func TestAPItoHostConfig(t *testing.T) {
 				{Spec: v1alpha1.L3VNISpec{
 					VRF: "red",
 					HostSession: &v1alpha1.HostSession{
-						LocalCIDR: v1alpha1.LocalCIDRConfig{
-							IPv4: new("10.1.0.0/24")},
+						LocalCIDRs: []string{"10.1.0.0/24"},
 					},
 					VNI:       100,
 					VXLanPort: new(int32(4789)),
@@ -684,6 +699,179 @@ func TestAPItoHostConfig(t *testing.T) {
 				},
 			},
 			wantErr: true,
+		},
+		{
+			name:      "MTU configuration with encap reduced",
+			nodeIndex: 0,
+			targetNS:  "namespace",
+			underlays: []v1alpha1.Underlay{
+				{
+					Spec: v1alpha1.UnderlaySpec{
+						Interfaces: []v1alpha1.UnderlayInterface{
+							{
+								Type:          "NetworkDevice",
+								NetworkDevice: &v1alpha1.NetworkDevice{InterfaceName: "eth0"},
+							},
+						},
+						TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+							CIDRs: []string{"10.0.0.0/24", "2001:db8::/128"},
+						},
+						SRV6: &v1alpha1.SRV6Config{
+							EncapBehavior: new(v1alpha1.HEncapsRed),
+						},
+						ISIS: &v1alpha1.ISISConfig{},
+					},
+				},
+			},
+			vnis: []v1alpha1.L3VNI{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "vni1",
+					},
+					Spec: v1alpha1.L3VNISpec{
+						VRF: "red",
+						HostSession: &v1alpha1.HostSession{
+							LocalCIDRs: []string{"10.1.0.0/24"},
+						},
+						VNI:       100,
+						VXLanPort: new(int32(4789)),
+					},
+				},
+			},
+			l3vpns: []v1alpha1.L3VPN{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "vpn1",
+					},
+					Spec: v1alpha1.L3VPNSpec{
+						VRF: "blue",
+						HostSession: &v1alpha1.HostSession{
+							LocalCIDRs: []string{"10.1.0.0/24"},
+						},
+						ImportRTs:        []v1alpha1.RouteTarget{"65000:100"},
+						ExportRTs:        []v1alpha1.RouteTarget{"65001:100"},
+						RDAssignedNumber: 101,
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "vpn2",
+					},
+					Spec: v1alpha1.L3VPNSpec{
+						VRF: "green",
+						HostSession: &v1alpha1.HostSession{
+							LocalCIDRs: []string{"10.1.0.0/24"},
+						},
+						ImportRTs:        []v1alpha1.RouteTarget{"65000:100"},
+						ExportRTs:        []v1alpha1.RouteTarget{"65001:100"},
+						RDAssignedNumber: 102,
+					},
+				},
+			},
+			l2vnis: []v1alpha1.L2VNI{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "l2-for-vni1",
+					},
+					Spec: v1alpha1.L2VNISpec{
+						VNI:           200,
+						VXLanPort:     new(int32(4789)),
+						RoutingDomain: l3vniRoutingDomain("vni1"),
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "l2-for-vpn1",
+					},
+					Spec: v1alpha1.L2VNISpec{
+						VNI:           201,
+						VXLanPort:     new(int32(4789)),
+						RoutingDomain: l3vpnRoutingDomain("vpn1"),
+					},
+				},
+			},
+			l3Passthrough: []v1alpha1.L3Passthrough{},
+			wantUnderlay: hostnetwork.UnderlayParams{
+				UnderlayInterfaces: netdevInterfaces("eth0"),
+				TargetNS:           "namespace",
+				TunnelEndpoint: &hostnetwork.UnderlayTunnelEndpointParams{
+					IPv4CIDR: "10.0.0.0/32",
+					IPv6CIDR: "2001:db8::/128",
+				},
+			},
+			wantL3VNIParams: []hostnetwork.L3VNIParams{
+				{
+					Name: "vni1",
+					VNIParams: hostnetwork.VNIParams{
+						VRF:            "red",
+						TargetNS:       "namespace",
+						VTEPIP:         "10.0.0.0/32",
+						VNI:            100,
+						VXLanPort:      new(int32(4789)),
+						TunnelOverhead: hostnetwork.VXLanOverhead,
+					},
+					LinkIPs: &hostnetwork.LinkIPs{
+						HostIPv4: "10.1.0.2/24",
+						NSIPv4:   "10.1.0.1/24",
+					},
+				},
+			},
+			wantL3VPNParams: []hostnetwork.L3VPNParams{
+				{
+					Name:             "vpn1",
+					VRF:              "blue",
+					RDAssignedNumber: 101,
+					TargetNS:         "namespace",
+					// VXLan overhead (50) > SRv6 encaps reduced (40), so the L2VNI in this VRF bumps both to VXLan.
+					TunnelOverhead: hostnetwork.VXLanOverhead,
+					LinkIPs: &hostnetwork.LinkIPs{
+						HostIPv4: "10.1.0.2/24",
+						NSIPv4:   "10.1.0.1/24",
+					},
+				},
+				{
+					Name:             "vpn2",
+					VRF:              "green",
+					RDAssignedNumber: 102,
+					TargetNS:         "namespace",
+					// No L2VNI in this VRF, so the native SRv6 encaps reduced overhead applies.
+					TunnelOverhead: hostnetwork.SRv6OverheadEncapReduced,
+					LinkIPs: &hostnetwork.LinkIPs{
+						HostIPv4: "10.1.0.2/24",
+						NSIPv4:   "10.1.0.1/24",
+					},
+				},
+			},
+			wantL2VNIParams: []hostnetwork.L2VNIParams{
+				{
+					Name: "l2-for-vni1",
+					VNIParams: hostnetwork.VNIParams{
+						VRF:            "red",
+						TargetNS:       "namespace",
+						VTEPIP:         "10.0.0.0/32",
+						VNI:            200,
+						VXLanPort:      new(int32(4789)),
+						TunnelOverhead: hostnetwork.VXLanOverhead,
+					},
+					L2GatewayIPs: nil,
+					HostMaster:   nil,
+				},
+				{
+					Name: "l2-for-vpn1",
+					VNIParams: hostnetwork.VNIParams{
+						VRF:            "blue",
+						TargetNS:       "namespace",
+						VTEPIP:         "10.0.0.0/32",
+						VNI:            201,
+						VXLanPort:      new(int32(4789)),
+						TunnelOverhead: hostnetwork.VXLanOverhead,
+					},
+					L2GatewayIPs: nil,
+					HostMaster:   nil,
+				},
+			},
+			wantPassthrough: nil,
+			wantErr:         false,
 		},
 	}
 

@@ -16,7 +16,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/utils/ptr"
 
 	frrk8sapi "github.com/metallb/frr-k8s/api/v1beta1"
 
@@ -117,7 +116,7 @@ var (
 // CNI plugins supported in the future (ipvlan, vlan, host-device, dhcp IPAM).
 var _ = DescribeTableSubtree("Routes between bgp and the fabric with Underlay in ipv4",
 	evpnRoutesOverUnderlay,
-	Entry("NetworkDevice", Ordered, networkDeviceUnderlay),
+	Entry("NetworkDevice", Ordered, GroutSupport, networkDeviceUnderlay),
 	Entry("MacvlanStatic", Ordered, macvlanStaticUnderlay),
 	Entry("MacvlanDHCP", Ordered, macvlanDHCPUnderlay),
 )
@@ -135,12 +134,9 @@ func evpnRoutesOverUnderlay(params evpnUnderlayParams) {
 		Spec: v1alpha1.L3VNISpec{
 			VRF: "red",
 			HostSession: &v1alpha1.HostSession{
-				ASN:     64514,
-				HostASN: new(int64(64515)),
-				LocalCIDR: v1alpha1.LocalCIDRConfig{
-					IPv4: new("192.169.10.0/24"),
-					IPv6: new("2001:db8:1::/64"),
-				},
+				ASN:        64514,
+				HostASN:    new(int64(64515)),
+				LocalCIDRs: []string{"192.169.10.0/24", "2001:db8:1::/64"},
 			},
 			VNI: 100,
 		},
@@ -154,12 +150,9 @@ func evpnRoutesOverUnderlay(params evpnUnderlayParams) {
 		Spec: v1alpha1.L3VNISpec{
 			VRF: "blue",
 			HostSession: &v1alpha1.HostSession{
-				ASN:     64514,
-				HostASN: new(int64(64515)),
-				LocalCIDR: v1alpha1.LocalCIDRConfig{
-					IPv4: new("192.169.11.0/24"),
-					IPv6: new("2001:db8:2::/64"),
-				},
+				ASN:        64514,
+				HostASN:    new(int64(64515)),
+				LocalCIDRs: []string{"192.169.11.0/24", "2001:db8:2::/64"},
 			},
 			VNI: 200,
 		},
@@ -199,6 +192,14 @@ func evpnRoutesOverUnderlay(params evpnUnderlayParams) {
 	AfterAll(func() {
 		err := Updater.CleanAll()
 		Expect(err).NotTo(HaveOccurred())
+		By("waiting for the underlay to be removed from all nodes")
+		for _, node := range nodes {
+			Eventually(func(g Gomega) {
+				isConfigured, err := openperouter.UnderlayConfigured(node.Name)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(isConfigured).To(BeFalse())
+			}, 2*time.Minute, time.Second).Should(Succeed())
+		}
 		By("restoring the standard leaf configuration")
 		Expect(infra.LeafKind1Config.UpdateConfig(nodes, infra.LeafKindConfiguration{})).To(Succeed())
 		By("waiting for all router pods to be ready after removing the underlay")
@@ -440,10 +441,10 @@ func evpnRoutesOverUnderlay(params evpnUnderlayParams) {
 		) {
 
 			var localCIDR string
-			localCIDR = ptr.Deref(vni.Spec.HostSession.LocalCIDR.IPv4, "")
+			localCIDR = ipfamily.CIDRForFamily(vni.Spec.HostSession.LocalCIDRs, ipfamily.IPv4)
 
 			if ipFamily == ipfamily.IPv6 {
-				localCIDR = ptr.Deref(vni.Spec.HostSession.LocalCIDR.IPv6, "")
+				localCIDR = ipfamily.CIDRForFamily(vni.Spec.HostSession.LocalCIDRs, ipfamily.IPv6)
 			}
 			hostSide, err := openperouter.HostIPFromCIDRForNode(localCIDR, podNode)
 			Expect(err).NotTo(HaveOccurred())
@@ -479,16 +480,13 @@ func evpnRoutesOverUnderlay(params evpnUnderlayParams) {
 
 				By(fmt.Sprintf("trying to hit pod %s on the %s network from host %s", podIP, vni.Name, hostName))
 
-				urlStr = url.Format("http://%s:8090/clientip", podIP)
+				urlStr = url.Format("http://%s:8090/hostname", podIP)
 				res, err = externalHostExecutor.Exec("curl", "-sS", urlStr)
 				if err != nil {
 					return fmt.Errorf("curl from %s to %s:8090 failed: %s", hostName, podIP, res)
 				}
-				hostClientIP, err := extractClientIP(res)
-				Expect(err).NotTo(HaveOccurred())
-
-				if hostClientIP != externalHostIP {
-					return fmt.Errorf("curl from %s to %s:8090 returned %s, expected %s", hostName, podIP, clientIP, externalHostIP)
+				if res != testPod.Name {
+					return fmt.Errorf("curl from %s to %s:8090 returned hostname %s, expected %s", hostName, podIP, res, testPod.Name)
 				}
 				return nil
 			}, 5*time.Minute, 5*time.Second).ShouldNot(HaveOccurred())
@@ -505,7 +503,7 @@ func evpnRoutesOverUnderlay(params evpnUnderlayParams) {
 	})
 }
 
-var _ = Describe("Routes between bgp and the fabric with iBGP testing e2e integration between a pod and the red hosts", func() {
+var _ = Describe("Routes between bgp and the fabric with iBGP testing e2e integration between a pod and the red hosts", GroutSupport, func() {
 	var cs clientset.Interface
 	var routers openperouter.Routers
 	var nodes []corev1.Node
@@ -542,12 +540,9 @@ var _ = Describe("Routes between bgp and the fabric with iBGP testing e2e integr
 		Spec: v1alpha1.L3VNISpec{
 			VRF: "red",
 			HostSession: &v1alpha1.HostSession{
-				ASN:     64514,
-				HostASN: new(int64(64515)),
-				LocalCIDR: v1alpha1.LocalCIDRConfig{
-					IPv4: new("192.169.10.0/24"),
-					IPv6: new("2001:db8:1::/64"),
-				},
+				ASN:        64514,
+				HostASN:    new(int64(64515)),
+				LocalCIDRs: []string{"192.169.10.0/24", "2001:db8:1::/64"},
 			},
 			VNI: 100,
 		},
@@ -637,6 +632,14 @@ var _ = Describe("Routes between bgp and the fabric with iBGP testing e2e integr
 
 		err = Updater.CleanAll()
 		Expect(err).NotTo(HaveOccurred())
+		By("waiting for the underlay to be removed from all nodes")
+		for _, node := range nodes {
+			Eventually(func(g Gomega) {
+				isConfigured, err := openperouter.UnderlayConfigured(node.Name)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(isConfigured).To(BeFalse())
+			}, 2*time.Minute, time.Second).Should(Succeed())
+		}
 		By("waiting for all router pods to be ready after removing the underlay")
 		Eventually(func() error {
 			routers, err := openperouter.Get(cs, HostMode)
@@ -653,7 +656,7 @@ var _ = Describe("Routes between bgp and the fabric with iBGP testing e2e integr
 		externalHostIP := infra.HostARedIPv4
 		ipFamily := ipfamily.IPv4
 
-		localCIDR := ptr.Deref(vni.Spec.HostSession.LocalCIDR.IPv4, "")
+		localCIDR := ipfamily.CIDRForFamily(vni.Spec.HostSession.LocalCIDRs, ipfamily.IPv4)
 
 		hostSide, err := openperouter.HostIPFromCIDRForNode(localCIDR, podNode)
 		Expect(err).NotTo(HaveOccurred())
@@ -689,16 +692,13 @@ var _ = Describe("Routes between bgp and the fabric with iBGP testing e2e integr
 
 			By(fmt.Sprintf("trying to hit pod %s on the %s network from host %s", podIP, vni.Name, hostName))
 
-			urlStr = url.Format("http://%s:8090/clientip", podIP)
+			urlStr = url.Format("http://%s:8090/hostname", podIP)
 			res, err = externalHostExecutor.Exec("curl", "-sS", urlStr)
 			if err != nil {
 				return fmt.Errorf("curl from %s to %s:8090 failed: %s", hostName, podIP, res)
 			}
-			hostClientIP, err := extractClientIP(res)
-			Expect(err).NotTo(HaveOccurred())
-
-			if hostClientIP != externalHostIP {
-				return fmt.Errorf("curl from %s to %s:8090 returned %s, expected %s", hostName, podIP, clientIP, externalHostIP)
+			if res != testPod.Name {
+				return fmt.Errorf("curl from %s to %s:8090 returned hostname %s, expected %s", hostName, podIP, res, testPod.Name)
 			}
 			return nil
 		}, 5*time.Minute, 5*time.Second).ShouldNot(HaveOccurred())

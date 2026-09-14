@@ -86,6 +86,9 @@ type L3VNIStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:webhook:verbs=create;update,path=/validate-openperouter-io-v1alpha1-l3vni,mutating=false,failurePolicy=fail,groups=network.openperouter.io,resources=l3vnis,versions=v1alpha1,name=l3vnivalidationwebhook.openperouter.io,sideEffects=None,admissionReviewVersions=v1
+// +kubebuilder:printcolumn:name="VNI",type=integer,JSONPath=`.spec.vni`
+// +kubebuilder:printcolumn:name="VRF",type=string,JSONPath=`.spec.vrf`
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
 // L3VNI represents a VXLan L3VNI to receive EVPN type 5 routes
 // from.

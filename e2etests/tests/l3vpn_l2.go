@@ -16,10 +16,10 @@ import (
 	"github.com/openperouter/openperouter/e2etests/pkg/executor"
 	"github.com/openperouter/openperouter/e2etests/pkg/frrk8s"
 	"github.com/openperouter/openperouter/e2etests/pkg/infra"
+	"github.com/openperouter/openperouter/e2etests/pkg/ipfamily"
 	"github.com/openperouter/openperouter/e2etests/pkg/k8s"
 	"github.com/openperouter/openperouter/e2etests/pkg/k8sclient"
 	"github.com/openperouter/openperouter/e2etests/pkg/openperouter"
-	"github.com/openperouter/openperouter/internal/ipfamily"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
@@ -30,8 +30,6 @@ var _ = Describe("SRV6 routes between bgp and the fabric", Ordered, func() {
 	var (
 		cs           clientset.Interface
 		routers      openperouter.Routers
-		firstPod     *corev1.Pod
-		secondPod    *corev1.Pod
 		netAttachDef nad.NetworkAttachmentDefinition
 		nodes        []corev1.Node
 	)
@@ -61,12 +59,9 @@ var _ = Describe("SRV6 routes between bgp and the fabric", Ordered, func() {
 		Spec: v1alpha1.L3VPNSpec{
 			VRF: "red",
 			HostSession: &v1alpha1.HostSession{
-				ASN:     64514,
-				HostASN: new(int64(64515)),
-				LocalCIDR: v1alpha1.LocalCIDRConfig{
-					IPv4: new("192.169.10.0/24"),
-					IPv6: new("2001:db8:1::/64"),
-				},
+				ASN:        64514,
+				HostASN:    new(int64(64515)),
+				LocalCIDRs: []string{"192.169.10.0/24", "2001:db8:1::/64"},
 			},
 			RDAssignedNumber: rdAssignedNumber,
 			ExportRTs: []v1alpha1.RouteTarget{
@@ -122,7 +117,7 @@ var _ = Describe("SRV6 routes between bgp and the fabric", Ordered, func() {
 
 		for _, node := range nodes {
 			By(fmt.Sprintf("adding bridge %s on node %s", preExistingOVSBridge, node.Name))
-			exec := executor.ForContainer(node.Name)
+			exec := executor.ForNode(node.Name)
 			_, err = exec.Exec("ovs-vsctl", "add-br", preExistingOVSBridge)
 			Expect(err).NotTo(HaveOccurred())
 		}
@@ -139,7 +134,7 @@ var _ = Describe("SRV6 routes between bgp and the fabric", Ordered, func() {
 	AfterAll(func() {
 		for _, node := range nodes {
 			By(fmt.Sprintf("deleting bridge %s from node %s", preExistingOVSBridge, node.Name))
-			exec := executor.ForContainer(node.Name)
+			exec := executor.ForNode(node.Name)
 			_, err := exec.Exec("ovs-vsctl", "--if-exists", "del-br", preExistingOVSBridge)
 			Expect(err).NotTo(HaveOccurred())
 		}
@@ -229,7 +224,7 @@ var _ = Describe("SRV6 routes between bgp and the fabric", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		By("creating L3VPN and L2VNI")
-		err = Updater.Update(config.Resources{
+		Expect(Updater.Update(config.Resources{
 			L3VPNs: []v1alpha1.L3VPN{
 				vniRed,
 			},
@@ -237,8 +232,7 @@ var _ = Describe("SRV6 routes between bgp and the fabric", Ordered, func() {
 				*l2VniRedWithGateway,
 			},
 			FRRConfigurations: frrK8sConfigRed,
-		})
-		Expect(err).NotTo(HaveOccurred())
+		})).To(Succeed())
 
 		By("creating the namespace")
 		_, err = k8s.CreateNamespace(cs, testNamespace)
@@ -249,9 +243,9 @@ var _ = Describe("SRV6 routes between bgp and the fabric", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		By("creating the pods")
-		firstPod, err = k8s.CreateAgnhostPod(cs, "pod1", testNamespace, k8s.WithNad(netAttachDef.Name, testNamespace, tc.firstPodIPs), k8s.OnNode(nodes[0].Name))
+		firstPod, err := k8s.CreateAgnhostPod(cs, "pod1", testNamespace, k8s.WithNad(netAttachDef.Name, testNamespace, tc.firstPodIPs), k8s.OnNode(nodes[0].Name))
 		Expect(err).NotTo(HaveOccurred())
-		secondPod, err = k8s.CreateAgnhostPod(cs, "pod2", testNamespace, k8s.WithNad(netAttachDef.Name, testNamespace, tc.secondPodIPs), k8s.OnNode(nodes[1].Name))
+		secondPod, err := k8s.CreateAgnhostPod(cs, "pod2", testNamespace, k8s.WithNad(netAttachDef.Name, testNamespace, tc.secondPodIPs), k8s.OnNode(nodes[1].Name))
 		Expect(err).NotTo(HaveOccurred())
 
 		// We can reach the host either via the pod's eth0 (passing through the host<->pe veth),
@@ -273,8 +267,8 @@ var _ = Describe("SRV6 routes between bgp and the fabric", Ordered, func() {
 		// E.g.: OpenPERouter: pe-100 (192.169.10.1) <-> Host OS: host-100 (192.169.10.3)
 		// Traffic leaving the OpenPERouter will be SNATted to the host IP address, meaning that leafSRV6 is
 		// expected to see e.g. 192.169.10.3.
-		localCIDRV4 := ptr.Deref(vniRed.Spec.HostSession.LocalCIDR.IPv4, "")
-		localCIDRV6 := ptr.Deref(vniRed.Spec.HostSession.LocalCIDR.IPv6, "")
+		localCIDRV4 := ipfamily.CIDRForFamily(vniRed.Spec.HostSession.LocalCIDRs, ipfamily.IPv4)
+		localCIDRV6 := ipfamily.CIDRForFamily(vniRed.Spec.HostSession.LocalCIDRs, ipfamily.IPv6)
 
 		By(fmt.Sprintf("Getting the HostIP address on CIDRs %s and %s", localCIDRV4, localCIDRV6))
 		firstPodHostSideV4, err := openperouter.HostIPFromCIDRForNode(localCIDRV4, firstPodNode)
