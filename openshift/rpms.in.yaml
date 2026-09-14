@@ -58,3 +58,4 @@ packages:
   - name: pam-devel
   - name: libarchive-devel
   - name: wget
+  - name: iproute
