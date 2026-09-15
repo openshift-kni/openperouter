@@ -108,8 +108,8 @@ openperouter:
 ```
 
 Setting `openperouter.grout.testMode` to `true` instead starts grout with
-`--test-mode` and with the `_DUMMY_` FIB algorithms. Test mode needs no
-hugepages, and `_DUMMY_` skips the LPM tables whose per-VRF allocation would
+`--test-mode` and with the `DUMMY` FIB algorithms. Test mode needs no
+hugepages, and `DUMMY` skips the LPM tables whose per-VRF allocation would
 otherwise exhaust typical pod memory — at the cost of real route lookups. This
 is the configuration the project's end-to-end tests run against:
 
