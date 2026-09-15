@@ -14,7 +14,20 @@ spec:
     singular: l2vni
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.vni
+      name: VNI
+      type: integer
+    - jsonPath: .spec.routingDomain.*.name
+      name: Routing Domain
+      type: string
+    - jsonPath: .spec.gatewayIPs
+      name: Gateway IPs
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: |-

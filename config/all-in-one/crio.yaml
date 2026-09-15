@@ -23,7 +23,20 @@ spec:
     singular: l2vni
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.vni
+      name: VNI
+      type: integer
+    - jsonPath: .spec.routingDomain.*.name
+      name: Routing Domain
+      type: string
+    - jsonPath: .spec.gatewayIPs
+      name: Gateway IPs
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: |-
@@ -293,7 +306,17 @@ spec:
     singular: l3passthrough
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.hostSession.asn
+      name: ASN
+      type: integer
+    - jsonPath: .spec.hostSession.hostASN
+      name: HostASN
+      type: integer
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: |-
@@ -347,34 +370,31 @@ spec:
                     - External
                     - Internal
                     type: string
-                  localCIDR:
+                  localCIDRs:
                     description: |-
-                      localCIDR is the CIDR configuration for the veth pair
-                      to connect with the default namespace. The interface under
-                      the PERouter side is going to use the first IP of the cidr on all the nodes.
-                      At least one of IPv4 or IPv6 must be provided.
-                    properties:
-                      ipv4:
-                        description: |-
-                          ipv4 is the IPv4 CIDR to be used for the veth pair
-                          to connect with the default namespace. The interface under
-                          the PERouter side is going to use the first IP of the cidr on all the nodes.
-                        type: string
-                      ipv6:
-                        description: |-
-                          ipv6 is the IPv6 CIDR to be used for the veth pair
-                          to connect with the default namespace. The interface under
-                          the PERouter side is going to use the first IP of the cidr on all the nodes.
-                        type: string
-                    type: object
+                      localCIDRs is the list of CIDRs for the veth pair connecting to the
+                      default namespace. The router side uses the first usable IP of each CIDR.
+                      At most one IPv4 and one IPv6 CIDR may be set; list order is not significant.
+                    items:
+                      type: string
+                    maxItems: 2
+                    minItems: 1
+                    type: array
+                    x-kubernetes-list-type: atomic
                     x-kubernetes-validations:
-                    - message: LocalCIDR can't be changed
+                    - message: all entries must be valid CIDRs
+                      rule: self.all(c, isCIDR(c))
+                    - message: at most one IPv4 CIDR is allowed
+                      rule: self.filter(c, isCIDR(c) && cidr(c).ip().family() == 4).size()
+                        <= 1
+                    - message: at most one IPv6 CIDR is allowed
+                      rule: self.filter(c, isCIDR(c) && cidr(c).ip().family() == 6).size()
+                        <= 1
+                    - message: localCIDRs can't be changed
                       rule: self == oldSelf
-                    - message: at least one of ipv4 or ipv6 must be specified
-                      rule: has(self.ipv4) || has(self.ipv6)
                 required:
                 - asn
-                - localCIDR
+                - localCIDRs
                 type: object
                 x-kubernetes-validations:
                 - message: either HostASN or HostType must be set
@@ -459,7 +479,17 @@ spec:
     singular: l3vni
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.vni
+      name: VNI
+      type: integer
+    - jsonPath: .spec.vrf
+      name: VRF
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: |-
@@ -525,34 +555,31 @@ spec:
                     - External
                     - Internal
                     type: string
-                  localCIDR:
+                  localCIDRs:
                     description: |-
-                      localCIDR is the CIDR configuration for the veth pair
-                      to connect with the default namespace. The interface under
-                      the PERouter side is going to use the first IP of the cidr on all the nodes.
-                      At least one of IPv4 or IPv6 must be provided.
-                    properties:
-                      ipv4:
-                        description: |-
-                          ipv4 is the IPv4 CIDR to be used for the veth pair
-                          to connect with the default namespace. The interface under
-                          the PERouter side is going to use the first IP of the cidr on all the nodes.
-                        type: string
-                      ipv6:
-                        description: |-
-                          ipv6 is the IPv6 CIDR to be used for the veth pair
-                          to connect with the default namespace. The interface under
-                          the PERouter side is going to use the first IP of the cidr on all the nodes.
-                        type: string
-                    type: object
+                      localCIDRs is the list of CIDRs for the veth pair connecting to the
+                      default namespace. The router side uses the first usable IP of each CIDR.
+                      At most one IPv4 and one IPv6 CIDR may be set; list order is not significant.
+                    items:
+                      type: string
+                    maxItems: 2
+                    minItems: 1
+                    type: array
+                    x-kubernetes-list-type: atomic
                     x-kubernetes-validations:
-                    - message: LocalCIDR can't be changed
+                    - message: all entries must be valid CIDRs
+                      rule: self.all(c, isCIDR(c))
+                    - message: at most one IPv4 CIDR is allowed
+                      rule: self.filter(c, isCIDR(c) && cidr(c).ip().family() == 4).size()
+                        <= 1
+                    - message: at most one IPv6 CIDR is allowed
+                      rule: self.filter(c, isCIDR(c) && cidr(c).ip().family() == 6).size()
+                        <= 1
+                    - message: localCIDRs can't be changed
                       rule: self == oldSelf
-                    - message: at least one of ipv4 or ipv6 must be specified
-                      rule: has(self.ipv4) || has(self.ipv6)
                 required:
                 - asn
-                - localCIDR
+                - localCIDRs
                 type: object
                 x-kubernetes-validations:
                 - message: either HostASN or HostType must be set
@@ -681,7 +708,14 @@ spec:
     singular: l3vpn
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.vrf
+      name: VRF
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: L3VPN represents an SRv6 IP VPN.
@@ -746,34 +780,31 @@ spec:
                     - External
                     - Internal
                     type: string
-                  localCIDR:
+                  localCIDRs:
                     description: |-
-                      localCIDR is the CIDR configuration for the veth pair
-                      to connect with the default namespace. The interface under
-                      the PERouter side is going to use the first IP of the cidr on all the nodes.
-                      At least one of IPv4 or IPv6 must be provided.
-                    properties:
-                      ipv4:
-                        description: |-
-                          ipv4 is the IPv4 CIDR to be used for the veth pair
-                          to connect with the default namespace. The interface under
-                          the PERouter side is going to use the first IP of the cidr on all the nodes.
-                        type: string
-                      ipv6:
-                        description: |-
-                          ipv6 is the IPv6 CIDR to be used for the veth pair
-                          to connect with the default namespace. The interface under
-                          the PERouter side is going to use the first IP of the cidr on all the nodes.
-                        type: string
-                    type: object
+                      localCIDRs is the list of CIDRs for the veth pair connecting to the
+                      default namespace. The router side uses the first usable IP of each CIDR.
+                      At most one IPv4 and one IPv6 CIDR may be set; list order is not significant.
+                    items:
+                      type: string
+                    maxItems: 2
+                    minItems: 1
+                    type: array
+                    x-kubernetes-list-type: atomic
                     x-kubernetes-validations:
-                    - message: LocalCIDR can't be changed
+                    - message: all entries must be valid CIDRs
+                      rule: self.all(c, isCIDR(c))
+                    - message: at most one IPv4 CIDR is allowed
+                      rule: self.filter(c, isCIDR(c) && cidr(c).ip().family() == 4).size()
+                        <= 1
+                    - message: at most one IPv6 CIDR is allowed
+                      rule: self.filter(c, isCIDR(c) && cidr(c).ip().family() == 6).size()
+                        <= 1
+                    - message: localCIDRs can't be changed
                       rule: self == oldSelf
-                    - message: at least one of ipv4 or ipv6 must be specified
-                      rule: has(self.ipv4) || has(self.ipv6)
                 required:
                 - asn
-                - localCIDR
+                - localCIDRs
                 type: object
                 x-kubernetes-validations:
                 - message: either HostASN or HostType must be set
@@ -1171,7 +1202,20 @@ spec:
     singular: underlay
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.asn
+      name: ASN
+      type: integer
+    - jsonPath: .spec.routerIDCIDR
+      name: Router ID Pool
+      type: string
+    - jsonPath: .spec.tunnelEndpoint.cidrs
+      name: VTEP CIDR
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: Underlay is the Schema for the underlays API.
@@ -1621,21 +1665,26 @@ spec:
                         rule: isCIDR(self)
                       - message: listenRange must not be an IPv6 link-local range
                         rule: '!isCIDR(self) || cidr(self).ip().family() != 6 || !cidr(self).ip().isLinkLocalUnicast()'
-                    password:
-                      description: |-
-                        password to be used for establishing the BGP session.
-                        Password and PasswordSecret are mutually exclusive.
-                      maxLength: 128
-                      pattern: ^\S+$
-                      type: string
                     passwordSecret:
                       description: |-
-                        passwordSecret is name of the authentication secret for the neighbor.
-                        the secret must be of type "kubernetes.io/basic-auth", and created in the
-                        same namespace as the perouter daemon. The password is stored in the
-                        secret as the key "password".
-                        Password and PasswordSecret are mutually exclusive.
-                      type: string
+                        passwordSecret references a key in a Kubernetes Secret containing the
+                        BGP session password. The Secret must be created in the same namespace
+                        as the Underlay.
+                      properties:
+                        key:
+                          description: |-
+                            key is the key within the Secret's data to select.
+                            The controller defaults this to "password" when unset.
+                          minLength: 1
+                          type: string
+                        name:
+                          description: name is the name of the Secret in the same
+                            namespace.
+                          minLength: 1
+                          type: string
+                      required:
+                      - name
+                      type: object
                     port:
                       description: |-
                         port is the port to dial when establishing the session.
@@ -1939,6 +1988,21 @@ metadata:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
+  name: controller-privileged-scc-role
+  namespace: openperouter-system
+rules:
+- apiGroups:
+  - security.openshift.io
+  resourceNames:
+  - privileged
+  resources:
+  - securitycontextconstraints
+  verbs:
+  - use
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: openperouter
@@ -1988,6 +2052,21 @@ rules:
   - secrets
   verbs:
   - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: perouter-privileged-scc-role
+  namespace: openperouter-system
+rules:
+- apiGroups:
+  - security.openshift.io
+  resourceNames:
+  - privileged
+  resources:
+  - securitycontextconstraints
+  verbs:
+  - use
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -2114,6 +2193,23 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: openperouter
+  name: controller-privileged-scc-rolebinding
+  namespace: openperouter-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: controller-privileged-scc-role
+subjects:
+- kind: ServiceAccount
+  name: controller
+  namespace: openperouter-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: openperouter
   name: controller-rolebinding
   namespace: openperouter-system
 roleRef:
@@ -2140,6 +2236,23 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: nodemarker
+  namespace: openperouter-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: openperouter
+  name: perouter-privileged-scc-rolebinding
+  namespace: openperouter-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: perouter-privileged-scc-role
+subjects:
+- kind: ServiceAccount
+  name: perouter
   namespace: openperouter-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1

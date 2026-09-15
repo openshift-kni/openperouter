@@ -279,7 +279,7 @@ _Appears in:_
 | `asn` _integer_ | asn is the local AS number to use to establish a BGP session with<br />the default namespace. |  | Maximum: 4.294967295e+09 <br />Minimum: 1 <br />Required: \{\} <br /> |
 | `hostASN` _integer_ | hostASN is the expected AS number for a BGP speaking component running in<br />the default network namespace. Either HostASN or HostType must be set. |  | Maximum: 4.294967295e+09 <br />Minimum: 1 <br />Optional: \{\} <br /> |
 | `hostType` _string_ | hostType is the AS type of the BGP speaking component running in the<br />default network namespace. Either HostASN or HostType must be set. |  | Enum: [External Internal] <br />Optional: \{\} <br /> |
-| `localCIDR` _[LocalCIDRConfig](#localcidrconfig)_ | localCIDR is the CIDR configuration for the veth pair<br />to connect with the default namespace. The interface under<br />the PERouter side is going to use the first IP of the cidr on all the nodes.<br />At least one of IPv4 or IPv6 must be provided. |  | Required: \{\} <br /> |
+| `localCIDRs` _string array_ | localCIDRs is the list of CIDRs for the veth pair connecting to the<br />default namespace. The router side uses the first usable IP of each CIDR.<br />At most one IPv4 and one IPv6 CIDR may be set; list order is not significant. |  | MaxItems: 2 <br />MinItems: 1 <br />Required: \{\} <br /> |
 
 
 #### IPFamily
@@ -650,23 +650,6 @@ _Appears in:_
 | `name` _string_ | name of the Linux bridge interface. Required when lifecycle is<br />External, and must be omitted when it is Managed, in which case the<br />bridge is named br-hs-<VNI>. |  | MaxLength: 15 <br />Pattern: `^[a-zA-Z][a-zA-Z0-9_-]*$` <br />Optional: \{\} <br /> |
 
 
-#### LocalCIDRConfig
-
-
-
-
-
-
-
-_Appears in:_
-- [HostSession](#hostsession)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `ipv4` _string_ | ipv4 is the IPv4 CIDR to be used for the veth pair<br />to connect with the default namespace. The interface under<br />the PERouter side is going to use the first IP of the cidr on all the nodes. |  | Optional: \{\} <br /> |
-| `ipv6` _string_ | ipv6 is the IPv6 CIDR to be used for the veth pair<br />to connect with the default namespace. The interface under<br />the PERouter side is going to use the first IP of the cidr on all the nodes. |  | Optional: \{\} <br /> |
-
-
 #### Neighbor
 
 
@@ -686,8 +669,7 @@ _Appears in:_
 | `interface` _string_ | interface is the interface name for BGP unnumbered sessions. The session will be established via IPv6 link locals. |  | MaxLength: 15 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 | `listenRange` _string_ | listenRange accepts connections from any peers in the specified CIDR.<br />When set, the hostcontroller generates a<br />"bgp listen range <listenRange> peer-group <name>" stanza instead of<br />an explicit neighbor statement. Mutually exclusive with address and<br />interface. |  | MaxLength: 43 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 | `port` _integer_ | port is the port to dial when establishing the session.<br />Defaults to 179. |  | Maximum: 16384 <br />Minimum: 0 <br />Optional: \{\} <br /> |
-| `password` _string_ | password to be used for establishing the BGP session.<br />Password and PasswordSecret are mutually exclusive. |  | MaxLength: 128 <br />Pattern: `^\S+$` <br />Optional: \{\} <br /> |
-| `passwordSecret` _string_ | passwordSecret is name of the authentication secret for the neighbor.<br />the secret must be of type "kubernetes.io/basic-auth", and created in the<br />same namespace as the perouter daemon. The password is stored in the<br />secret as the key "password".<br />Password and PasswordSecret are mutually exclusive. |  | Optional: \{\} <br /> |
+| `passwordSecret` _[SecretKeyRef](#secretkeyref)_ | passwordSecret references a key in a Kubernetes Secret containing the<br />BGP session password. The Secret must be created in the same namespace<br />as the Underlay. |  | Optional: \{\} <br /> |
 | `holdTimeSeconds` _integer_ | holdTimeSeconds is the requested BGP hold time in seconds, per RFC4271.<br />Defaults to 180. |  | Optional: \{\} <br /> |
 | `keepaliveTimeSeconds` _integer_ | keepaliveTimeSeconds is the requested BGP keepalive time in seconds, per RFC4271.<br />Defaults to 60. |  | Optional: \{\} <br /> |
 | `connectTimeSeconds` _integer_ | connectTimeSeconds controls how long BGP waits between connection attempts to a neighbor, in seconds. |  | Maximum: 65535 <br />Minimum: 1 <br />Optional: \{\} <br /> |
@@ -975,6 +957,24 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `basePrefix` _string_ | basePrefix is the CIDR to be used for the locator, offset by the router index. |  | MaxLength: 43 <br />MinLength: 1 <br />Required: \{\} <br /> |
 | `format` _string_ | format specifies the format of the locator. Defaults to usid-f3216 |  | Enum: [usid-f3216] <br />MaxLength: 40 <br />MinLength: 1 <br />Required: \{\} <br /> |
+
+
+#### SecretKeyRef
+
+
+
+SecretKeyRef references a key within a Kubernetes Secret in the same
+namespace as the Underlay.
+
+
+
+_Appears in:_
+- [Neighbor](#neighbor)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `name` _string_ | name is the name of the Secret in the same namespace. |  | MinLength: 1 <br />Required: \{\} <br /> |
+| `key` _string_ | key is the key within the Secret's data to select.<br />The controller defaults this to "password" when unset. |  | MinLength: 1 <br />Optional: \{\} <br /> |
 
 
 #### TunnelEndpointConfig

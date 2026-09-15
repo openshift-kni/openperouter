@@ -222,7 +222,7 @@ func TestReadRouterConfigsFromFiles(t *testing.T) {
 		t.Fatalf("expected %d config files, got %d", expectedConfigFiles, len(configs))
 	}
 
-	underlays := make([]v1alpha1.UnderlaySpec, 0, len(configs))
+	underlays := make([]static.StaticUnderlaySpec, 0, len(configs))
 	l3vnis := make([]static.StaticL3VNI, 0, len(configs))
 	l3vpns := make([]static.StaticL3VPN, 0, len(configs))
 	l2vnis := make([]static.StaticL2VNI, 0, len(configs))
@@ -239,42 +239,48 @@ func TestReadRouterConfigsFromFiles(t *testing.T) {
 	}
 
 	// openpe_underlay.yaml
-	wantUnderlay := v1alpha1.UnderlaySpec{
-		ASN:        64514,
-		Interfaces: []v1alpha1.UnderlayInterface{{Type: "NetworkDevice", NetworkDevice: &v1alpha1.NetworkDevice{InterfaceName: "toswitch1"}}, {Type: "NetworkDevice", NetworkDevice: &v1alpha1.NetworkDevice{InterfaceName: "eth0"}}},
-		Neighbors: []v1alpha1.Neighbor{
-			{
-				ASN:     new(int64(64512)),
-				Address: new("192.168.11.2"),
+	wantUnderlay := static.StaticUnderlaySpec{
+		UnderlaySpec: v1alpha1.UnderlaySpec{
+			ASN:        64514,
+			Interfaces: []v1alpha1.UnderlayInterface{{Type: "NetworkDevice", NetworkDevice: &v1alpha1.NetworkDevice{InterfaceName: "toswitch1"}}, {Type: "NetworkDevice", NetworkDevice: &v1alpha1.NetworkDevice{InterfaceName: "eth0"}}},
+			TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
+				CIDRs: []string{"100.65.0.0/24", "2001:db8:1234:5678::/64"},
 			},
-			{
-				ASN:     new(int64(64512)),
-				Address: new("192.168.11.3"),
-				BFD: &v1alpha1.BFDSettings{
-					ReceiveInterval:  new(int32(300)),
-					TransmitInterval: new(int32(300)),
-					DetectMultiplier: new(int32(3)),
+			ISIS: &v1alpha1.ISISConfig{
+				BaseNet: "49.0001.0002.0003.0004.00",
+				Level:   new(int32(1)),
+				Interfaces: []v1alpha1.ISISInterface{
+					{
+						Name:     "toswitch1",
+						IPFamily: new(v1alpha1.IPFamilyIPv6),
+					},
+				},
+			},
+			SRV6: &v1alpha1.SRV6Config{
+				EncapBehavior: new(v1alpha1.HEncapsRed),
+				Locator: v1alpha1.SRV6Locator{
+					BasePrefix: "fd00:0:32::/48",
+					Format:     "usid-f3216",
 				},
 			},
 		},
-		TunnelEndpoint: &v1alpha1.TunnelEndpointConfig{
-			CIDRs: []string{"100.65.0.0/24", "2001:db8:1234:5678::/64"},
-		},
-		ISIS: &v1alpha1.ISISConfig{
-			BaseNet: "49.0001.0002.0003.0004.00",
-			Level:   new(int32(1)),
-			Interfaces: []v1alpha1.ISISInterface{
-				{
-					Name:     "toswitch1",
-					IPFamily: new(v1alpha1.IPFamilyIPv6),
+		Neighbors: []static.StaticNeighbor{
+			{
+				Neighbor: v1alpha1.Neighbor{
+					ASN:     new(int64(64512)),
+					Address: new("192.168.11.2"),
 				},
 			},
-		},
-		SRV6: &v1alpha1.SRV6Config{
-			EncapBehavior: new(v1alpha1.HEncapsRed),
-			Locator: v1alpha1.SRV6Locator{
-				BasePrefix: "fd00:0:32::/48",
-				Format:     "usid-f3216",
+			{
+				Neighbor: v1alpha1.Neighbor{
+					ASN:     new(int64(64512)),
+					Address: new("192.168.11.3"),
+					BFD: &v1alpha1.BFDSettings{
+						ReceiveInterval:  new(int32(300)),
+						TransmitInterval: new(int32(300)),
+						DetectMultiplier: new(int32(3)),
+					},
+				},
 			},
 		},
 	}
@@ -286,12 +292,9 @@ func TestReadRouterConfigsFromFiles(t *testing.T) {
 			L3VNISpec: v1alpha1.L3VNISpec{
 				VRF: "red",
 				HostSession: &v1alpha1.HostSession{
-					ASN:     64514,
-					HostASN: new(int64(64515)),
-					LocalCIDR: v1alpha1.LocalCIDRConfig{
-						IPv4: new("192.169.10.0/24"),
-						IPv6: new("2001:db8:1::/64"),
-					},
+					ASN:        64514,
+					HostASN:    new(int64(64515)),
+					LocalCIDRs: []string{"192.169.10.0/24", "2001:db8:1::/64"},
 				},
 				VNI: 100,
 			},
@@ -301,12 +304,9 @@ func TestReadRouterConfigsFromFiles(t *testing.T) {
 			L3VNISpec: v1alpha1.L3VNISpec{
 				VRF: "blue",
 				HostSession: &v1alpha1.HostSession{
-					ASN:     64514,
-					HostASN: new(int64(64516)),
-					LocalCIDR: v1alpha1.LocalCIDRConfig{
-						IPv4: new("192.169.11.0/24"),
-						IPv6: new("2001:db8:2::/64"),
-					},
+					ASN:        64514,
+					HostASN:    new(int64(64516)),
+					LocalCIDRs: []string{"192.169.11.0/24", "2001:db8:2::/64"},
 				},
 				VNI: 200,
 			},
@@ -360,11 +360,9 @@ func TestReadRouterConfigsFromFiles(t *testing.T) {
 			L3VPNSpec: v1alpha1.L3VPNSpec{
 				VRF: "red",
 				HostSession: &v1alpha1.HostSession{
-					ASN:     64514,
-					HostASN: new(int64(64515)),
-					LocalCIDR: v1alpha1.LocalCIDRConfig{
-						IPv4: new("192.169.10.0/24"),
-					},
+					ASN:        64514,
+					HostASN:    new(int64(64515)),
+					LocalCIDRs: []string{"192.169.10.0/24"},
 				},
 				RDAssignedNumber: 100,
 				ExportRTs:        []v1alpha1.RouteTarget{"64514:100"},
@@ -396,16 +394,13 @@ func TestReadRouterConfigsFromFiles(t *testing.T) {
 	// openpe_bgppassthrough.yaml
 	wantBGPPassthrough := v1alpha1.L3PassthroughSpec{
 		HostSession: v1alpha1.HostSession{
-			ASN:     64514,
-			HostASN: new(int64(64517)),
-			LocalCIDR: v1alpha1.LocalCIDRConfig{
-				IPv4: new("192.169.100.0/24"),
-				IPv6: new("2001:db8:100::/64"),
-			},
+			ASN:        64514,
+			HostASN:    new(int64(64517)),
+			LocalCIDRs: []string{"192.169.100.0/24", "2001:db8:100::/64"},
 		},
 	}
 
-	sortNeighbors := cmpopts.SortSlices(func(a, b v1alpha1.Neighbor) bool {
+	sortNeighbors := cmpopts.SortSlices(func(a, b static.StaticNeighbor) bool {
 		return ptr.Deref(a.Address, "") < ptr.Deref(b.Address, "")
 	})
 	sortL3VNIs := cmpopts.SortSlices(func(a, b static.StaticL3VNI) bool {

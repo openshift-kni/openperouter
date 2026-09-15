@@ -14,7 +14,20 @@ spec:
     singular: underlay
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.asn
+      name: ASN
+      type: integer
+    - jsonPath: .spec.routerIDCIDR
+      name: Router ID Pool
+      type: string
+    - jsonPath: .spec.tunnelEndpoint.cidrs
+      name: VTEP CIDR
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: Underlay is the Schema for the underlays API.
@@ -464,21 +477,26 @@ spec:
                         rule: isCIDR(self)
                       - message: listenRange must not be an IPv6 link-local range
                         rule: '!isCIDR(self) || cidr(self).ip().family() != 6 || !cidr(self).ip().isLinkLocalUnicast()'
-                    password:
-                      description: |-
-                        password to be used for establishing the BGP session.
-                        Password and PasswordSecret are mutually exclusive.
-                      maxLength: 128
-                      pattern: ^\S+$
-                      type: string
                     passwordSecret:
                       description: |-
-                        passwordSecret is name of the authentication secret for the neighbor.
-                        the secret must be of type "kubernetes.io/basic-auth", and created in the
-                        same namespace as the perouter daemon. The password is stored in the
-                        secret as the key "password".
-                        Password and PasswordSecret are mutually exclusive.
-                      type: string
+                        passwordSecret references a key in a Kubernetes Secret containing the
+                        BGP session password. The Secret must be created in the same namespace
+                        as the Underlay.
+                      properties:
+                        key:
+                          description: |-
+                            key is the key within the Secret's data to select.
+                            The controller defaults this to "password" when unset.
+                          minLength: 1
+                          type: string
+                        name:
+                          description: name is the name of the Secret in the same
+                            namespace.
+                          minLength: 1
+                          type: string
+                      required:
+                      - name
+                      type: object
                     port:
                       description: |-
                         port is the port to dial when establishing the session.

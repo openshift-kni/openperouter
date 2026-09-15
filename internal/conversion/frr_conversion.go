@@ -141,6 +141,7 @@ func APItoFRR(config APIConfigData, nodeIndex int, logLevel string) (frr.Config,
 		config.L3VPNs,
 		config.L3Passthrough,
 		underlay.Spec.TunnelEndpoint,
+		config.Passwords,
 	)
 	if err != nil {
 		return frr.Config{}, err
@@ -206,6 +207,7 @@ func APItoFRR(config APIConfigData, nodeIndex int, logLevel string) (frr.Config,
 func neighborsToFRR(apiNeighbors []v1alpha1.Neighbor, segmentRouting *frr.UnderlaySegmentRouting,
 	l2vnis []v1alpha1.L2VNI, l3vnis []v1alpha1.L3VNI, l3vpns []v1alpha1.L3VPN, l3passthroughs []v1alpha1.L3Passthrough,
 	tunnelEndpoint *v1alpha1.TunnelEndpointConfig,
+	passwords map[string]string,
 ) ([]frr.NeighborConfig, error) {
 	neighbors := make([]frr.NeighborConfig, 0, len(apiNeighbors))
 	for _, n := range apiNeighbors {
@@ -217,9 +219,10 @@ func neighborsToFRR(apiNeighbors []v1alpha1.Neighbor, segmentRouting *frr.Underl
 			l3passthroughs,
 			tunnelEndpoint,
 			segmentRouting,
+			passwords[NeighborID(n)],
 		)
 		if err != nil {
-			return nil, fmt.Errorf("failed to translate underlay neighbor %s to frr, err: %w", neighborID(n), err)
+			return nil, fmt.Errorf("failed to translate underlay neighbor %s to frr, err: %w", NeighborID(n), err)
 		}
 		neighbors = append(neighbors, *frrNeigh)
 	}
@@ -454,9 +457,9 @@ func passthroughToFRR(l3Passthroughs []v1alpha1.L3Passthrough, nodeIndex int) (*
 	}
 	passthrough := l3Passthroughs[0]
 
-	vethIPs, err := ipam.VethIPsFromPool(passthrough.Spec.HostSession.LocalCIDR.IPv4, passthrough.Spec.HostSession.LocalCIDR.IPv6, nodeIndex)
+	vethIPs, err := ipam.VethIPsFromPool(passthrough.Spec.HostSession.LocalCIDRs, nodeIndex)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get veth ips, cidr %v, nodeIndex %d", passthrough.Spec.HostSession.LocalCIDR, nodeIndex)
+		return nil, fmt.Errorf("failed to get veth ips, cidr %v, nodeIndex %d", passthrough.Spec.HostSession.LocalCIDRs, nodeIndex)
 	}
 
 	res := &frr.PassthroughConfig{
@@ -696,7 +699,7 @@ func routeDistinguisher(left string, right int32) string {
 }
 
 func hostSessionToHostSideIPs(hostSession *v1alpha1.HostSession, nodeIndex int) (map[ipfamily.Family]net.IPNet, error) {
-	veths, err := ipam.VethIPsFromPool(hostSession.LocalCIDR.IPv4, hostSession.LocalCIDR.IPv6, nodeIndex)
+	veths, err := ipam.VethIPsFromPool(hostSession.LocalCIDRs, nodeIndex)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get veths ips: %w", err)
 	}
@@ -737,13 +740,14 @@ func neighborToFRR(n v1alpha1.Neighbor,
 	l3passthroughs []v1alpha1.L3Passthrough,
 	tunnelEndpoint *v1alpha1.TunnelEndpointConfig,
 	segmentRouting *frr.UnderlaySegmentRouting,
+	password string,
 ) (*frr.NeighborConfig, error) {
 	asn, err := frr.NewPeerASN(n.ASN, n.Type)
 	if err != nil {
-		return nil, fmt.Errorf("neighbor %s: could not parse ASN configuration, err: %w", neighborID(n), err)
+		return nil, fmt.Errorf("neighbor %s: could not parse ASN configuration, err: %w", NeighborID(n), err)
 	}
 
-	neighName := neighborName(asn, neighborID(n))
+	neighName := neighborName(asn, NeighborID(n))
 
 	var nlps []networklayerprotocol.NLP
 	if len(n.AddressFamilies) == 0 {
@@ -771,7 +775,7 @@ func neighborToFRR(n v1alpha1.Neighbor,
 		Port:                  n.Port,
 		EBGPMultiHop:          ebgpMultiHop,
 		EBGPMultiHopTTL:       ebgpMultiHopTTL,
-		Password:              ptr.Deref(n.Password, ""),
+		Password:              password,
 		UpdateSource:          updateSource,
 		NetworkLayerProtocols: nlps,
 	}
@@ -970,10 +974,10 @@ func defaultNLPsForNeighbor(n v1alpha1.Neighbor,
 	}
 
 	for _, l3passthrough := range l3passthroughs {
-		if ptr.Deref(l3passthrough.Spec.HostSession.LocalCIDR.IPv4, "") != "" {
+		if ipfamily.CIDRForFamily(l3passthrough.Spec.HostSession.LocalCIDRs, ipfamily.IPv4) != "" {
 			addIPv4Unicast = true
 		}
-		if ptr.Deref(l3passthrough.Spec.HostSession.LocalCIDR.IPv6, "") != "" {
+		if ipfamily.CIDRForFamily(l3passthrough.Spec.HostSession.LocalCIDRs, ipfamily.IPv6) != "" {
 			addIPv6Unicast = true
 		}
 	}
@@ -1077,7 +1081,7 @@ func findNeighborPropertyByType(n v1alpha1.Neighbor, propertyTypeToFind v1alpha1
 	return nil
 }
 
-func neighborID(n v1alpha1.Neighbor) string {
+func NeighborID(n v1alpha1.Neighbor) string {
 	if address := ptr.Deref(n.Address, ""); address != "" {
 		return address
 	}
@@ -1088,7 +1092,7 @@ func neighborID(n v1alpha1.Neighbor) string {
 }
 
 func bfdProfileNameForNeighbor(n v1alpha1.Neighbor) string {
-	return fmt.Sprintf("neighbor-%s", neighborID(n))
+	return fmt.Sprintf("neighbor-%s", NeighborID(n))
 }
 
 func neighborName(asn frr.PeerASN, id string) string {

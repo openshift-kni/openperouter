@@ -25,42 +25,43 @@ const (
 )
 
 type VNIParams struct {
-	VRF       string `json:"vrf"`
-	TargetNS  string `json:"targetns"`
-	VTEPIP    string `json:"vtepip"`
-	VNI       int32  `json:"vni"`
-	VXLanPort *int32 `json:"vxlanPort,omitempty"`
+	VRF            string
+	TargetNS       string
+	VTEPIP         string
+	VNI            int32
+	VXLanPort      *int32
+	TunnelOverhead int
 }
 
 type L3VNIParams struct {
-	VNIParams `json:",inline"`
-	Name      string   `json:"name"`
-	LinkIPs   *LinkIPs `json:"link_ips"`
+	VNIParams
+	Name    string
+	LinkIPs *LinkIPs
 }
 
 type L3PassthroughParams struct {
-	TargetNS string  `json:"targetns"`
-	LinkIPs  LinkIPs `json:"link_ips"`
+	TargetNS string
+	LinkIPs  LinkIPs
 }
 
 type LinkIPs struct {
-	HostIPv4 string `json:"hostipv4"`
-	NSIPv4   string `json:"nsipv4"`
-	HostIPv6 string `json:"hostipv6"`
-	NSIPv6   string `json:"nsipv6"`
+	HostIPv4 string
+	NSIPv4   string
+	HostIPv6 string
+	NSIPv6   string
 }
 
 type L2VNIParams struct {
-	VNIParams    `json:",inline"`
-	Name         string      `json:"name"`
-	L2GatewayIPs []string    `json:"l2gatewayips"`
-	HostMaster   *HostMaster `json:"hostMaster"`
+	VNIParams
+	Name         string
+	L2GatewayIPs []string
+	HostMaster   *HostMaster
 }
 
 type HostMaster struct {
-	Name       *string `json:"name,omitempty"`
-	Type       string  `json:"type,omitempty"`
-	AutoCreate *bool   `json:"autocreate,omitempty"`
+	Name       *string
+	Type       string
+	AutoCreate *bool
 }
 
 const (
@@ -119,7 +120,7 @@ func SetupL3VNI(ctx context.Context, params L3VNIParams) error {
 		params.TargetNS,
 		params.LinkIPs,
 		params.VRF,
-		VXLanOverhead); err != nil {
+		params.TunnelOverhead); err != nil {
 		return fmt.Errorf("SetupL3VNI: failed to setup host veth pair: %w", err)
 	}
 	return nil
@@ -162,12 +163,12 @@ func SetupL2VNI(ctx context.Context, params L2VNIParams) error {
 	}
 	slog.Info("SetupL2VNI: found host veth", "name", vethNames.HostSide, "index", hostVeth.Attrs().Index)
 
-	underlayMTU, err := findUnderlayMTU(ns)
+	underlayMTU, err := FindUnderlayMTU(ns)
 	if err != nil {
 		return fmt.Errorf("could not find underlay MTU: %w", err)
 	}
 
-	if err := setVethMTUForTunnelOverhead(hostVeth, underlayMTU, VXLanOverhead); err != nil {
+	if err := SetVethMTUForTunnelOverhead(hostVeth, underlayMTU, params.TunnelOverhead); err != nil {
 		return fmt.Errorf("SetupL2VNI: failed to set MTU on host veth %s: %w", vethNames.HostSide, err)
 	}
 
@@ -192,7 +193,7 @@ func setupL2VNIRouterSide(params L2VNIParams, vethName string, underlayMTU int) 
 		return fmt.Errorf("could not find peer veth %s in namespace %s: %w", vethName, params.TargetNS, err)
 	}
 
-	if err := setVethMTUForTunnelOverhead(peVeth, underlayMTU, VXLanOverhead); err != nil {
+	if err := SetVethMTUForTunnelOverhead(peVeth, underlayMTU, params.TunnelOverhead); err != nil {
 		return fmt.Errorf("failed to set MTU on pe veth %s: %w", vethName, err)
 	}
 
