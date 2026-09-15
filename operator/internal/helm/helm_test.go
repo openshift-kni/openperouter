@@ -316,8 +316,8 @@ func TestParseChartWithGroutTestMode(t *testing.T) {
 			for _, e := range c.Env {
 				env[e.Name] = e.Value
 			}
-			g.Expect(env["GROUT_FIB4_ALGORITHM"]).To(Equal("_DUMMY_"))
-			g.Expect(env["GROUT_FIB6_ALGORITHM"]).To(Equal("_DUMMY_"))
+			g.Expect(env["GROUT_FIB4_ALGORITHM"]).To(Equal("DUMMY"))
+			g.Expect(env["GROUT_FIB6_ALGORITHM"]).To(Equal("DUMMY"))
 			g.Expect(c.Command).To(ContainElement(ContainSubstring("--test-mode")))
 			groutFound = true
 		}
