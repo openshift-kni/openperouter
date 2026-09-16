@@ -1,5 +1,5 @@
 # Tekton piplines override this with a UBI image
-ARG BASE_IMAGE=registry.redhat.io/ubi10/ubi:10.1-1774545609
+ARG BASE_IMAGE=quay.io/centos/centos:stream10
 
 # Build the manager binary
 FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_9_golang_1.26 AS builder
