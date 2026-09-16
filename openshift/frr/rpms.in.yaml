@@ -7,11 +7,9 @@ arches:
 
 packages:
   # FRR is consumed from Fast Datapath (FDP) instead of a prebuilt FRR base
-  # image. This scope is prefetched for Dockerfile.openshift.
-  - name: catatonit
+  # image. This scope is prefetched only for the non-edge Dockerfile.openshift
+  # image; the edge (grout) image keeps its own openshift/rpms.lock.yaml.
   - name: frr
+  - name: frr-headers
   - name: frr-selinux
-  - name: grout
-  - name: grout-frr
-  - name: iproute
   - name: shadow-utils
