@@ -59,6 +59,3 @@ packages:
   - name: libarchive-devel
   - name: wget
   - name: iproute
-  - name: frr
-  - name: frr-headers
-  - name: frr-selinux
