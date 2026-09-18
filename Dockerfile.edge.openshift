@@ -54,27 +54,27 @@ RUN dnf --nogpgcheck install --setopt=install_weak_deps=0 --nodocs -y \
   groff pam-devel systemd-devel openssl-devel libarchive-devel
 
 COPY openshift/grout /src
-COPY openshift/deps/dpdk /src/subprojects/dpdk-stable-25.11.2
-COPY openshift/deps/libecoli /src/subprojects/libecoli-0.11.3
-COPY openshift/deps/frr /src/subprojects/frr-frr-10.6.1
+COPY openshift/deps/dpdk /src/subprojects/dpdk-stable-25.11.3
+COPY openshift/deps/libecoli /src/subprojects/libecoli-0.11.6
+COPY openshift/deps/frr /src/subprojects/frr-frr-10.6.2
 
 WORKDIR /src
 
 # Apply dpdk patches (meson skips diff_files for pre-existing directories)
 RUN for p in `sed -En 's%[[:space:]]*(dpdk/.*\.patch),?$%\1%p' subprojects/dpdk-25.11.wrap`; do \
-               patch -d subprojects/dpdk-stable-25.11.2 -p1 < "subprojects/packagefiles/$p" || exit; \
+               patch -d subprojects/dpdk-stable-25.11.3 -p1 < "subprojects/packagefiles/$p" || exit; \
        done
 
 # Apply frr overlay files (meson skips patch_directory for pre-existing directories)
-RUN cp subprojects/packagefiles/frr/* subprojects/frr-frr-10.6.1/
+RUN cp subprojects/packagefiles/frr/* subprojects/frr-frr-10.6.2/
 
 # Create frr tarball in packagecache (make frr-rpm expects it there)
 RUN mkdir -p subprojects/packagecache && \
-    tar -C subprojects -czf subprojects/packagecache/frr-10.6.1.tar.gz frr-frr-10.6.1/
+    tar -C subprojects -czf subprojects/packagecache/frr-10.6.2.tar.gz frr-frr-10.6.2/
 
 
 # Update frr.wrap source_hash to match the locally created tarball
-RUN HASH=$(sha256sum subprojects/packagecache/frr-10.6.1.tar.gz | cut -d' ' -f1) && \
+RUN HASH=$(sha256sum subprojects/packagecache/frr-10.6.2.tar.gz | cut -d' ' -f1) && \
     sed -i "s/^source_hash = .*/source_hash = $HASH/" subprojects/frr-10.6.wrap
 
 RUN make frr-rpm FRR=10.6
