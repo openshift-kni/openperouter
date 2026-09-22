@@ -12,4 +12,6 @@ packages:
   - name: frr
   - name: frr-headers
   - name: frr-selinux
+  - name: grout
+  - name: iproute
   - name: shadow-utils

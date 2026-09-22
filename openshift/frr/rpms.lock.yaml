@@ -25,6 +25,13 @@ arches:
     name: frr-selinux
     evr: 10.7.0-3.el10fdp
     sourcerpm: frr-10.7.0-3.el10fdp.src.rpm
+  - url: https://cdn.redhat.com/content/dist/layered/rhel10/x86_64/fast-datapath/os/Packages/g/grout-0.18.0-1.el10fdp.x86_64.rpm
+    repoid: fast-datapath-for-rhel-10-x86_64-rpms
+    size: 3116757
+    checksum: sha256:a1c124bcabdc9186cee52ba2be42de8426b3e59086c93814e166b3a6d2d2b811
+    name: grout
+    evr: 0.18.0-1.el10fdp
+    sourcerpm: grout-0.18.0-1.el10fdp.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/appstream/os/Packages/c/checkpolicy-3.10-1.el10.x86_64.rpm
     repoid: rhel-10-for-x86_64-appstream-rpms
     size: 386733
@@ -886,6 +893,13 @@ arches:
     name: hostname
     evr: 3.23-14.el10
     sourcerpm: hostname-3.23-14.el10.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/baseos/os/Packages/i/iproute-6.14.0-2.el10.x86_64.rpm
+    repoid: rhel-10-for-x86_64-baseos-rpms
+    size: 868654
+    checksum: sha256:c4d7c44c843ba8734725fdbc4cd6c1ce38379d798793604456ff39bc0639e3a3
+    name: iproute
+    evr: 6.14.0-2.el10
+    sourcerpm: iproute-6.14.0-2.el10.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/baseos/os/Packages/j/json-c-0.18-3.el10.x86_64.rpm
     repoid: rhel-10-for-x86_64-baseos-rpms
     size: 48352
@@ -998,6 +1012,13 @@ arches:
     name: libeconf
     evr: 0.6.2-4.el10
     sourcerpm: libeconf-0.6.2-4.el10.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/baseos/os/Packages/l/libedit-3.1-52.20230828cvs.el10.x86_64.rpm
+    repoid: rhel-10-for-x86_64-baseos-rpms
+    size: 110822
+    checksum: sha256:d984e5aa4856820528bd2829f086c2f3883173b91daa0a304af215e3a0c6a6be
+    name: libedit
+    evr: 3.1-52.20230828cvs.el10
+    sourcerpm: libedit-3.1-52.20230828cvs.el10.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/baseos/os/Packages/l/libevent-2.1.13-1.el10_2.x86_64.rpm
     repoid: rhel-10-for-x86_64-baseos-rpms
     size: 274092
@@ -1033,6 +1054,13 @@ arches:
     name: libgcc
     evr: 14.3.1-4.4.el10
     sourcerpm: gcc-14.3.1-4.4.el10.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/baseos/os/Packages/l/libibverbs-61.0-1.el10.x86_64.rpm
+    repoid: rhel-10-for-x86_64-baseos-rpms
+    size: 500849
+    checksum: sha256:599cdd20dcf0fdeb5e3daa3511bcb5f57e1270805715f3cfabd71f5f1380e5ce
+    name: libibverbs
+    evr: 61.0-1.el10
+    sourcerpm: rdma-core-61.0-1.el10.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/baseos/os/Packages/l/libidn2-2.3.7-3.el10.x86_64.rpm
     repoid: rhel-10-for-x86_64-baseos-rpms
     size: 124963
@@ -1040,6 +1068,13 @@ arches:
     name: libidn2
     evr: 2.3.7-3.el10
     sourcerpm: libidn2-2.3.7-3.el10.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/baseos/os/Packages/l/libmnl-1.0.5-7.el10.x86_64.rpm
+    repoid: rhel-10-for-x86_64-baseos-rpms
+    size: 31980
+    checksum: sha256:e18e0d3c1d899d41f4bae06d1b43cded46d30a56fffd136934a84d410103c9db
+    name: libmnl
+    evr: 1.0.5-7.el10
+    sourcerpm: libmnl-1.0.5-7.el10.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/baseos/os/Packages/l/libmount-2.40.2-18.el10.x86_64.rpm
     repoid: rhel-10-for-x86_64-baseos-rpms
     size: 165150
@@ -1054,6 +1089,13 @@ arches:
     name: libnghttp2
     evr: 1.68.0-3.el10_2.2
     sourcerpm: nghttp2-1.68.0-3.el10_2.2.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/baseos/os/Packages/l/libnl3-3.11.0-1.el10.x86_64.rpm
+    repoid: rhel-10-for-x86_64-baseos-rpms
+    size: 374208
+    checksum: sha256:f43e83ce1afebac43eb81dc348829516fb97dce8b0e05ad76a1d06af4342e5f4
+    name: libnl3
+    evr: 3.11.0-1.el10
+    sourcerpm: libnl3-3.11.0-1.el10.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/baseos/os/Packages/l/libpkgconf-2.1.0-3.el10.x86_64.rpm
     repoid: rhel-10-for-x86_64-baseos-rpms
     size: 41667
@@ -1257,6 +1299,13 @@ arches:
     name: ncurses-libs
     evr: 6.4-15.20240127.el10_1
     sourcerpm: ncurses-6.4-15.20240127.el10_1.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/baseos/os/Packages/n/numactl-libs-2.0.19-3.el10.x86_64.rpm
+    repoid: rhel-10-for-x86_64-baseos-rpms
+    size: 31933
+    checksum: sha256:7bc28999ae2e0cc748378f54b39b4ac3ffc9cd39af9d0388f98ae0a6e4b40289
+    name: numactl-libs
+    evr: 2.0.19-3.el10
+    sourcerpm: numactl-2.0.19-3.el10.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/baseos/os/Packages/o/openldap-2.6.10-1.el10.x86_64.rpm
     repoid: rhel-10-for-x86_64-baseos-rpms
     size: 244928
@@ -1369,6 +1418,13 @@ arches:
     name: protobuf-c
     evr: 1.5.0-6.el10
     sourcerpm: protobuf-c-1.5.0-6.el10.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/baseos/os/Packages/p/psmisc-23.6-8.el10.x86_64.rpm
+    repoid: rhel-10-for-x86_64-baseos-rpms
+    size: 331009
+    checksum: sha256:81b7e9ef6c3af52a486321cc1f40a20663c4d8ff3289626dc89ed81bb110cb52
+    name: psmisc
+    evr: 23.6-8.el10
+    sourcerpm: psmisc-23.6-8.el10.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/baseos/os/Packages/p/publicsuffix-list-dafsa-20240107-5.el10.noarch.rpm
     repoid: rhel-10-for-x86_64-baseos-rpms
     size: 61540
