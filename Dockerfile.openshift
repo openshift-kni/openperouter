@@ -46,7 +46,7 @@ RUN groupadd --system --gid 92 frr && \
 
 # FRR is consumed from Fast Datapath (FDP) instead of a prebuilt FRR base image.
 RUN dnf --nogpgcheck install --setopt=install_weak_deps=0 --nodocs -y \
-    frr shadow-utils && \
+    frr grout shadow-utils && \
     chown -R frr:frr /etc/frr /var/run/frr
 
 WORKDIR /
