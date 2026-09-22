@@ -1,6 +1,3 @@
-# Tekton piplines override this with a UBI image
-ARG BASE_IMAGE=quay.io/centos/centos:stream10
-
 # Build the manager binary
 FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_9_golang_1.26 AS builder
 
@@ -25,14 +22,12 @@ RUN GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=
 
 FROM registry.redhat.io/openshift4/ose-container-networking-plugins-rhel9:v4.22.0-202606220442.p2.g659bc0a.assembly.stream.el9 as openshift-cni-binaries
 
-FROM ${BASE_IMAGE}
+FROM registry.redhat.io/ubi10/ubi:10.1-1774545609 as operator-runtime
 
 # Enable the repositories that provide FRR (Fast Datapath) and its dependencies.
 RUN . /etc/os-release && \
-      if [ "$ID" = "rhel" ] || [ "$ID" = "ubi" ]; then \
+      if [ "$ID" = "ubi" ]; then \
         dnf config-manager --set-enabled "rhel-10-for-x86_64-baseos-rpms,rhel-10-for-x86_64-appstream-rpms,fast-datapath-for-rhel-10-x86_64-rpms"; \
-      else \
-        dnf config-manager --set-enabled "baseos,appstream"; \
       fi
 
 # Pin FRR GIDs to 92/102 to match the pod spec supplementalGroups.
