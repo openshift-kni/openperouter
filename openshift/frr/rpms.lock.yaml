@@ -32,6 +32,13 @@ arches:
     name: grout
     evr: 0.18.0-1.el10fdp
     sourcerpm: grout-0.18.0-1.el10fdp.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/appstream/os/Packages/c/catatonit-0.2.1-1.el10.x86_64.rpm
+    repoid: rhel-10-for-x86_64-appstream-rpms
+    size: 314586
+    checksum: sha256:ca94fdd9a8bd1cddea6e44d606683221fa8373168f36f8c404f364e347c37600
+    name: catatonit
+    evr: 5:0.2.1-1.el10
+    sourcerpm: catatonit-0.2.1-1.el10.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/appstream/os/Packages/c/checkpolicy-3.10-1.el10.x86_64.rpm
     repoid: rhel-10-for-x86_64-appstream-rpms
     size: 386733
