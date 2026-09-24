@@ -36,6 +36,9 @@ prefetches for the hermetic OpenShift image builds. There are two scopes:
   base image.
 
 Both scopes share `openshift/redhat.repo`.
+MintMaker refreshes the FRR lockfile with `Dockerfile.openshift` image bumps when
+the Konflux namespace has an [activation-key secret](https://konflux-ci.dev/docs/building/activation-keys-subscription/)
+and Red Hat registry credentials.
 
 ## When to refresh
 
@@ -73,15 +76,19 @@ dnf config-manager --set-enabled "codeready-builder-for-rhel-10-x86_64-rpms,rhel
 
 # clean redhat.repo by removing all the disabled repositories
 awk 'BEGIN{RS=""; ORS="\n\n"} /^#/ || /enabled = 1/' /etc/yum.repos.d/redhat.repo > /src/openshift/redhat.repo
+sed -i -e 's|^sslclientkey = .*|sslclientkey = $SSL_CLIENT_KEY|' -e 's|^sslclientcert = .*|sslclientcert = $SSL_CLIENT_CERT|' /src/openshift/redhat.repo
 
 cp /run/secrets/etc-pki-entitlement/* /etc/pki/entitlement/
 skopeo login registry.redhat.io
+
+# Set DNF_VAR_SSL_CLIENT_KEY and DNF_VAR_SSL_CLIENT_CERT to the paths of the
+# matching key and certificate copied into /etc/pki/entitlement/ above.
 
 # edge/grout toolchain scope
 cd /src; rpm-lockfile-prototype --debug --bare --outfile openshift/rpms.lock.yaml openshift/rpms.in.yaml
 
 # FDP FRR scope (non-edge image)
-cd /src; rpm-lockfile-prototype --debug --bare --outfile openshift/frr/rpms.lock.yaml openshift/frr/rpms.in.yaml
+cd /src; rpm-lockfile-prototype --debug --outfile openshift/frr/rpms.lock.yaml openshift/frr/rpms.in.yaml
 ```
 
 3. **Commit the scope's `rpms.in.yaml` and `rpms.lock.yaml`** together.
