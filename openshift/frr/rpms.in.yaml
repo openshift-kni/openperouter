@@ -2,6 +2,9 @@ contentOrigin:
   repofiles:
     - ../redhat.repo
 
+context:
+  containerfile: ../../Dockerfile.openshift
+
 arches:
   - x86_64
 
