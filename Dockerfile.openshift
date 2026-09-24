@@ -41,8 +41,9 @@ RUN groupadd --system --gid 92 frr && \
 
 # FRR is consumed from Fast Datapath (FDP) instead of a prebuilt FRR base image.
 RUN dnf install -y \
-    frr grout iproute shadow-utils
+    frr grout iproute shadow-utils catatonit
 
+RUN ln -s /usr/libexec/podman/catatonit /sbin/tini
 RUN chown -R frr:frr /etc/frr /var/run/frr
 
 WORKDIR /
