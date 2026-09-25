@@ -25,24 +25,34 @@ podman build -v "$TMPDIR/entitlement:/run/secrets/etc-pki-entitlement:Z"  \
 
 ## Refreshing RPM lockfiles
 
-The `rpms.in.yaml` and `rpms.lock.yaml` files declare the RPM dependencies
-needed by the `grout-builder` stage in `Dockerfile.openshift`. Konflux uses
-them to prefetch packages for hermetic builds.
+The `rpms.in.yaml` / `rpms.lock.yaml` pairs declare the RPM dependencies Konflux
+prefetches for the hermetic OpenShift image builds. There are two scopes:
+
+- **`openshift/`** — the build toolchain consumed by the `grout-builder` stage in
+  `Dockerfile.edge.openshift` (the edge/grout image).
+- **`openshift/frr/`** — the FRR runtime consumed by `Dockerfile.openshift` (the
+  non-edge image). `frr` is pulled from Fast Datapath (FDP), via the
+  `fast-datapath-for-rhel-10-x86_64-rpms` repository, instead of a prebuilt FRR
+  base image.
+
+Both scopes share `openshift/redhat.repo`.
 
 ## When to refresh
 
-Update these files whenever:
+Update the relevant scope whenever:
 
-- A package is added or removed in `Dockerfile.edge.openshift` (the `dnf install`
-  lines in the `grout-builder` stage).
+- A package is added or removed in the `dnf install` lines of the corresponding
+  Dockerfile (`grout-builder` stage for `openshift/`, the final stage for
+  `openshift/frr/`).
 - You want to pick up newer package versions of `registry.redhat.io/ubi10/ubi`.
 
 ### Steps
 
-1. **Edit `rpms.in.yaml`** — add or remove entries in the `packages` list to
-   match the packages installed by `dnf` in the `grout-builder` stage.
+1. **Edit the scope's `rpms.in.yaml`** — add or remove entries in the `packages`
+   list to match the packages installed by `dnf` in the corresponding Dockerfile
+   stage.
 
-2. **Regenerate `rpms.lock.yaml`**:
+2. **Regenerate the scope's `rpms.lock.yaml`**:
  Follow instructions at 
  https://konflux-ci.dev/docs/building/activation-keys-subscription/#configuring-an-rpm-lockfile-for-hermetic-builds
 
@@ -59,7 +69,7 @@ podman run -it -v `pwd`:/src:Z -v "$TMPDIR/entitlement:/run/secrets/etc-pki-enti
 dnf install -y pip skopeo
 pip install https://github.com/konflux-ci/rpm-lockfile-prototype/archive/refs/tags/v0.13.1.tar.gz
 
-dnf config-manager --set-enabled "codeready-builder-for-rhel-10-x86_64-rpms,rhel-10-for-x86_64-baseos-rpms,rhel-10-for-x86_64-appstream-rpms";
+dnf config-manager --set-enabled "codeready-builder-for-rhel-10-x86_64-rpms,rhel-10-for-x86_64-baseos-rpms,rhel-10-for-x86_64-appstream-rpms,fast-datapath-for-rhel-10-x86_64-rpms";
 
 # clean redhat.repo by removing all the disabled repositories
 awk 'BEGIN{RS=""; ORS="\n\n"} /^#/ || /enabled = 1/' /etc/yum.repos.d/redhat.repo > /src/openshift/redhat.repo
@@ -67,7 +77,11 @@ awk 'BEGIN{RS=""; ORS="\n\n"} /^#/ || /enabled = 1/' /etc/yum.repos.d/redhat.rep
 cp /run/secrets/etc-pki-entitlement/* /etc/pki/entitlement/
 skopeo login registry.redhat.io
 
+# edge/grout toolchain scope
 cd /src; rpm-lockfile-prototype --debug --bare --outfile openshift/rpms.lock.yaml openshift/rpms.in.yaml
+
+# FDP FRR scope (non-edge image)
+cd /src; rpm-lockfile-prototype --debug --bare --outfile openshift/frr/rpms.lock.yaml openshift/frr/rpms.in.yaml
 ```
 
-3. **Commit both files** together.
+3. **Commit the scope's `rpms.in.yaml` and `rpms.lock.yaml`** together.
