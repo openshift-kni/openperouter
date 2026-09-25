@@ -63,6 +63,7 @@ COPY --from=openshift-cni-binaries usr/src/plugins/bin/dhcp /opt/openperouter/cn
 COPY systemdmode/frrconfig/daemons /etc/frr/daemons
 COPY systemdmode/frrconfig/vtysh.conf /etc/frr/vtysh.conf
 COPY systemdmode/frrconfig/frr.conf /etc/frr/frr.conf
+COPY openshift/frr-docker-start /usr/lib/frr/docker-start
 
 # Hack for https://github.com/FRRouting/frr/issues/20355
 #          https://github.com/FRRouting/frr/pull/20378
