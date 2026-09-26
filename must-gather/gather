@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+
+# SPDX-License-Identifier:Apache-2.0
+
+# must-gather entrypoint for collecting OpenPERouter related data.
+#
+# This is a thin wrapper around the repository's inspect toolkit
+# (tools/inspect), which is embedded in the must-gather image. It is meant to
+# be invoked by `oc adm must-gather --image=<openperouter-must-gather-image>`.
+#
+# Following the must-gather convention, collection failures are logged but never
+# fail the collector, so partial artifacts are always returned.
+
+set -uo pipefail
+
+# Directory where must-gather expects artifacts to be written.
+COLLECTION_DIR="${COLLECTION_DIR:-/must-gather}"
+# OpenPERouter system namespace.
+NS="${NS:-openperouter-system}"
+# Kubernetes client used by the inspect toolkit.
+CTL_BIN="${CTL_BIN:-oc}"
+# Optional: collect pod logs newer than the given relative duration (e.g. 5m).
+SINCE_DURATION="${SINCE_DURATION:-}"
+# Location of the embedded inspect toolkit inside the image.
+INSPECT_BIN="${INSPECT_BIN:-/usr/share/openperouter/inspect/inspect}"
+
+mkdir -p "${COLLECTION_DIR}"
+date --rfc-3339=ns > "${COLLECTION_DIR}/timestamp"
+
+inspect_args=(
+	"--k8s-client=${CTL_BIN}"
+	"--dest-dir=${COLLECTION_DIR}"
+	"--namespace=${NS}"
+)
+if [[ -n "${SINCE_DURATION}" ]]; then
+	inspect_args+=("--since=${SINCE_DURATION}")
+fi
+
+echo "Collecting OpenPERouter data into [${COLLECTION_DIR}] for namespace [${NS}]"
+"${INSPECT_BIN}" "${inspect_args[@]}"
+
+# Force exit status 0: must-gather collectors must not fail even on partial
+# collection, otherwise the whole must-gather run is marked as failed.
+exit 0
