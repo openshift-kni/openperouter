@@ -203,7 +203,12 @@ func VLANSubInterfaceName(vlan int32, trunkPortName string) string {
 func RemoveStaleVFPairResources(ctx context.Context, client *Client, configuredL2VNIs []hostnetwork.L2VNIParams) error {
 	expectedVLANIfs := map[string]bool{}
 	referencedTrunks := map[string]bool{}
+	portNameToNetlinkName := map[string]*string{}
+
+	var todoChange string
+
 	for _, l2 := range configuredL2VNIs {
+		todoChange = l2.TargetNS
 		if l2.VFPair == nil {
 			continue
 		}
@@ -216,6 +221,7 @@ func RemoveStaleVFPairResources(ctx context.Context, client *Client, configuredL
 		vlanIfName := VLANSubInterfaceName(l2.VFPair.VLAN, trunkPortName)
 		expectedVLANIfs[vlanIfName] = true
 		referencedTrunks[trunkPortName] = true
+		portNameToNetlinkName[trunkPortName] = l2.VFPair.NetlinkName
 	}
 
 	ifaces, err := client.listInterfaces(ctx)
@@ -247,6 +253,30 @@ func RemoveStaleVFPairResources(ctx context.Context, client *Client, configuredL
 		if err := client.deletePort(ctx, iface.Name); err != nil {
 			return fmt.Errorf("failed to delete stale trunk port %s: %w", iface.Name, err)
 		}
+
+		netlinkName, ok := portNameToNetlinkName[iface.Name]
+		if !ok {
+			slog.WarnContext(ctx, "no netlink name found for trunk port", "name", iface.Name)
+			continue
+		}
+
+		if netlinkName == nil {
+			slog.WarnContext(ctx, "no netlink name found for trunk port", "name", iface.Name)
+			continue
+		}
+
+		state, err := devicestate.Load(*netlinkName)
+		if err != nil {
+			slog.WarnContext(ctx, "no saved device state, cannot restore driver/IPs",
+				"interfaceName", netlinkName, "error", err)
+			continue
+		}
+
+		if err := restoreDeviceDriver(ctx, todoChange, *netlinkName, state); err != nil {
+			slog.ErrorContext(ctx, "failed to restore device driver/IPs for trunk port", "name", iface.Name, "error", err)
+			continue
+		}
+
 	}
 	return nil
 }
