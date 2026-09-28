@@ -22,12 +22,12 @@ RUN GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=
 
 FROM registry.redhat.io/openshift4/ose-container-networking-plugins-rhel9:v4.22.0-202606220442.p2.g659bc0a.assembly.stream.el9 as openshift-cni-binaries
 
-FROM registry.redhat.io/ubi10/ubi:10.1-1774545609 as operator-runtime
+FROM registry.redhat.io/ubi9/ubi:9.8-1790556197 as operator-runtime
 
 # Enable the repositories that provide FRR (Fast Datapath) and its dependencies.
 RUN . /etc/os-release && \
       if [ "$ID" = "ubi" ]; then \
-        dnf config-manager --set-enabled "rhel-10-for-x86_64-baseos-rpms,rhel-10-for-x86_64-appstream-rpms,fast-datapath-for-rhel-10-x86_64-rpms"; \
+      dnf config-manager --set-enabled "rhel-9-for-x86_64-baseos-rpms,rhel-9-for-x86_64-appstream-rpms,fast-datapath-for-rhel-9-x86_64-rpms"; \
       fi
 
 # Pin FRR GIDs to 92/102 to match the pod spec supplementalGroups.

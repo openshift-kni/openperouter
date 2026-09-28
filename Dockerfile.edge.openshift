@@ -1,5 +1,5 @@
 # Tekton piplines override this with a UBI image
-ARG BASE_IMAGE=quay.io/centos/centos:stream10
+ARG BASE_IMAGE=quay.io/centos/centos:stream9
 
 # Build the manager binary
 FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_9_golang_1.26 AS builder
@@ -28,7 +28,7 @@ FROM ${BASE_IMAGE} AS grout-builder
 
 RUN . /etc/os-release && \
       if [ "$ID" = "rhel" ] || [ "$ID" = "ubi" ]; then \
-        dnf config-manager --set-enabled "codeready-builder-for-rhel-10-x86_64-rpms,rhel-10-for-x86_64-baseos-rpms,rhel-10-for-x86_64-appstream-rpms"; \
+        dnf config-manager --set-enabled "codeready-builder-for-rhel-9-x86_64-rpms,rhel-9-for-x86_64-baseos-rpms,rhel-9-for-x86_64-appstream-rpms"; \
       else \
         dnf config-manager --set-enabled "crb,baseos,appstream"; \
       fi
@@ -36,22 +36,13 @@ RUN . /etc/os-release && \
 
 # install build dependencies
 
-# TODO: install libyang-devel from codeready-builder repo once RHEL-119430 is solved
-COPY openshift/libyang-devel-2.1.148-2.el10.x86_64.rpm /
-RUN . /etc/os-release && \
-      if [ "$ID" = "rhel" ] || [ "$ID" = "ubi" ]; then \
-        dnf --nogpgcheck install -y /libyang-devel-2.1.148-2.el10.x86_64.rpm; \
-      else \
-        dnf --nogpgcheck install -y libyang-devel; \
-      fi
-
 RUN dnf --nogpgcheck install --setopt=install_weak_deps=0 --nodocs -y \
   gcc make meson ninja-build pkgconf python3-pyelftools json-c-devel \
   libedit-devel libevent-devel libmnl-devel rdma-core-devel \
   patch autoconf automake libtool bison elfutils-libelf-devel flex \
   libcap-devel protobuf-c-compiler protobuf-c-devel \
   python3-devel readline-devel rpm-build numactl-devel \
-  groff pam-devel systemd-devel openssl-devel libarchive-devel
+  groff pam-devel systemd-devel openssl-devel libarchive-devel libyang-devel
 
 COPY openshift/grout /src
 COPY openshift/deps/dpdk /src/subprojects/dpdk-stable-25.11.3
@@ -105,7 +96,7 @@ COPY --from=openshift-cni-binaries usr/src/plugins/bin/static /opt/openperouter/
 COPY --from=openshift-cni-binaries usr/src/plugins/bin/dhcp /opt/openperouter/cni/bin/
 
 RUN dnf --nogpgcheck install --setopt=install_weak_deps=0 --nodocs -y \
-	--releasever 10 \
+  --releasever 9 \
 	glibc-minimal-langpack less shadow-utils tcpdump \
 	libedit libevent libmnl rdma-core libibverbs numactl json-c libcap \
 	libyang elfutils-libelf protobuf-c python3 readline catatonit \
@@ -134,11 +125,10 @@ RUN dnf --nogpgcheck install -y \
 
 RUN . /etc/os-release && \
       if [ "$ID" = "rhel" ] || [ "$ID" = "ubi" ]; then \
-        dnf config-manager --set-enabled "codeready-builder-for-rhel-10-x86_64-rpms,rhel-10-for-x86_64-baseos-rpms,rhel-10-for-x86_64-appstream-rpms"; \
+        dnf config-manager --set-enabled "codeready-builder-for-rhel-9-x86_64-rpms,rhel-9-for-x86_64-baseos-rpms,rhel-9-for-x86_64-appstream-rpms"; \
       else \
         dnf config-manager --set-enabled "crb,baseos,appstream"; \
       fi
-
 
 # Copy FRR startup configuration to the default location
 COPY systemdmode/frrconfig/daemons /etc/frr/daemons
@@ -155,7 +145,7 @@ RUN chmod 640 /etc/frr/* && chown -R frr:frr /etc/frr
 COPY openshift/frr-reload.py.patched /usr/lib/frr/frr-reload.py
 
 LABEL com.redhat.component="openperouter" \
-   name="openshift4-dev-preview-beta/openperouter-edge-rhel10-operator" \
+   name="openshift4-dev-preview-beta/openperouter-edge-rhel9-operator" \
    summary="openperouter" \
    io.openshift.expose-services="" \
    io.openshift.tags="openperouter" \

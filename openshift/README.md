@@ -19,7 +19,6 @@ cp -r /etc/rhsm "$TMPDIR/rhsm"
 # Build the image
 podman build -v "$TMPDIR/entitlement:/run/secrets/etc-pki-entitlement:Z"  \
                -v "$TMPDIR/rhsm:/run/secrets/rhsm:Z" \
-               --build-arg BASE_IMAGE=registry.redhat.io/ubi10/ubi:10.1-1774545609 \
                -f Dockerfile.edge.openshift .
 ```
 
@@ -32,7 +31,7 @@ prefetches for the hermetic OpenShift image builds. There are two scopes:
   `Dockerfile.edge.openshift` (the edge/grout image).
 - **`openshift/frr/`** — the FRR runtime consumed by `Dockerfile.openshift` (the
   non-edge image). `frr` is pulled from Fast Datapath (FDP), via the
-  `fast-datapath-for-rhel-10-x86_64-rpms` repository, instead of a prebuilt FRR
+  `fast-datapath-for-rhel-9-x86_64-rpms` repository, instead of a prebuilt FRR
   base image.
 
 Both scopes share `openshift/redhat.repo`.
@@ -44,7 +43,7 @@ Update the relevant scope whenever:
 - A package is added or removed in the `dnf install` lines of the corresponding
   Dockerfile (`grout-builder` stage for `openshift/`, the final stage for
   `openshift/frr/`).
-- You want to pick up newer package versions of `registry.redhat.io/ubi10/ubi`.
+- You want to pick up newer package versions of `registry.redhat.io/ubi9/ubi`.
 
 ### Steps
 
@@ -64,12 +63,12 @@ cp -r /etc/pki/entitlement "$TMPDIR/entitlement"
 cp -r /etc/rhsm "$TMPDIR/rhsm"
 
 podman run -it -v `pwd`:/src:Z -v "$TMPDIR/entitlement:/run/secrets/etc-pki-entitlement:Z"  \
-               -v "$TMPDIR/rhsm:/run/secrets/rhsm:Z" registry.redhat.io/ubi10/ubi:10.1-1774545609 bash
+               -v "$TMPDIR/rhsm:/run/secrets/rhsm:Z" registry.redhat.io/ubi9/ubi:9.8-1790556197 bash
 
-dnf install -y pip skopeo
+dnf install -y python3-pip skopeo
 pip install https://github.com/konflux-ci/rpm-lockfile-prototype/archive/refs/tags/v0.13.1.tar.gz
 
-dnf config-manager --set-enabled "codeready-builder-for-rhel-10-x86_64-rpms,rhel-10-for-x86_64-baseos-rpms,rhel-10-for-x86_64-appstream-rpms,fast-datapath-for-rhel-10-x86_64-rpms";
+dnf config-manager --set-enabled "codeready-builder-for-rhel-9-x86_64-rpms,rhel-9-for-x86_64-baseos-rpms,rhel-9-for-x86_64-appstream-rpms,fast-datapath-for-rhel-9-x86_64-rpms";
 
 # clean redhat.repo by removing all the disabled repositories
 awk 'BEGIN{RS=""; ORS="\n\n"} /^#/ || /enabled = 1/' /etc/yum.repos.d/redhat.repo > /src/openshift/redhat.repo

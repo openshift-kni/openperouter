@@ -99,7 +99,7 @@ spec:
       name: build-image-index
       type: string
     - default:
-        - BASE_IMAGE=registry.redhat.io/ubi10/ubi:10.1-1774545609
+        - BASE_IMAGE=registry.redhat.io/ubi9/ubi:9.8-1790556197
       description: Array of --build-arg values ("arg=value" strings) for buildah
       name: build-args
       type: array
