@@ -42,7 +42,9 @@ RUN dnf --nogpgcheck install --setopt=install_weak_deps=0 --nodocs -y \
   patch autoconf automake libtool bison elfutils-libelf-devel flex \
   libcap-devel protobuf-c-compiler protobuf-c-devel \
   python3-devel readline-devel rpm-build numactl-devel \
-  groff pam-devel systemd-devel openssl-devel libarchive-devel libyang-devel
+  groff pam-devel systemd-devel openssl-devel libarchive-devel libyang-devel clang
+
+ENV CC=clang CXX=clang++
 
 COPY openshift/grout /src
 COPY openshift/deps/dpdk /src/subprojects/dpdk-stable-25.11.3
@@ -73,7 +75,10 @@ RUN make frr-rpm FRR=10.7
 RUN dnf --nogpgcheck install -y \
    frr-headers.noarch.rpm
 
-RUN make rpm FRR=10.7 WITHOUT="tests docs systemd"
+# ponytail: FRR headers omit strl prototypes on RHEL 9; remove this flag when the headers declare them.
+RUN CFLAGS="$(rpm --eval '%{build_cflags}' | sed -E 's@ -specs=[^ ]+@@g') -Wno-error=implicit-function-declaration" \
+   LDFLAGS="$(rpm --eval '%{build_ldflags}' | sed -E 's@ -specs=[^ ]+@@g')" \
+   make rpm FRR=10.7 WITHOUT="tests docs systemd"
 
 ENTRYPOINT ["/bin/bash"]
 

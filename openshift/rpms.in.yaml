@@ -60,3 +60,4 @@ packages:
   - name: libyang-devel
   - name: wget
   - name: iproute
+  - name: clang
