@@ -15,8 +15,11 @@
     "jsonnet-bundler": {
         "enabled": false
     },
-    "tekton" {
-        "enabled": true,
+    "github-actions": {
+        "enabled": false
+    },
+    "tekton": {
+        "managerFilePatterns": [".tekton/**"],
         "includePaths": [
             ".tekton/**"
         ],
@@ -25,5 +28,16 @@
             "lgtm",
             "ok-to-test"
         ]
-    }
+    },
+    "packageRules": [
+        {
+            "matchManagers": ["git-submodules"],
+            "matchDepNames": ["openshift/**"],
+            "enabled": false
+        },
+        {
+            "matchFileNames": ["clab/**"],
+            "enabled": false
+        }
+    ]
 }

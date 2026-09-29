@@ -57,4 +57,7 @@ packages:
   - name: groff 
   - name: pam-devel
   - name: libarchive-devel
+  - name: libyang-devel
   - name: wget
+  - name: iproute
+  - name: clang
