@@ -100,6 +100,12 @@ COPY --from=openshift-cni-binaries usr/src/plugins/bin/ipvlan /opt/openperouter/
 COPY --from=openshift-cni-binaries usr/src/plugins/bin/static /opt/openperouter/cni/bin/
 COPY --from=openshift-cni-binaries usr/src/plugins/bin/dhcp /opt/openperouter/cni/bin/
 
+# catatonit package is on crb on CentOS Stream 9
+RUN . /etc/os-release && \
+      if [ "$ID" = "centos" ]; then \
+        dnf config-manager --set-enabled "crb,baseos,appstream,extras-common"; \
+      fi
+
 RUN dnf --nogpgcheck install --setopt=install_weak_deps=0 --nodocs -y \
   --releasever 9 \
 	glibc-minimal-langpack less shadow-utils tcpdump \
@@ -132,7 +138,7 @@ RUN . /etc/os-release && \
       if [ "$ID" = "rhel" ] || [ "$ID" = "ubi" ]; then \
         dnf config-manager --set-enabled "codeready-builder-for-rhel-9-x86_64-rpms,rhel-9-for-x86_64-baseos-rpms,rhel-9-for-x86_64-appstream-rpms"; \
       else \
-        dnf config-manager --set-enabled "crb,baseos,appstream"; \
+        dnf config-manager --set-enabled "crb,baseos,appstream,extras-common"; \
       fi
 
 # Copy FRR startup configuration to the default location
