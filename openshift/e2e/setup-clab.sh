@@ -153,8 +153,18 @@ ${CLI} exec clab-kind-leafkind1 ip link set dev toswitch1 mtu 1500
 ${CLI} exec clab-kind-leafkind2 ip link set dev toswitch2 mtu 1500
 
 echo "=== Step 6: Run container setup scripts ==="
+# leafSRV6 / hostSRV6_* enable SRv6 sysctls that hang this bastion kernel under podman
+# (guest soft-lock / SSH loss). Skip on bastion until that is root-caused.
+SKIP_SRV6_SETUP="${OPENPE_BASTION_SKIP_SRV6_SETUP:-false}"
+if [[ "${PROVIDER}" == "bastion" && "${SKIP_SRV6_SETUP}" == "true" ]]; then
+    echo "  skipping leafSRV6/hostSRV6_* setups (OPENPE_BASTION_SKIP_SRV6_SETUP=true)"
+fi
 for c in leafA leafB leafSRV6 hostA_red hostA_blue hostA_default hostB_red hostB_blue hostSRV6_red hostSRV6_blue; do
     container="clab-kind-${c}"
+    if [[ "${PROVIDER}" == "bastion" && "${SKIP_SRV6_SETUP}" == "true" && "${c}" == *SRV6* ]]; then
+        echo "  skip ${c}"
+        continue
+    fi
     echo "Setting up container: ${c}"
 
     if timeout 10s ${CLI} exec "${container}" test -f /setup.sh 2>/dev/null; then

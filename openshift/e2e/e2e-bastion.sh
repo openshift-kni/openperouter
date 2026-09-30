@@ -30,7 +30,8 @@ export OPENPE_E2E_PROVIDER="${OPENPE_E2E_PROVIDER:-bastion}"
 export CLAB_EXECUTOR="${CLAB_EXECUTOR:-local}"
 export CLAB_RUNTIME="${CLAB_RUNTIME:-podman}"
 export OPENPE_CLAB_RUNTIME="${OPENPE_CLAB_RUNTIME:-${CLAB_RUNTIME}}"
-export CONTAINER_RUNTIME="${CONTAINER_RUNTIME:-${CLAB_RUNTIME}}"
+# Ginkgo must use rootful podman (same as setup-clab's sudo podman).
+export CONTAINER_RUNTIME="${CONTAINER_RUNTIME:-${SCRIPT_DIR}/podman-root.sh}"
 
 SKIP_TEARDOWN="${OPENPE_E2E_SKIP_TEARDOWN:-false}"
 TEST_RC=0

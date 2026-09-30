@@ -3,9 +3,11 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Bastion uses podman; virtual OCP / KIND default to docker unless overridden.
+# Bastion: clab is deployed with sudo podman (rootful). Ginkgo uses
+# CONTAINER_RUNTIME as a single binary — default to podman-root.sh so tests
+# see the same containers. KIND / virtual OCP keep docker unless overridden.
 if [[ "${OPENPE_E2E_PROVIDER:-}" == "bastion" ]]; then
-	RUNTIME="${CONTAINER_RUNTIME:-${CLAB_RUNTIME:-${OPENPE_CLAB_RUNTIME:-podman}}}"
+	RUNTIME="${CONTAINER_RUNTIME:-${SCRIPT_DIR}/podman-root.sh}"
 else
 	RUNTIME="${CONTAINER_RUNTIME:-${CLAB_RUNTIME:-${OPENPE_CLAB_RUNTIME:-docker}}}"
 fi
