@@ -41,6 +41,8 @@ else
     RUNTIME="${CLAB_RUNTIME:-${OPENPE_CLAB_RUNTIME:-docker}}"
 fi
 SKIP_WORKER_NET="${OPENPE_BASTION_SKIP_WORKER_NET:-true}"
+# First nodelink node gets 192.168.11.${BASE} (use 103 if workers already use .103/.104)
+NODE_IP_BASE="${OPENPE_BASTION_NODE_IP_BASE:-100}"
 
 CLI="sudo ${RUNTIME}"
 
@@ -153,8 +155,18 @@ ${CLI} exec clab-kind-leafkind1 ip link set dev toswitch1 mtu 1500
 ${CLI} exec clab-kind-leafkind2 ip link set dev toswitch2 mtu 1500
 
 echo "=== Step 6: Run container setup scripts ==="
+# leafSRV6 / hostSRV6_* enable SRv6 sysctls that hang this bastion kernel under podman
+# (guest soft-lock / SSH loss). Skip on bastion until that is root-caused.
+SKIP_SRV6_SETUP="${OPENPE_BASTION_SKIP_SRV6_SETUP:-false}"
+if [[ "${PROVIDER}" == "bastion" && "${SKIP_SRV6_SETUP}" == "true" ]]; then
+    echo "  skipping leafSRV6/hostSRV6_* setups (OPENPE_BASTION_SKIP_SRV6_SETUP=true)"
+fi
 for c in leafA leafB leafSRV6 hostA_red hostA_blue hostA_default hostB_red hostB_blue hostSRV6_red hostSRV6_blue; do
     container="clab-kind-${c}"
+    if [[ "${PROVIDER}" == "bastion" && "${SKIP_SRV6_SETUP}" == "true" && "${c}" == *SRV6* ]]; then
+        echo "  skip ${c}"
+        continue
+    fi
     echo "Setting up container: ${c}"
 
     if timeout 10s ${CLI} exec "${container}" test -f /setup.sh 2>/dev/null; then
@@ -178,16 +190,33 @@ for c in leafA leafB leafSRV6 hostA_red hostA_blue hostA_default hostB_red hostB
     fi
 done
 
-NODES=$(oc get nodes -l kubernetes.io/os=linux -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}')
+# Bastion/CNF labs often only cable underlay on workers (e.g. MCP workercnf).
+# Override with OPENPE_E2E_NODE_SELECTOR (label selector), e.g.:
+#   node-role.kubernetes.io/workercnf
+#   node-role.kubernetes.io/worker
+if [[ "${PROVIDER}" == "bastion" ]]; then
+    NODE_SELECTOR="${OPENPE_E2E_NODE_SELECTOR:-node-role.kubernetes.io/worker}"
+    echo "  node selector (bastion): ${NODE_SELECTOR}"
+    NODES=$(oc get nodes -l "${NODE_SELECTOR}" -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}')
+else
+    NODES=$(oc get nodes -l kubernetes.io/os=linux -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}')
+fi
+if [[ -z "${NODES//[[:space:]]/}" ]]; then
+    echo "ERROR: no nodes matched selector for nodelink generation" >&2
+    exit 1
+fi
+
+OPENPE_NS="${OPENPE_E2E_NAMESPACE:-openshift-openperouter}"
+BASTION_IFACE1="${OPENPE_UNDERLAY_IFACE:-toswitch1}"
+BASTION_IFACE2="${OPENPE_UNDERLAY_IFACE2:-toswitch2}"
 
 node_exec() {
     local node=$1; shift
     local pod
-    pod=$(oc get pods -n openshift-openperouter -l app=controller \
+    pod=$(oc get pods -n "${OPENPE_NS}" -l app=controller \
         --field-selector spec.nodeName="${node}" -o jsonpath='{.items[0].metadata.name}')
-    oc exec -n openshift-openperouter "${pod}" -- nsenter -t 1 -m -u -i -n "$@"
+    oc exec -n "${OPENPE_NS}" "${pod}" -- nsenter -t 1 -m -u -i -n "$@"
 }
-
 if [[ "${PROVIDER}" == "dev-scripts" ]]; then
     echo "=== Step 7: Rename NICs + install udev rules (virsh / ostest_*) ==="
     for node in ${NODES}; do
@@ -222,10 +251,10 @@ if [[ "${PROVIDER}" == "dev-scripts" ]]; then
     NODE_INDEX=0
     NODES_JSON=""
     for node in ${NODES}; do
-        TS1_V4="192.168.11.$((100 + NODE_INDEX))"
-        TS2_V4="192.168.12.$((100 + NODE_INDEX))"
-        TS1_V6="2001:db8:11::$((100 + NODE_INDEX))"
-        TS2_V6="2001:db8:12::$((100 + NODE_INDEX))"
+        TS1_V4="192.168.11.$((NODE_IP_BASE + NODE_INDEX))"
+        TS2_V4="192.168.12.$((NODE_IP_BASE + NODE_INDEX))"
+        TS1_V6="2001:db8:11::$((NODE_IP_BASE + NODE_INDEX))"
+        TS2_V6="2001:db8:12::$((NODE_IP_BASE + NODE_INDEX))"
         NODE_INDEX=$((NODE_INDEX + 1))
 
         node_exec "${node}" bash -c "
@@ -257,21 +286,16 @@ if [[ "${PROVIDER}" == "dev-scripts" ]]; then
     }"
     done
 else
-    echo "=== Step 7/8: Bastion — skip virsh NIC rename / worker IP push ==="
-    if [[ "${SKIP_WORKER_NET}" == "true" ]]; then
-        echo "  Writing planned nodelink.json (workers not configured on-node yet)."
-        echo "  After lab uplink cable: configure worker secondary NICs and re-run with"
-        echo "  OPENPE_BASTION_SKIP_WORKER_NET=false once worker wiring is implemented."
-    fi
+    echo "=== Step 7/8: Bastion — nodelink only (worker IPs via configure-bastion-worker-net.sh) ==="
     NODE_INDEX=0
     NODES_JSON=""
     for node in ${NODES}; do
-        TS1_V4="192.168.11.$((100 + NODE_INDEX))"
-        TS2_V4="192.168.12.$((100 + NODE_INDEX))"
-        TS1_V6="2001:db8:11::$((100 + NODE_INDEX))"
-        TS2_V6="2001:db8:12::$((100 + NODE_INDEX))"
+        TS1_V4="192.168.11.$((NODE_IP_BASE + NODE_INDEX))"
+        TS2_V4="192.168.12.$((NODE_IP_BASE + NODE_INDEX))"
+        TS1_V6="2001:db8:11::$((NODE_IP_BASE + NODE_INDEX))"
+        TS2_V6="2001:db8:12::$((NODE_IP_BASE + NODE_INDEX))"
         NODE_INDEX=$((NODE_INDEX + 1))
-        echo "  planned ${node}: ts1=${TS1_V4} ts2=${TS2_V4}"
+        echo "  planned ${node}: ts1=${TS1_V4} ts2=${TS2_V4} ifaces=${BASTION_IFACE1}/${BASTION_IFACE2}"
 
         if [ -n "${NODES_JSON}" ]; then
             NODES_JSON="${NODES_JSON},"
@@ -282,8 +306,8 @@ else
       \"ipForKindLeaf2\": \"${TS2_V4}\",
       \"ipv6ForKindLeaf\": \"${TS1_V6}\",
       \"ipv6ForKindLeaf2\": \"${TS2_V6}\",
-      \"ifaceForKindLeaf\": \"toswitch1\",
-      \"ifaceForKindLeaf2\": \"toswitch2\",
+      \"ifaceForKindLeaf\": \"${BASTION_IFACE1}\",
+      \"ifaceForKindLeaf2\": \"${BASTION_IFACE2}\",
       \"leafIfaceForKindLeaf\": \"toswitch1\",
       \"leafIfaceForKindLeaf2\": \"toswitch2\"
     }"

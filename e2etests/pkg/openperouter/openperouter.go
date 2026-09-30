@@ -73,6 +73,20 @@ func AreReady(routers Routers) error {
 	return nil
 }
 
+
+// AreReadyOnNodes is like AreReady but only considers router pods scheduled
+// on the given node names (bastion/CNF: underlay workers, not masters).
+func AreReadyOnNodes(cs clientset.Interface, nodeNames map[string]bool) error {
+	pods, err := RouterPodsForNodes(cs, nodeNames)
+	if err != nil {
+		return err
+	}
+	if !allPodsReady(pods) {
+		return fmt.Errorf("not all router pods on selected nodes are non-terminating and ready")
+	}
+	return nil
+}
+
 func RouterPodsForNodes(cs clientset.Interface, nodes map[string]bool) ([]*corev1.Pod, error) {
 	routerPods, err := k8s.PodsForLabel(cs, Namespace, routerLabelSelector)
 	if err != nil {

@@ -4,6 +4,7 @@ package infra
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/openperouter/openperouter/e2etests/pkg/frr"
 	"github.com/openperouter/openperouter/e2etests/pkg/ipfamily"
@@ -79,6 +80,27 @@ type link struct {
 
 type linkAddresses struct {
 	from, to string
+}
+
+
+// HasKindLeafLink reports whether nodelink.json registered a link between
+// leafkind1 and nodeName (underlay-capable nodes only).
+func HasKindLeafLink(nodeName string) bool {
+	_, err := NeighborIP(KindLeaf, nodeName)
+	return err == nil
+}
+
+// HasKindLeaf2Link reports whether nodelink.json registered a link between
+// leafkind2 and nodeName.
+func HasKindLeaf2Link(nodeName string) bool {
+	_, err := NeighborIP(KindLeaf2, nodeName)
+	return err == nil
+}
+
+// DualLeafEnabled is true when OPENPE_UNDERLAY_IFACE2 is set (second TOR path).
+// Bastion single-uplink labs leave it unset and only peer leafkind1.
+func DualLeafEnabled() bool {
+	return os.Getenv(EnvUnderlayIface2) != ""
 }
 
 // NeighborIP is a wrapper around NeighborForFamily for IPv4.

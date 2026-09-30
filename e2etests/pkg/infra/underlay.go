@@ -12,22 +12,50 @@ import (
 // updated and the interfaces change, the controller will tear down dependent resources (VNIs, passthrough)
 // and restore the old interfaces before setting up the new ones. While this is now graceful (no pod restart
 // required), changing interfaces mid-test can still disrupt E2E tests that cache router state in BeforeAll().
+//
+// Names default to toswitch1/toswitch2 and can be overridden with OPENPE_UNDERLAY_IFACE /
+// OPENPE_UNDERLAY_IFACE2 for baremetal clusters that keep vendor NIC names.
 
-var defaultInterfaces = []v1alpha1.UnderlayInterface{
-	{
-		Type:          "NetworkDevice",
-		NetworkDevice: &v1alpha1.NetworkDevice{InterfaceName: "toswitch1"},
-	},
-	{
-		Type:          "NetworkDevice",
-		NetworkDevice: &v1alpha1.NetworkDevice{InterfaceName: "toswitch2"},
-	},
-}
+var defaultInterfaces []v1alpha1.UnderlayInterface
 
 // DefaultInterfaces exposes the interfaces shared by all the underlay
 // fixtures, so underlays defined outside this package can keep the
 // interface parity described above.
-var DefaultInterfaces = defaultInterfaces
+var DefaultInterfaces []v1alpha1.UnderlayInterface
+
+func buildDefaultInterfaces() []v1alpha1.UnderlayInterface {
+	return []v1alpha1.UnderlayInterface{
+		{
+			Type:          "NetworkDevice",
+			NetworkDevice: &v1alpha1.NetworkDevice{InterfaceName: UnderlayIface1()},
+		},
+		{
+			Type:          "NetworkDevice",
+			NetworkDevice: &v1alpha1.NetworkDevice{InterfaceName: UnderlayIface2()},
+		},
+	}
+}
+
+func init() {
+	defaultInterfaces = buildDefaultInterfaces()
+	DefaultInterfaces = defaultInterfaces
+	Underlay.Spec.Interfaces = defaultInterfaces
+	UnderlayIPv6.Spec.Interfaces = defaultInterfaces
+	UnderlayListenRange.Spec.Interfaces = defaultInterfaces
+	UnderlayListenRangeIPv6.Spec.Interfaces = defaultInterfaces
+	UnderlaySRv6.Spec.Interfaces = defaultInterfaces
+	UnderlaySRv6EncapRed.Spec.Interfaces = defaultInterfaces
+	UnderlayEVPNandSRv6.Spec.Interfaces = defaultInterfaces
+	if UnderlaySRv6.Spec.ISIS != nil && len(UnderlaySRv6.Spec.ISIS.Interfaces) > 0 {
+		UnderlaySRv6.Spec.ISIS.Interfaces[0].Name = UnderlayIface1()
+	}
+	if UnderlaySRv6EncapRed.Spec.ISIS != nil && len(UnderlaySRv6EncapRed.Spec.ISIS.Interfaces) > 0 {
+		UnderlaySRv6EncapRed.Spec.ISIS.Interfaces[0].Name = UnderlayIface1()
+	}
+	if UnderlayEVPNandSRv6.Spec.ISIS != nil && len(UnderlayEVPNandSRv6.Spec.ISIS.Interfaces) > 0 {
+		UnderlayEVPNandSRv6.Spec.ISIS.Interfaces[0].Name = UnderlayIface1()
+	}
+}
 
 // Underlay is the multi-session configuration with multiple interfaces and neighbors
 var Underlay = v1alpha1.Underlay{

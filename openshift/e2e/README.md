@@ -44,7 +44,7 @@ Target: QE bastions (e.g. `bastion-hlxcl7`) with:
 ### CI / full lifecycle (setup → test → teardown)
 
 This is the bastion/OCP counterpart to KIND `make deploy` + e2e + clean.  
-**Do not** use KIND `make deploy` on the bastion. Operators (OpenPE + frr-k8s) are installed by CI before this job.
+**Do not** use KIND `make deploy` on the bastion. OpenPE operator must already be installed; **frr-k8s** is enabled by `deploy-bastion.sh` via CNO `additionalRoutingCapabilities` (not a cluster default; set `OPENPE_E2E_DEPLOY_FRRK8S=false` to skip).
 
 ```bash
 export KUBECONFIG=/path/to/ocp/kubeconfig
@@ -65,9 +65,11 @@ make e2e-bastion
 
 Flow:
 
-1. `deploy-bastion.sh` → bridges + `setup-clab.sh` (fabric)
-2. `run_tests.sh` → existing focused Ginkgo suite (`Single.Session.Baseline`, …)
+1. `deploy-bastion.sh` → frr-k8s + bridges + `setup-clab.sh` (fabric + nodelink)
+2. `configure-bastion-worker-net.sh` → apply worker underlay IPs
+3. `run_tests.sh` → existing focused Ginkgo suite (`Single.Session.Baseline`, …)
 3. `teardown-clab.sh` → always (EXIT trap); keeps `toswitch*` / mgmt NICs; asserts default route stays on `eth0`
+4. `teardown_frrk8s.sh` → removes CNO `additionalRoutingCapabilities` **only if** this run enabled FRR (marker under `.e2e-bastion-state/`); set `OPENPE_E2E_TEARDOWN_FRRK8S=false` to keep it, or `force` to always remove
 
 Debug (keep fabric): `OPENPE_E2E_SKIP_TEARDOWN=true make e2e-bastion`
 
@@ -111,7 +113,7 @@ export KUBECONFIG=/path/to/ocp/kubeconfig
 - Writes planned `nodelink.json` (`OPENPE_BASTION_SKIP_WORKER_NET=true` by default)
 - Refuses to continue if default route is on `eth1`/`eth2`
 
-**Still TODO for bastion:** apply worker secondary NIC IPs on the real cluster (no virsh) after the lab uplink is cabled — required for Baseline e2e to pass end-to-end.
+**Worker underlay IPs:** `e2e-bastion` runs `configure-bastion-worker-net.sh` after clab (applies addresses from `nodelink.json` onto `OPENPE_UNDERLAY_IFACE`) and removes them in EXIT via `teardown-bastion-worker-net.sh`.
 
 ## KIND
 
