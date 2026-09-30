@@ -13,8 +13,9 @@
 # Safety:
 #   - Never adds a gateway on lab ifaces
 #   - Flushes addresses on lab ifaces before enslaving
-#   - Pins NM so eth1/eth2 never autoconf / never-default (stops SSH theft)
-#   - Leaves eth0 alone (expect mgmt + default only there)
+#   - Marks lab NICs NM-unmanaged (no SSH theft) without bouncing eth0
+#   - Does NOT nmcli-mod the live mgmt profile (that drops SSH)
+#   - Idempotent: skips work when already correct
 set -euo pipefail
 
 MGMT_IFACE="${CLAB_BASTION_MGMT_IFACE:-eth0}"
@@ -53,62 +54,76 @@ require_mgmt_ok() {
   fi
 }
 
-# Make NetworkManager keep lab NICs address-less forever (survives reboot).
+# Keep NM from autoconfing lab NICs. Prefer "unmanaged" — does not bounce eth0.
+# Optional persistent lab-* profiles only if missing (no con up / no delete of others).
 harden_lab_nm() {
   local iface="$1"
   local con_name="lab-${iface}"
 
   if ! command -v nmcli >/dev/null 2>&1; then
-    echo "  warn: nmcli missing; cannot persist NM harden for ${iface}"
+    echo "  warn: nmcli missing; cannot harden ${iface}"
     return 0
   fi
 
-  # Drop any existing NM profiles bound to this iface (except we recreate lab-*)
-  while read -r name; do
-    [[ -z "${name}" ]] && continue
-    if [[ "${name}" != "${con_name}" ]]; then
-      echo "  nmcli: deleting profile '${name}' on ${iface}"
-      sudo nmcli con delete "${name}" 2>/dev/null || true
-    fi
-  done < <(nmcli -t -f NAME,DEVICE connection show | awk -F: -v d="${iface}" '$2==d{print $1}')
+  sudo nmcli device set "${iface}" managed no 2>/dev/null || true
+  echo "  nmcli: ${iface} unmanaged (NM will not assign IP/gateway)"
 
-  if nmcli -t -f NAME connection show | grep -qx "${con_name}"; then
-    sudo nmcli con mod "${con_name}" \
-      connection.interface-name "${iface}" \
-      connection.autoconnect yes \
-      ipv4.method disabled \
-      ipv6.method disabled \
-      ipv4.never-default yes \
-      ipv4.gateway "" \
-      ipv6.never-default yes
-  else
+  # Persist a disabled profile for reboot clarity — create only if absent.
+  # Do not nmcli con up / delete other profiles here (that caused SSH drops).
+  if ! nmcli -t -f NAME connection show | grep -qx "${con_name}"; then
     sudo nmcli con add type ethernet ifname "${iface}" con-name "${con_name}" \
-      connection.autoconnect yes \
+      connection.autoconnect no \
       ipv4.method disabled \
       ipv6.method disabled \
       ipv4.never-default yes \
-      ipv6.never-default yes
+      ipv6.never-default yes >/dev/null
+    echo "  nmcli: created ${con_name} (autoconnect no, no IP)"
+  else
+    echo "  nmcli: ${con_name} already present"
   fi
-  sudo nmcli con up "${con_name}" 2>/dev/null || true
-  echo "  nmcli: ${con_name} -> ${iface} (ipv4/ipv6 disabled, never-default)"
 }
 
-pin_mgmt_nm() {
-  if ! command -v nmcli >/dev/null 2>&1; then
+bridge_of() {
+  local iface="$1"
+  # master <bridge> appears in `ip -o link show`
+  ip -o link show "${iface}" 2>/dev/null | sed -n 's/.*master \([^ ]*\).*/\1/p' | head -1
+}
+
+ensure_bridge() {
+  local br="$1"
+  if ! ip link show "${br}" >/dev/null 2>&1; then
+    sudo ip link add "${br}" type bridge
+    echo "  created ${br}"
+  else
+    echo "  ${br} already exists"
+  fi
+  sudo ip link set "${br}" up
+}
+
+attach_to_bridge() {
+  local iface="$1" br="$2"
+  if ! ip link show "${iface}" >/dev/null 2>&1; then
+    echo "ERROR: lab iface ${iface} not found (attach virtio NIC on HV first)" >&2
+    exit 1
+  fi
+
+  harden_lab_nm "${iface}"
+
+  local cur
+  cur="$(bridge_of "${iface}")"
+  if [[ "${cur}" == "${br}" ]]; then
+    # Already correct — do not nomaster/remaster (avoids link flaps).
+    sudo ip addr flush dev "${iface}" 2>/dev/null || true
+    sudo ip link set "${iface}" up
+    echo "  ${iface} already on ${br} (unchanged)"
     return 0
   fi
-  local mgmt_con
-  mgmt_con="$(nmcli -t -f DEVICE,CONNECTION device status | awk -F: -v d="${MGMT_IFACE}" '$1==d{print $2}')"
-  if [[ -z "${mgmt_con}" || "${mgmt_con}" == "--" ]]; then
-    echo "  warn: no NM connection active on ${MGMT_IFACE}; skip pin"
-    return 0
-  fi
-  # Prefer mgmt route over any stray lab profile
-  sudo nmcli con mod "${mgmt_con}" \
-    connection.interface-name "${MGMT_IFACE}" \
-    ipv4.never-default no \
-    ipv4.route-metric 50 2>/dev/null || true
-  echo "  nmcli: pinned '${mgmt_con}' to ${MGMT_IFACE} (route-metric 50)"
+
+  sudo ip addr flush dev "${iface}" 2>/dev/null || true
+  sudo ip link set "${iface}" nomaster 2>/dev/null || true
+  sudo ip link set "${iface}" master "${br}"
+  sudo ip link set "${iface}" up
+  echo "  ${iface} -> ${br} (no address; no gateway)"
 }
 
 require_mgmt_ok
@@ -117,37 +132,15 @@ if ip link show "${IFACE_TS2}" >/dev/null 2>&1; then
   refuse_if_default_on "${IFACE_TS2}"
 fi
 
-pin_mgmt_nm
+echo "  note: not modifying NM profile on ${MGMT_IFACE} (avoids SSH drop)"
 
-for br in toswitch1 toswitch2; do
-  if ! ip link show "${br}" >/dev/null 2>&1; then
-    sudo ip link add "${br}" type bridge
-    echo "  created ${br}"
-  else
-    echo "  ${br} already exists"
-  fi
-  sudo ip link set "${br}" up
-done
-
-attach_to_bridge() {
-  local iface="$1" br="$2"
-  if ! ip link show "${iface}" >/dev/null 2>&1; then
-    echo "ERROR: lab iface ${iface} not found (attach virtio NIC on HV first)" >&2
-    exit 1
-  fi
-  harden_lab_nm "${iface}"
-  sudo ip addr flush dev "${iface}" 2>/dev/null || true
-  sudo ip link set "${iface}" nomaster 2>/dev/null || true
-  sudo ip link set "${iface}" master "${br}"
-  sudo ip link set "${iface}" up
-  echo "  ${iface} -> ${br} (no address; no gateway)"
-}
+ensure_bridge toswitch1
+ensure_bridge toswitch2
 
 if [[ "${ATTACH_LAB}" == "true" ]]; then
   attach_to_bridge "${IFACE_TS1}" toswitch1
   attach_to_bridge "${IFACE_TS2}" toswitch2
 else
-  # Still harden so DHCP/NM cannot steal SSH even when not attaching yet
   harden_lab_nm "${IFACE_TS1}"
   if ip link show "${IFACE_TS2}" >/dev/null 2>&1; then
     harden_lab_nm "${IFACE_TS2}"
