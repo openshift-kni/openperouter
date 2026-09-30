@@ -112,7 +112,7 @@ RUN dnf --nogpgcheck install --setopt=install_weak_deps=0 --nodocs -y \
 	libedit libevent libmnl rdma-core libibverbs numactl json-c libcap \
 	libyang elfutils-libelf protobuf-c python3 readline catatonit \
   wget iproute
-RUN ln -s /usr/libexec/podman/catatonit /sbin/tini
+RUN ln -s /usr/libexec/catatonit/catatonit /sbin/tini
 
 # Pin FRR GIDs before RPM install so they match the supplementalGroups
 # in the Kubernetes pod spec. The grout FRR RPM uses sysusers.d which
@@ -138,7 +138,7 @@ RUN . /etc/os-release && \
       if [ "$ID" = "rhel" ] || [ "$ID" = "ubi" ]; then \
         dnf config-manager --set-enabled "codeready-builder-for-rhel-9-x86_64-rpms,rhel-9-for-x86_64-baseos-rpms,rhel-9-for-x86_64-appstream-rpms"; \
       else \
-        dnf config-manager --set-enabled "crb,baseos,appstream,extras-common"; \
+        dnf config-manager --set-enabled "crb,baseos,appstream"; \
       fi
 
 # Copy FRR startup configuration to the default location

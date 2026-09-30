@@ -43,7 +43,7 @@ RUN groupadd --system --gid 92 frr && \
 RUN dnf install -y \
     frr grout iproute shadow-utils catatonit
 
-RUN ln -s /usr/libexec/podman/catatonit /sbin/tini
+RUN ln -s /usr/libexec/catatonit/catatonit /sbin/tini
 RUN chown -R frr:frr /etc/frr /var/run/frr
 
 WORKDIR /
