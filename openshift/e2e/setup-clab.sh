@@ -1,23 +1,32 @@
 #!/bin/bash
-# Sets up the containerlab fabric and wires it to an OCP cluster deployed via dev-scripts.
+# Sets up the containerlab fabric and wires it to an OpenShift cluster.
 #
-# Prerequisites:
-#   - OCP cluster running via dev-scripts with EXTRA_NETWORK_NAMES="toswitch1 toswitch2"
-#     and both _V4 and _V6 subnets configured for dual-stack
-#   - OpenPerOuter operator deployed on the cluster
-#   - curl available (used to install containerlab when missing)
-#   - Docker Engine available
+# Providers (OPENPE_E2E_PROVIDER):
+#   dev-scripts (default) — virtual OCP via libvirt nets toswitch1/toswitch2 + docker
+#   bastion               — clab on bastion host bridges; podman by default; skip virsh
 #
-# Produces:
-#   - Running clab topology wired to extra network bridges
-#   - nodelink.json for the test suite
+# Prerequisites (both):
+#   - OpenPERouter + frr-k8s on the cluster
+#   - KUBECONFIG set
+#   - toswitch1 / toswitch2 bridges already present
+#       * dev-scripts: setup_extra_networks.sh / EXTRA_NETWORK_NAMES
+#       * bastion:     setup-bastion-bridges.sh
+#   - containerlab installed (or curl available to install)
+#
+# Bastion extras:
+#   CLAB_RUNTIME=podman|docker (default podman for bastion, docker for dev-scripts)
+#   Worker NIC rename / static IPs via virsh are skipped; nodelink.json is written
+#   with planned addresses when OPENPE_BASTION_SKIP_WORKER_NET=true (default).
+#   Full worker L2 still needs lab uplink cable + manual/future worker iface config.
 #
 # Usage:
-#   export KUBECONFIG=/root/dev-scripts/ocp/ostest/auth/kubeconfig
+#   export KUBECONFIG=...
+#   # virtual OCP:
 #   ./openshift/e2e/setup-clab.sh
-#   cd e2etests && CONTAINER_RUNTIME=docker go test -v ./suite/ \
-#     --nodelink-config=../openshift/e2e/nodelink.json \
-#     --frrk8s-namespace=openshift-frr-k8s --openperouter-namespace=openshift-openperouter
+#   # bastion:
+#   set -a && source openshift/e2e/bastion.env.example && set +a
+#   ./openshift/e2e/setup-bastion-bridges.sh
+#   ./openshift/e2e/setup-clab.sh
 
 set -euo pipefail
 
@@ -25,10 +34,20 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 NODELINK_OUT="${SCRIPT_DIR}/nodelink.json"
 
+PROVIDER="${OPENPE_E2E_PROVIDER:-dev-scripts}"
+if [[ "${PROVIDER}" == "bastion" ]]; then
+    RUNTIME="${CLAB_RUNTIME:-${OPENPE_CLAB_RUNTIME:-podman}}"
+else
+    RUNTIME="${CLAB_RUNTIME:-${OPENPE_CLAB_RUNTIME:-docker}}"
+fi
+SKIP_WORKER_NET="${OPENPE_BASTION_SKIP_WORKER_NET:-true}"
 
-CLI="sudo docker"
+CLI="sudo ${RUNTIME}"
 
-if ! command -v containerlab >/dev/null 2>&1; then
+echo "=== OpenPE setup-clab ==="
+echo "  provider=${PROVIDER} runtime=${RUNTIME}"
+
+if ! command -v containerlab >/dev/null 2>&1 && ! command -v clab >/dev/null 2>&1; then
     echo "containerlab not found; installing it"
     command -v curl >/dev/null 2>&1 || {
         echo "curl is required to install containerlab" >&2
@@ -36,20 +55,39 @@ if ! command -v containerlab >/dev/null 2>&1; then
     }
     bash -c "$(curl -fsSL https://get.containerlab.dev)"
 fi
+CLAB_BIN="$(command -v containerlab || command -v clab)"
 
-echo "=== Step 1: Disable DHCP on extra networks ==="
-# dev-scripts enables DHCP by default. DHCP IPs compete with our static IPs
-# and expire after 60 minutes, breaking VXLAN routing. We assign all IPs
-# statically, so DHCP is not needed. Use virsh net-update to remove the DHCP
-# range from the live network (--live) and persist across restarts (--config).
-for net in toswitch1 toswitch2; do
-    DHCP_RANGE=$(virsh net-dumpxml "${net}" 2>/dev/null | grep '<range' | sed 's/^ *//' ) || true
-    if [ -n "${DHCP_RANGE}" ]; then
-        virsh net-update "${net}" delete ip-dhcp-range "${DHCP_RANGE}" --live --config 2>/dev/null &&             echo "  ${net}: removed DHCP range" || echo "  ${net}: failed to remove DHCP range"
-    else
-        echo "  ${net}: no DHCP range configured"
-    fi
-done
+if [[ "${PROVIDER}" == "dev-scripts" ]]; then
+    echo "=== Step 1: Disable DHCP on extra networks (libvirt) ==="
+    # dev-scripts enables DHCP by default. DHCP IPs compete with our static IPs
+    # and expire after 60 minutes, breaking VXLAN routing.
+    for net in toswitch1 toswitch2; do
+        DHCP_RANGE=$(virsh net-dumpxml "${net}" 2>/dev/null | grep '<range' | sed 's/^ *//' ) || true
+        if [ -n "${DHCP_RANGE}" ]; then
+            virsh net-update "${net}" delete ip-dhcp-range "${DHCP_RANGE}" --live --config 2>/dev/null && \
+                echo "  ${net}: removed DHCP range" || echo "  ${net}: failed to remove DHCP range"
+        else
+            echo "  ${net}: no DHCP range configured"
+        fi
+    done
+else
+    echo "=== Step 1: Skip libvirt DHCP (bastion host bridges) ==="
+    for br in toswitch1 toswitch2; do
+        if ! ip link show "${br}" >/dev/null 2>&1; then
+            echo "ERROR: bridge ${br} missing. Run setup-bastion-bridges.sh first." >&2
+            exit 1
+        fi
+        echo "  ${br}: present"
+    done
+    # Refuse if lab NICs stole the default route
+    for iface in "${CLAB_BASTION_LAB_IFACE_TOSWITCH1:-eth1}" "${CLAB_BASTION_LAB_IFACE_TOSWITCH2:-eth2}"; do
+        if ip route show default 2>/dev/null | grep -q "dev ${iface}"; then
+            echo "ERROR: default route is on ${iface}; fix mgmt (eth0) before continuing" >&2
+            ip route show default >&2 || true
+            exit 1
+        fi
+    done
+fi
 
 echo "=== Step 2: Generate peerLeaf FRR configs ==="
 cd "${REPO_ROOT}/clab/tools"
@@ -82,12 +120,19 @@ rm -f ../singlecluster/leafkind2/frr.conf
     -toswitch-interface toswitch2 \
     -template generate_leaf_config/frr_template/leafkind.conf.template
 
-echo "=== Step 3: Enable Docker Engine ==="
-systemctl enable --now docker
+echo "=== Step 3: Ensure container runtime (${RUNTIME}) ==="
+if [[ "${RUNTIME}" == "docker" ]]; then
+    sudo systemctl enable --now docker
+elif [[ "${RUNTIME}" == "podman" ]]; then
+    sudo systemctl enable --now podman.socket 2>/dev/null || true
+else
+    echo "ERROR: unsupported CLAB_RUNTIME=${RUNTIME}" >&2
+    exit 1
+fi
 
 echo "=== Step 4: Deploy clab topology ==="
 cd "${REPO_ROOT}"
-containerlab deploy --runtime docker \
+sudo "${CLAB_BIN}" deploy --runtime "${RUNTIME}" \
     --topo "${SCRIPT_DIR}/ocp.clab.yml" --reconfigure
 
 echo "=== Step 5: Assign IPs to clab containers ==="
@@ -95,10 +140,8 @@ cd "${REPO_ROOT}/clab"
 go run tools/assign_ips/assign_ips.go \
     -file "${SCRIPT_DIR}/ip_map_ocp.txt" -engine "${CLI}"
 
-# Match leafkind bridge-facing MTU to the libvirt bridge (1500)
 ${CLI} exec clab-kind-leafkind1 ip link set dev toswitch1 mtu 1500
 ${CLI} exec clab-kind-leafkind2 ip link set dev toswitch2 mtu 1500
-
 
 echo "=== Step 6: Run container setup scripts ==="
 for c in leafA leafB leafSRV6 hostA_red hostA_blue hostA_default hostB_red hostB_blue hostSRV6_red hostSRV6_blue; do
@@ -124,67 +167,69 @@ NODES=$(oc get nodes -l kubernetes.io/os=linux -o jsonpath='{range .items[*]}{.m
 
 node_exec() {
     local node=$1; shift
-    local pod=$(oc get pods -n openshift-openperouter -l app=controller \
+    local pod
+    pod=$(oc get pods -n openshift-openperouter -l app=controller \
         --field-selector spec.nodeName="${node}" -o jsonpath='{.items[0].metadata.name}')
     oc exec -n openshift-openperouter "${pod}" -- nsenter -t 1 -m -u -i -n "$@"
 }
 
-echo "=== Step 7: Rename NICs + install udev rules ==="
-for node in ${NODES}; do
-    short_name="${node%%.*}"
-    vm_name="ostest_${short_name//-/_}"
-    for i in 1 2; do
-        BRIDGE_MAC=$(sudo virsh domiflist "${vm_name}" 2>/dev/null | awk -v network="toswitch${i}" '$3 == network && !found { print $5; found=1 }')
-        if [ -n "${BRIDGE_MAC}" ]; then
-            node_exec "${node}" bash -c "
-                echo 'SUBSYSTEM==\"net\", ATTR{address}==\"${BRIDGE_MAC}\", NAME=\"toswitch${i}\"' \
-                    > /etc/udev/rules.d/70-toswitch${i}.rules
-                udevadm control --reload-rules
-                IFACE=\$(ip -br link show | grep '${BRIDGE_MAC}' | awk '{print \$1}')
-                if [ -n \"\$IFACE\" ] && [ \"\$IFACE\" != \"toswitch${i}\" ]; then
-                    nmcli device set \$IFACE managed no 2>/dev/null || true
-                    ip link set \$IFACE down
-                    ip link set \$IFACE name toswitch${i}
-                    ip link set toswitch${i} up
-                    echo \"  ${node}: \$IFACE -> toswitch${i}\"
-                elif [ \"\$IFACE\" = \"toswitch${i}\" ]; then
-                    nmcli device set toswitch${i} managed no 2>/dev/null || true
-                    echo \"  ${node}: toswitch${i} already named\"
-                else
-                    echo \"  ${node}: toswitch${i} not found (MAC ${BRIDGE_MAC})\"
-                fi
-            " 2>&1
-        fi
+if [[ "${PROVIDER}" == "dev-scripts" ]]; then
+    echo "=== Step 7: Rename NICs + install udev rules (virsh / ostest_*) ==="
+    for node in ${NODES}; do
+        short_name="${node%%.*}"
+        vm_name="ostest_${short_name//-/_}"
+        for i in 1 2; do
+            BRIDGE_MAC=$(sudo virsh domiflist "${vm_name}" 2>/dev/null | awk -v network="toswitch${i}" '$3 == network && !found { print $5; found=1 }')
+            if [ -n "${BRIDGE_MAC}" ]; then
+                node_exec "${node}" bash -c "
+                    echo 'SUBSYSTEM==\"net\", ATTR{address}==\"${BRIDGE_MAC}\", NAME=\"toswitch${i}\"' \
+                        > /etc/udev/rules.d/70-toswitch${i}.rules
+                    udevadm control --reload-rules
+                    IFACE=\$(ip -br link show | grep '${BRIDGE_MAC}' | awk '{print \$1}')
+                    if [ -n \"\$IFACE\" ] && [ \"\$IFACE\" != \"toswitch${i}\" ]; then
+                        nmcli device set \$IFACE managed no 2>/dev/null || true
+                        ip link set \$IFACE down
+                        ip link set \$IFACE name toswitch${i}
+                        ip link set toswitch${i} up
+                        echo \"  ${node}: \$IFACE -> toswitch${i}\"
+                    elif [ \"\$IFACE\" = \"toswitch${i}\" ]; then
+                        nmcli device set toswitch${i} managed no 2>/dev/null || true
+                        echo \"  ${node}: toswitch${i} already named\"
+                    else
+                        echo \"  ${node}: toswitch${i} not found (MAC ${BRIDGE_MAC})\"
+                    fi
+                " 2>&1
+            fi
+        done
     done
-done
 
-echo "=== Step 8: Assign static IPs (IPv4 + IPv6) ==="
-NODE_INDEX=0
-NODES_JSON=""
-for node in ${NODES}; do
-    TS1_V4="192.168.11.$((100 + NODE_INDEX))"
-    TS2_V4="192.168.12.$((100 + NODE_INDEX))"
-    TS1_V6="2001:db8:11::$((100 + NODE_INDEX))"
-    TS2_V6="2001:db8:12::$((100 + NODE_INDEX))"
-    NODE_INDEX=$((NODE_INDEX + 1))
+    echo "=== Step 8: Assign static IPs on workers (IPv4 + IPv6) ==="
+    NODE_INDEX=0
+    NODES_JSON=""
+    for node in ${NODES}; do
+        TS1_V4="192.168.11.$((100 + NODE_INDEX))"
+        TS2_V4="192.168.12.$((100 + NODE_INDEX))"
+        TS1_V6="2001:db8:11::$((100 + NODE_INDEX))"
+        TS2_V6="2001:db8:12::$((100 + NODE_INDEX))"
+        NODE_INDEX=$((NODE_INDEX + 1))
 
-    node_exec "${node}" bash -c "
-        ip -4 addr flush dev toswitch1 2>/dev/null || true
-        ip -4 addr add ${TS1_V4}/24 dev toswitch1
-        ip -6 addr add ${TS1_V6}/64 dev toswitch1 2>/dev/null || true
-        ip link set toswitch1 up
+        node_exec "${node}" bash -c "
+            ip -4 addr flush dev toswitch1 2>/dev/null || true
+            ip -4 addr add ${TS1_V4}/24 dev toswitch1
+            ip -6 addr add ${TS1_V6}/64 dev toswitch1 2>/dev/null || true
+            ip link set toswitch1 up
 
-        ip -4 addr flush dev toswitch2 2>/dev/null || true
-        ip -4 addr add ${TS2_V4}/24 dev toswitch2
-        ip -6 addr add ${TS2_V6}/64 dev toswitch2 2>/dev/null || true
-        ip link set toswitch2 up
-    " 2>&1
-    echo "  ${node}: ts1=${TS1_V4}+${TS1_V6}  ts2=${TS2_V4}+${TS2_V6}"
+            ip -4 addr flush dev toswitch2 2>/dev/null || true
+            ip -4 addr add ${TS2_V4}/24 dev toswitch2
+            ip -6 addr add ${TS2_V6}/64 dev toswitch2 2>/dev/null || true
+            ip link set toswitch2 up
+        " 2>&1
+        echo "  ${node}: ts1=${TS1_V4}+${TS1_V6}  ts2=${TS2_V4}+${TS2_V6}"
 
-    if [ -n "${NODES_JSON}" ]; then
-        NODES_JSON="${NODES_JSON},"
-    fi
-    NODES_JSON="${NODES_JSON}
+        if [ -n "${NODES_JSON}" ]; then
+            NODES_JSON="${NODES_JSON},"
+        fi
+        NODES_JSON="${NODES_JSON}
     \"${node}\": {
       \"ipForKindLeaf\": \"${TS1_V4}\",
       \"ipForKindLeaf2\": \"${TS2_V4}\",
@@ -195,7 +240,40 @@ for node in ${NODES}; do
       \"leafIfaceForKindLeaf\": \"toswitch1\",
       \"leafIfaceForKindLeaf2\": \"toswitch2\"
     }"
-done
+    done
+else
+    echo "=== Step 7/8: Bastion — skip virsh NIC rename / worker IP push ==="
+    if [[ "${SKIP_WORKER_NET}" == "true" ]]; then
+        echo "  Writing planned nodelink.json (workers not configured on-node yet)."
+        echo "  After lab uplink cable: configure worker secondary NICs and re-run with"
+        echo "  OPENPE_BASTION_SKIP_WORKER_NET=false once worker wiring is implemented."
+    fi
+    NODE_INDEX=0
+    NODES_JSON=""
+    for node in ${NODES}; do
+        TS1_V4="192.168.11.$((100 + NODE_INDEX))"
+        TS2_V4="192.168.12.$((100 + NODE_INDEX))"
+        TS1_V6="2001:db8:11::$((100 + NODE_INDEX))"
+        TS2_V6="2001:db8:12::$((100 + NODE_INDEX))"
+        NODE_INDEX=$((NODE_INDEX + 1))
+        echo "  planned ${node}: ts1=${TS1_V4} ts2=${TS2_V4}"
+
+        if [ -n "${NODES_JSON}" ]; then
+            NODES_JSON="${NODES_JSON},"
+        fi
+        NODES_JSON="${NODES_JSON}
+    \"${node}\": {
+      \"ipForKindLeaf\": \"${TS1_V4}\",
+      \"ipForKindLeaf2\": \"${TS2_V4}\",
+      \"ipv6ForKindLeaf\": \"${TS1_V6}\",
+      \"ipv6ForKindLeaf2\": \"${TS2_V6}\",
+      \"ifaceForKindLeaf\": \"toswitch1\",
+      \"ifaceForKindLeaf2\": \"toswitch2\",
+      \"leafIfaceForKindLeaf\": \"toswitch1\",
+      \"leafIfaceForKindLeaf2\": \"toswitch2\"
+    }"
+    done
+fi
 
 cat > "${NODELINK_OUT}" << TOPOEOF
 {
@@ -209,3 +287,11 @@ echo "=== Setup complete ==="
 echo "Node links config: ${NODELINK_OUT}"
 echo ""
 cat "${NODELINK_OUT}"
+
+if [[ "${PROVIDER}" == "bastion" ]]; then
+    echo ""
+    echo "Bastion notes:"
+    echo "  - Fabric is up on host bridges toswitch1/toswitch2"
+    echo "  - Default route must stay on eth0 (mgmt)"
+    echo "  - End-to-end Baseline needs ens1f1 lab uplink + worker secondary NICs"
+fi

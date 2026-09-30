@@ -63,12 +63,22 @@ See `bastion.env.example`. Phase 1: **`CLAB_EXECUTOR=local` only** (run tests + 
 set -a && source openshift/e2e/bastion.env.example && set +a
 export KUBECONFIG=/path/to/ocp/kubeconfig
 
-./openshift/e2e/setup-bastion-bridges.sh
-# then fabric (when ready):
+# One-shot bring-up (bridges + fabric). Operator must already be installed.
+./openshift/e2e/deploy-bastion.sh
+
+# Or step by step:
+# ./openshift/e2e/setup-bastion-bridges.sh
 # ./openshift/e2e/setup-clab.sh
 ```
 
-**Still TODO for bastion:** map worker secondary NICs / IPs into `nodelink.json` without assuming `virsh`/`ostest_*` on the clab host (dev-scripts layout). Until that lands, bastion mode prepares fabric + bridges only and skips VM NIC rename when virsh domains are absent.
+`setup-clab.sh` with `OPENPE_E2E_PROVIDER=bastion`:
+
+- Uses `CLAB_RUNTIME` (default **podman**)
+- Skips libvirt/virsh DHCP and `ostest_*` NIC rename
+- Writes planned `nodelink.json` (`OPENPE_BASTION_SKIP_WORKER_NET=true` by default)
+- Refuses to continue if default route is on `eth1`/`eth2`
+
+**Still TODO for bastion:** apply worker secondary NIC IPs on the real cluster (no virsh) after the lab uplink is cabled, then run `./openshift/e2e/run_tests.sh`.
 
 ## KIND
 
@@ -81,7 +91,8 @@ Unaffected by this directory. Use the existing Kind-based developer and CI flows
 | `ocp.clab.yml` | Fabric topo; bridges `toswitch1`/`toswitch2` (shared by virtual OCP + bastion) |
 | `setup-clab.sh` | Deploy fabric, IPs, setups, nodelink (provider-aware) |
 | `setup_extra_networks.sh` | **Virtual OCP only** — libvirt extra nets |
-| `setup-bastion-bridges.sh` | **Bastion only** — create `toswitch*` + attach lab iface safely |
+| `setup-bastion-bridges.sh` | **Bastion only** — create `toswitch*` + NM-harden lab NICs (no SSH theft) |
+| `deploy-bastion.sh` | **Bastion only** — bridges + `setup-clab.sh` (not KIND `make deploy`) |
 | `ip_map_ocp.txt` | Static IPs inside clab nodes |
 | `deploy.sh` | Full virtual-OCP bring-up |
 | `run_tests.sh` | Focused e2e against `nodelink.json` |
