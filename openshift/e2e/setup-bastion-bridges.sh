@@ -40,7 +40,8 @@ require_mgmt_ok() {
     echo "ERROR: ${MGMT_IFACE} is not UP" >&2
     exit 1
   fi
-  if ! ip -4 -br addr show "${MGMT_IFACE}" 2>/dev/null | grep -q inet; then
+  # ip -br does not print the word "inet"; match an IPv4 address instead.
+  if ! ip -4 -br addr show "${MGMT_IFACE}" 2>/dev/null | grep -Eq '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+'; then
     echo "ERROR: ${MGMT_IFACE} has no IPv4 address (mgmt must stay here)" >&2
     ip -br addr >&2 || true
     exit 1
