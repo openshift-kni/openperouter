@@ -132,8 +132,17 @@ fi
 
 echo "=== Step 4: Deploy clab topology ==="
 cd "${REPO_ROOT}"
+# containerlab 0.79 + podman: --reconfigure can SEGV in destroy/ListContainers.
+# Destroy explicitly first, then deploy clean.
+sudo "${CLAB_BIN}" destroy --runtime "${RUNTIME}" \
+    --topo "${SCRIPT_DIR}/ocp.clab.yml" --cleanup 2>/dev/null || true
+if [[ "${RUNTIME}" == "podman" ]]; then
+    # Remove any leftover lab containers that confuse the next deploy
+    sudo podman ps -a --filter name=clab-kind --format '{{.Names}}' \
+      | xargs -r sudo podman rm -f 2>/dev/null || true
+fi
 sudo "${CLAB_BIN}" deploy --runtime "${RUNTIME}" \
-    --topo "${SCRIPT_DIR}/ocp.clab.yml" --reconfigure
+    --topo "${SCRIPT_DIR}/ocp.clab.yml"
 
 echo "=== Step 5: Assign IPs to clab containers ==="
 cd "${REPO_ROOT}/clab"
