@@ -158,11 +158,17 @@ for c in leafA leafB leafSRV6 hostA_red hostA_blue hostA_default hostB_red hostB
     echo "Setting up container: ${c}"
 
     if timeout 10s ${CLI} exec "${container}" test -f /setup.sh 2>/dev/null; then
-        timeout 2m ${CLI} exec "${container}" bash -x /setup.sh || {
+        # Avoid bash -x on the SSH tty (large output can stall/drop interactive sessions).
+        # Log to a file on the bastion instead.
+        setup_log="${SCRIPT_DIR}/.setup-${c}.log"
+        if timeout 5m ${CLI} exec "${container}" bash /setup.sh >"${setup_log}" 2>&1; then
+            echo "  ${c}: ok (log ${setup_log})"
+        else
             rc=$?
-            echo "Setup failed or timed out for ${container} (exit code ${rc})" >&2
+            echo "Setup failed or timed out for ${container} (exit code ${rc}); last log lines:" >&2
+            tail -40 "${setup_log}" >&2 || true
             exit "${rc}"
-        }
+        fi
     else
         rc=$?
         if [ "${rc}" -ne 1 ]; then

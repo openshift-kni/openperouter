@@ -36,4 +36,5 @@ bash "${SCRIPT_DIR}/setup-bastion-bridges.sh"
 bash "${SCRIPT_DIR}/setup-clab.sh"
 
 echo "=== deploy-bastion complete ==="
-echo "Next (after lab uplink + worker NICs): ./openshift/e2e/run_tests.sh"
+echo "Next: ./openshift/e2e/run_tests.sh  (or full lifecycle: ./openshift/e2e/e2e-bastion.sh / make e2e-bastion)"
+echo "Teardown only: ./openshift/e2e/teardown-clab.sh"
