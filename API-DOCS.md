@@ -182,7 +182,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `kind` _[FailedResourceKind](#failedresourcekind)_ | kind resource type name (e.g.: L3VNI, L2VNI). |  | Enum: [Underlay L2VNI L3VNI FrrConfiguration L3Passthrough] <br />Required: \{\} <br /> |
+| `kind` _[FailedResourceKind](#failedresourcekind)_ | kind resource type name (e.g.: L3VNI, L2VNI). |  | Enum: [Underlay L2VNI L3VNI L3VPN FrrConfiguration L3Passthrough] <br />Required: \{\} <br /> |
 | `name` _string_ | name failed API resource metadata.name. |  | MaxLength: 253 <br />MinLength: 1 <br />Required: \{\} <br /> |
 | `reason` _[FailedResourceReason](#failedresourcereason)_ | reason failure reason. |  | Enum: [ValidationFailed DependencyFailed OverlayAttachmentFailed FrrConfigurationFailed] <br />MaxLength: 100 <br />MinLength: 1 <br />Required: \{\} <br /> |
 | `message` _string_ | message human-readable failure description. |  | MaxLength: 500 <br />MinLength: 1 <br />Required: \{\} <br /> |
@@ -195,7 +195,7 @@ _Underlying type:_ _string_
 
 
 _Validation:_
-- Enum: [Underlay L2VNI L3VNI FrrConfiguration L3Passthrough]
+- Enum: [Underlay L2VNI L3VNI L3VPN FrrConfiguration L3Passthrough]
 
 _Appears in:_
 - [FailedResource](#failedresource)
@@ -423,10 +423,12 @@ _Appears in:_
 | `nodeSelector` _[LabelSelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v/#labelselector-v1-meta)_ | nodeSelector specifies which nodes this L2VNI applies to.<br />If empty or not specified, applies to all nodes.<br />Multiple L2VNIs can match the same node. |  | Optional: \{\} <br /> |
 | `routingDomain` _[RoutingDomain](#routingdomain)_ | routingDomain optionally attaches this L2VNI to a routing domain<br />provided by a backing resource (L3VNI or L3VPN). When omitted, the<br />L2VNI is a disconnected overlay (east-west L2 only, no VRF, no<br />gateway). |  | Optional: \{\} <br /> |
 | `vni` _integer_ | vni is the VXLan VNI to be used |  | Maximum: 1.6777215e+07 <br />Minimum: 1 <br />Required: \{\} <br /> |
-| `vxlanPort` _integer_ | vxlanPort is the port to be used for VXLan encapsulation. | 4789 | Optional: \{\} <br /> |
+| `vxlanPort` _integer_ | vxlanPort is the port to be used for VXLan encapsulation. | 4789 | Maximum: 65535 <br />Minimum: 1 <br />Optional: \{\} <br /> |
 | `underlayAddressFamily` _string_ | underlayAddressFamily selects which VTEP address family to use for this VNI's<br />VXLAN interface. When omitted, defaults to the available family in the underlay<br />(IPv4 preferred in dual-stack). |  | Enum: [IPv4 IPv6] <br />Optional: \{\} <br /> |
 | `hostMaster` _[HostMaster](#hostmaster)_ | hostMaster is the interface on the host the veth should be attached to.<br />If not set, the host veth will not be attached to any interface and it must be<br />attached manually (or by some other means). This is useful if another controller<br />is leveraging the host interface for the VNI. |  | Optional: \{\} <br /> |
 | `gatewayIPs` _string array_ | gatewayIPs is a list of IP addresses in CIDR notation for the<br />distributed anycast gateway on this L2 segment's bridge<br />(Integrated Routing and Bridging interface). It is a property of<br />the L2 segment itself, so it lives on the L2VNI rather than<br />inside the routing-domain reference.<br />Maximum of 2 addresses are allowed. If 2 addresses are provided, one must be IPv4 and one must be IPv6. |  | MaxItems: 2 <br />Optional: \{\} <br /> |
+| `exportRTs` _[RouteTarget](#routetarget) array_ | exportRTs are the Route Targets to be used for exporting L2 EVPN routes. |  | MaxItems: 100 <br />MaxLength: 21 <br />Optional: \{\} <br /> |
+| `importRTs` _[RouteTarget](#routetarget) array_ | importRTs are the Route Targets to be used for importing L2 EVPN routes. |  | MaxItems: 100 <br />MaxLength: 21 <br />Optional: \{\} <br /> |
 
 
 #### L2VNIStatus
@@ -544,7 +546,7 @@ _Appears in:_
 | `nodeSelector` _[LabelSelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v/#labelselector-v1-meta)_ | nodeSelector specifies which nodes this L3VNI applies to.<br />If empty or not specified, applies to all nodes.<br />Multiple L3VNIs can match the same node. |  | Optional: \{\} <br /> |
 | `vrf` _string_ | vrf is the name of the linux VRF to be used inside the PERouter namespace. |  | MaxLength: 15 <br />MinLength: 1 <br />Pattern: `^[a-zA-Z][a-zA-Z0-9_-]*$` <br />Required: \{\} <br /> |
 | `vni` _integer_ | vni is the VXLan VNI to be used |  | Maximum: 1.6777215e+07 <br />Minimum: 1 <br />Required: \{\} <br /> |
-| `vxlanPort` _integer_ | vxlanPort is the port to be used for VXLan encapsulation. | 4789 | Optional: \{\} <br /> |
+| `vxlanPort` _integer_ | vxlanPort is the port to be used for VXLan encapsulation. | 4789 | Maximum: 65535 <br />Minimum: 1 <br />Optional: \{\} <br /> |
 | `underlayAddressFamily` _string_ | underlayAddressFamily selects which VTEP address family to use for this VNI's<br />VXLAN interface. When omitted, defaults to the available family in the underlay<br />(IPv4 preferred in dual-stack). |  | Enum: [IPv4 IPv6] <br />Optional: \{\} <br /> |
 | `hostSession` _[HostSession](#hostsession)_ | hostSession is the configuration for the host session. |  | Optional: \{\} <br /> |
 | `exportRTs` _[RouteTarget](#routetarget) array_ | exportRTs are the Route Targets to be used for exporting routes.<br />RouteTarget defines a BGP Extended Community for route filtering. |  | MaxItems: 100 <br />MaxLength: 21 <br />Optional: \{\} <br /> |
@@ -583,6 +585,25 @@ L3VPN represents an SRv6 IP VPN.
 | `status` _[L3VPNStatus](#l3vpnstatus)_ | status defines the observed state of L3VPN. |  | Optional: \{\} <br /> |
 
 
+#### L3VPNFeature
+
+_Underlying type:_ _string_
+
+L3VPNFeature represents a single L3VPN feature.
+
+_Validation:_
+- Enum: [uDT4uDT6]
+- MaxLength: 128
+- MinLength: 1
+
+_Appears in:_
+- [L3VPNSpec](#l3vpnspec)
+
+| Field | Description |
+| --- | --- |
+| `uDT4uDT6` | UDT4UDT6 instructs the OpenPERouter to announce uDT4 and uDT6 functions individually.<br /> |
+
+
 #### L3VPNReference
 
 
@@ -618,6 +639,7 @@ _Appears in:_
 | `importRTs` _[RouteTarget](#routetarget) array_ | importRTs are the Route Targets to be used for importing routes.<br />importRTs must always be provided explicitly. |  | MaxItems: 100 <br />MaxLength: 21 <br />Required: \{\} <br /> |
 | `rdAssignedNumber` _integer_ | rdAssignedNumber sets the Route Distinguisher's Assigned Number subfield.<br />The Administrator subfield is automatically set to the value of the router<br />ID. OpenPERouter uses Type 1 Route Distinguishers as defined in RFC4364,<br />meaning <Administrator subfield>:<Assigned Number subfield>. |  | Maximum: 65535 <br />Minimum: 1 <br />Required: \{\} <br /> |
 | `hostSession` _[HostSession](#hostsession)_ | hostSession is the configuration for the host session. |  | Optional: \{\} <br /> |
+| `features` _[L3VPNFeature](#l3vpnfeature) array_ | features enables L3VPN boolean features.<br />Supported features are:<br />uDT4uDT6: configures the OpenPERouter to create separate functions for uDT4 and uDT6 (default: unified uDT46). |  | Enum: [uDT4uDT6] <br />MaxItems: 32 <br />MaxLength: 128 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 
 
 #### L3VPNStatus
@@ -668,7 +690,7 @@ _Appears in:_
 | `address` _string_ | address is the IP address to establish the session with. The IP address<br />can be either IPv4 or IPv6. |  | MaxLength: 39 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 | `interface` _string_ | interface is the interface name for BGP unnumbered sessions. The session will be established via IPv6 link locals. |  | MaxLength: 15 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 | `listenRange` _string_ | listenRange accepts connections from any peers in the specified CIDR.<br />When set, the hostcontroller generates a<br />"bgp listen range <listenRange> peer-group <name>" stanza instead of<br />an explicit neighbor statement. Mutually exclusive with address and<br />interface. |  | MaxLength: 43 <br />MinLength: 1 <br />Optional: \{\} <br /> |
-| `port` _integer_ | port is the port to dial when establishing the session.<br />Defaults to 179. |  | Maximum: 16384 <br />Minimum: 0 <br />Optional: \{\} <br /> |
+| `port` _integer_ | port is the port to dial when establishing the session.<br />Defaults to 179. |  | Maximum: 65535 <br />Minimum: 1 <br />Optional: \{\} <br /> |
 | `passwordSecret` _[SecretKeyRef](#secretkeyref)_ | passwordSecret references a key in a Kubernetes Secret containing the<br />BGP session password. The Secret must be created in the same namespace<br />as the Underlay. |  | Optional: \{\} <br /> |
 | `holdTimeSeconds` _integer_ | holdTimeSeconds is the requested BGP hold time in seconds, per RFC4271.<br />Defaults to 180. |  | Optional: \{\} <br /> |
 | `keepaliveTimeSeconds` _integer_ | keepaliveTimeSeconds is the requested BGP keepalive time in seconds, per RFC4271.<br />Defaults to 60. |  | Optional: \{\} <br /> |
@@ -844,6 +866,7 @@ _Validation:_
 - MaxLength: 21
 
 _Appears in:_
+- [L2VNISpec](#l2vnispec)
 - [L3VNISpec](#l3vnispec)
 - [L3VPNSpec](#l3vpnspec)
 
