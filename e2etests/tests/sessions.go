@@ -5,6 +5,7 @@ package tests
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	frrk8sapi "github.com/metallb/frr-k8s/api/v1beta1"
@@ -20,6 +21,7 @@ import (
 	"github.com/openperouter/openperouter/e2etests/pkg/k8sclient"
 	"github.com/openperouter/openperouter/e2etests/pkg/networklayerprotocol"
 	"github.com/openperouter/openperouter/e2etests/pkg/openperouter"
+	"github.com/openperouter/openperouter/e2etests/pkg/validate"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
@@ -87,13 +89,13 @@ var _ = Describe("Router BGP sessions", Ordered, GroutSupport, func() {
 				for _, node := range nodes {
 					neighborIP, err := infra.NeighborIP(leaf, node.Name)
 					Expect(err).NotTo(HaveOccurred())
-					validateSessionWithNeighbor(
+					validate.SessionWithNeighbor(
 						exec,
-						validationParameters{
-							fromName:    leaf,
-							toName:      node.Name,
-							neighborIP:  neighborIP,
-							established: Established,
+						validate.SessionParameters{
+							FromName:    leaf,
+							ToName:      node.Name,
+							NeighborIP:  neighborIP,
+							Established: Established,
 						},
 					)
 				}
@@ -595,13 +597,13 @@ var _ = Describe("Underlay external and internal configuration", Ordered, GroutS
 		for _, node := range nodes {
 			neighborIP, err := infra.NeighborIP(infra.KindLeaf, node.Name)
 			Expect(err).NotTo(HaveOccurred())
-			validateSessionWithNeighbor(
+			validate.SessionWithNeighbor(
 				exec,
-				validationParameters{
-					fromName:    infra.KindLeaf,
-					toName:      node.Name,
-					neighborIP:  neighborIP,
-					established: Established,
+				validate.SessionParameters{
+					FromName:    infra.KindLeaf,
+					ToName:      node.Name,
+					NeighborIP:  neighborIP,
+					Established: Established,
 				},
 			)
 		}
@@ -767,13 +769,13 @@ var _ = Describe("Underlay BFD Configuration", Ordered, GroutSupport, func() {
 			for _, node := range nodes {
 				neighborIP, err := infra.NeighborIP(infra.KindLeaf, node.Name)
 				Expect(err).NotTo(HaveOccurred())
-				validateSessionWithNeighbor(
+				validate.SessionWithNeighbor(
 					exec,
-					validationParameters{
-						fromName:    infra.KindLeaf,
-						toName:      node.Name,
-						neighborIP:  neighborIP,
-						established: Established,
+					validate.SessionParameters{
+						FromName:    infra.KindLeaf,
+						ToName:      node.Name,
+						NeighborIP:  neighborIP,
+						Established: Established,
 					},
 				)
 			}
@@ -927,13 +929,13 @@ var _ = Describe("Add extra neighbor", Ordered, GroutSupport, func() {
 				if err != nil {
 					continue
 				}
-				validateSessionWithNeighbor(
+				validate.SessionWithNeighbor(
 					exec,
-					validationParameters{
-						fromName:    infra.KindLeaf,
-						toName:      node.Name,
-						neighborIP:  neighborIP,
-						established: Established,
+					validate.SessionParameters{
+						FromName:    infra.KindLeaf,
+						ToName:      node.Name,
+						NeighborIP:  neighborIP,
+						Established: Established,
 					},
 				)
 			}
@@ -967,13 +969,13 @@ var _ = Describe("Add extra neighbor", Ordered, GroutSupport, func() {
 				if err != nil {
 					continue
 				}
-				validateSessionWithNeighbor(
+				validate.SessionWithNeighbor(
 					exec2,
-					validationParameters{
-						fromName:    infra.KindLeaf2,
-						toName:      node.Name,
-						neighborIP:  neighborIP,
-						established: Established,
+					validate.SessionParameters{
+						FromName:    infra.KindLeaf2,
+						ToName:      node.Name,
+						NeighborIP:  neighborIP,
+						Established: Established,
 					},
 				)
 			}
@@ -1049,14 +1051,14 @@ var _ = Describe("Underlay explicit address family configuration", Ordered, Grou
 				Expect(err).NotTo(HaveOccurred())
 				By(fmt.Sprintf("validating TOR session from %s to %s (ID: %s) and network layer protocols %s",
 					tor, node.Name, neighborIP, nlps))
-				validateSessionWithNeighbor(
+				validate.SessionWithNeighbor(
 					exec,
-					validationParameters{
-						fromName:                tor,
-						toName:                  node.Name,
-						neighborIP:              neighborIP,
-						receivedAddressFamilies: nlps,
-						established:             Established,
+					validate.SessionParameters{
+						FromName:                tor,
+						ToName:                  node.Name,
+						NeighborIP:              neighborIP,
+						ReceivedAddressFamilies: nlps,
+						Established:             Established,
 					},
 				)
 			}
@@ -1098,4 +1100,65 @@ var _ = Describe("Underlay explicit address family configuration", Ordered, Grou
 			networklayerprotocol.NLP{AFI: networklayerprotocol.IPv6, SAFI: networklayerprotocol.Unicast},
 		)
 	})
+
+	// Regression test for https://github.com/openperouter/openperouter/issues/720.
+	// When grout reuses the backing veth's MAC for the underlay port, the port's
+	// kernel shadow u_<iface> derives the same EUI-64 link-local as the veth. The
+	// collision triggers DAD, which can strip u_<iface>'s link-local and break any
+	// session carrying an IPv6 nexthop (ipv6unicast/ipv6vpn). Assert the
+	// port owns a link-local that is not shared with its backing veth. Note the
+	// shadow shares its link-local with grout's own tap_<iface> by design; only a
+	// collision with the veth is the failure signature.
+	//
+	// This test is marked as failing until we fix this bug.
+	It("assigns each underlay port a unique IPv6 link-local", GroutOnly, func() {
+		By("deploying an underlay with both ToR neighbors carrying ipv4unicast and ipv6unicast")
+		underlay := *infra.Underlay.DeepCopy()
+		for i := range underlay.Spec.Neighbors {
+			underlay.Spec.Neighbors[i].AddressFamilies = []v1alpha1.NeighborAddressFamily{
+				{Type: "ipv4unicast"},
+				{Type: "ipv6unicast"},
+			}
+		}
+		Expect(Updater.Update(config.Resources{Underlays: []v1alpha1.Underlay{underlay}})).To(Succeed())
+
+		By("waiting for the underlay to be configured on all nodes")
+		for _, node := range nodes {
+			Eventually(func(g Gomega) {
+				g.Expect(openperouter.UnderlayConfigured(node.Name)).To(BeTrue())
+			}, 2*time.Minute, time.Second).Should(Succeed())
+		}
+
+		By("checking each underlay port owns a link-local not shared with its veth")
+		for _, node := range nodes {
+			for _, iface := range infra.DefaultInterfaces {
+				veth := iface.NetworkDevice.InterfaceName
+				port := "u_" + veth
+				Eventually(func(g Gomega) {
+					owners, err := openperouter.NetnsLinkLocalOwners(node.Name, openperouter.NamedNetns)
+					g.Expect(err).NotTo(HaveOccurred())
+
+					portLinkLocals := linkLocalsOwnedBy(owners, port)
+					g.Expect(portLinkLocals).To(HaveLen(1),
+						"port %s on %s must own exactly one IPv6 link-local, owners=%v", port, node.Name, owners)
+					g.Expect(owners[portLinkLocals[0]]).NotTo(ContainElement(veth),
+						"link-local %s of port %s on %s is shared with its backing veth %s, owners=%v",
+						portLinkLocals[0], port, node.Name, veth, owners[portLinkLocals[0]],
+					)
+				}, time.Minute, 2*time.Second).Should(Succeed())
+			}
+		}
+	})
 })
+
+// linkLocalsOwnedBy returns the link-local addresses from owners that are
+// carried by iface.
+func linkLocalsOwnedBy(owners map[string][]string, iface string) []string {
+	var res []string
+	for addr, ifaces := range owners {
+		if slices.Contains(ifaces, iface) {
+			res = append(res, addr)
+		}
+	}
+	return res
+}

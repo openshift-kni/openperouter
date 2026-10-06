@@ -30,7 +30,8 @@ type Config struct {
 	Loglevel    string
 	Hostname    string
 	Underlay    UnderlayConfig
-	VNIs        []L3VNIConfig
+	L2VNIs      []L2VNIConfig
+	L3VNIs      []L3VNIConfig
 	VPNs        []L3VPNConfig
 	Passthrough *PassthroughConfig
 	BFDProfiles []BFDProfile
@@ -134,6 +135,12 @@ type L3VNIConfig struct {
 	ImportRTs       []string
 }
 
+type L2VNIConfig struct {
+	VNI       int32
+	ExportRTs []string
+	ImportRTs []string
+}
+
 type L3VPNConfig struct {
 	ASN                int64
 	ToAdvertiseIPv4    []string
@@ -144,6 +151,7 @@ type L3VPNConfig struct {
 	ExportRTs          []string
 	ImportRTs          []string
 	RouteDistinguisher string
+	UDT4UDT6           bool
 }
 
 type BFDProfile struct {
