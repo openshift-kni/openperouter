@@ -1,0 +1,43 @@
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "gomod": {
+        "enabled": false
+    },
+    "docker": {
+      "enabled": false
+    },
+    "helm-values": {
+      "enabled": false
+    },
+    "kubernetes": {
+        "enabled": false
+    },
+    "jsonnet-bundler": {
+        "enabled": false
+    },
+    "github-actions": {
+        "enabled": false
+    },
+    "tekton": {
+        "managerFilePatterns": [".tekton/**"],
+        "includePaths": [
+            ".tekton/**"
+        ],
+        "addLabels": [
+            "approved",
+            "lgtm",
+            "ok-to-test"
+        ]
+    },
+    "packageRules": [
+        {
+            "matchManagers": ["git-submodules"],
+            "matchDepNames": ["openshift/**"],
+            "enabled": false
+        },
+        {
+            "matchFileNames": ["clab/**"],
+            "enabled": false
+        }
+    ]
+}

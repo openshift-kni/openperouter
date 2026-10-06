@@ -5,6 +5,16 @@ metadata:
     alm-examples: '[]'
     capabilities: Basic Install
     createdAt: "2026-09-15T05:57:55Z"
+    features.operators.openshift.io/csi: "false"
+    features.operators.openshift.io/disconnected: "true"
+    features.operators.openshift.io/fips-compliant: "true"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+    operators.openshift.io/valid-subscription: '["OpenShift Container Platform", "OpenShift
+      Platform Plus"]'
     operators.operatorframework.io/builder: operator-sdk-v1.41.1
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
   name: openperouter-operator.v0.0.0
@@ -219,8 +229,6 @@ spec:
                   value: "false"
                 - name: GROUT_IMAGE
                   value: quay.io/openperouter/router:main-grout
-                - name: GROUT_TEST_MODE
-                  value: "false"
                 image: quay.io/openperouter/router:main
                 imagePullPolicy: IfNotPresent
                 name: operator
