@@ -11,16 +11,21 @@ spec:
   namespace: openperouter-system
   installMode: AllNamespaces
 
-  # FBC still catalogs a bundle whose relatedImages digest may be stale is
-  # gone from quay (manifest unknown). Rewrite to a live operator digest
-  # after OLM creates the CSV. Keep registry.redhat.io so guest IDMS maps
-  # it to telco-5g-tenant/openperouter-operator-5-1.
+  # Rewrite CSV images to a live operator digest after OLM creates the CSV
+  # in case the FBC-cataloged bundle relatedImages are stale. Keep
+  # registry.redhat.io so guest IDMS maps it to
+  # telco-5g-tenant/openperouter-operator-5-1.
+  # 01-discovery-pod-labels pins certsuite labels on operator/webhook
+  # templates so OLM does not revert Konflux's post-install patch.
   csvPatches:
     - path: csv-patches/00-live-operator-image.json
+    - path: csv-patches/01-discovery-pod-labels.json
 
-  # Default discovery kinds is DaemonSet only. Also label Deployments so
-  # nodemarker (and operator/webhook) match podsUnderTestLabels via the
-  # pod template; certsuite discovers Deployments by template labels.
+  # Konflux patches these kinds after CSV Succeeded and before operands.
+  # OLM-owned operator/webhook keep labels via csvPatches above. Operand
+  # nodemarker is created later from OpenPERouter CR labels (helm
+  # openperouter.labels); discoveryLabels still covers any Deployment
+  # already present at CSV-ready time.
   discoveryLabels:
     operator: "redhat-best-practices-for-k8s.com/operator=target"
     pod: "redhat-best-practices-for-k8s.com/generic=target"
