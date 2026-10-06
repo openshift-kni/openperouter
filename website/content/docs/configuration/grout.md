@@ -57,7 +57,8 @@ By default grout binds underlay NICs as **PCI ports**. Set
 TAP-based grout underlays need no DPDK-capable NIC or `vfio-pci`; they are
 independent of test mode. With test mode disabled (the default), grout still
 needs hugepages as described below. DPDK-accelerated underlay ports need a
-DPDK-capable NIC.
+PCI NIC supported by DPDK, including virtio-net PCI interfaces in virtual
+machines.
 
 ## Helm Configuration
 
@@ -263,8 +264,8 @@ For PCI ports, the controller:
 
 1. Resolves the PCI address from `/sys/class/net/<interfaceName>/device`
 2. Saves the original driver and non-link-local addresses
-3. Binds non-bifurcated NICs (for example Intel) to `vfio-pci`, or moves
-   `mlx5_core` devices (Mellanox) into the router namespace
+3. Binds non-bifurcated NICs (for example Intel and virtio-net PCI) to
+   `vfio-pci`, or moves `mlx5_core` devices (Mellanox) into the router namespace
 4. Creates the grout port with `grcli interface add port u_<interfaceName> devargs <pci>`
 
 The interface referenced by interfaceName must exist on the host. Any address
