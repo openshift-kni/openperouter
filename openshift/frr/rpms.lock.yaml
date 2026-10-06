@@ -32,6 +32,13 @@ arches:
     name: grout
     evr: 0.18.0-1.el10fdp
     sourcerpm: grout-0.18.0-1.el10fdp.src.rpm
+  - url: https://cdn.redhat.com/content/dist/layered/rhel10/x86_64/fast-datapath/os/Packages/g/grout-frr-0.18.0-1.el10fdp.x86_64.rpm
+    repoid: fast-datapath-for-rhel-10-x86_64-rpms
+    size: 54709
+    checksum: sha256:571bcc19afb64c990a3196a4b9ed8ed939b245ee959be485ff3923f692e1e398
+    name: grout-frr
+    evr: 0.18.0-1.el10fdp
+    sourcerpm: grout-0.18.0-1.el10fdp.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/appstream/os/Packages/c/catatonit-0.2.1-1.el10.x86_64.rpm
     repoid: rhel-10-for-x86_64-appstream-rpms
     size: 314586
