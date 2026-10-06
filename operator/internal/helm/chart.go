@@ -172,6 +172,13 @@ func patchChartValues(envConfig envconfig.EnvConfig, crdConfig *operatorapi.Open
 		openperouterValues["bgpListenLimit"] = *crdConfig.Spec.BGPListenLimit
 	}
 
+	// Propagate CR labels onto operand pod templates via the chart's
+	// openperouter.labels values. Certsuite discovers Deployments by those
+	// template labels; the operator otherwise overwrites Konflux patches.
+	if labels := chartLabelsFromCR(crdConfig); len(labels) > 0 {
+		openperouterValues["labels"] = labels
+	}
+
 	datapath := ptr.Deref(crdConfig.Spec.Datapath, "kernel")
 	openperouterValues["datapath"] = datapath
 	if datapath == "grout" {
@@ -214,4 +221,15 @@ func toJSONValue(v any) (any, error) {
 		return nil, err
 	}
 	return out, nil
+}
+
+func chartLabelsFromCR(crdConfig *operatorapi.OpenPERouter) map[string]any {
+	if len(crdConfig.Labels) == 0 {
+		return nil
+	}
+	labels := make(map[string]any, len(crdConfig.Labels))
+	for k, v := range crdConfig.Labels {
+		labels[k] = v
+	}
+	return labels
 }

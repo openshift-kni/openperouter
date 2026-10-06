@@ -11,6 +11,12 @@ metadata:
   # Namespace omitted so `oc apply -n <install-ns>` from konflux-certsuite works.
   # Target namespace comes from certsuite-test-bundle.yaml spec.namespace
   # (openperouter-system).
+  #
+  # Certsuite matches Deployments by pod-template labels, not object
+  # metadata. The operator copies these CR labels onto nodemarker /
+  # controller / router templates so they survive reconcile.
+  labels:
+    redhat-best-practices-for-k8s.com/generic: target
 spec:
   logLevel: info
   tolerations: []
