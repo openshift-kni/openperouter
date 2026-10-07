@@ -11,7 +11,6 @@ packages:
   # image; the edge (grout) image keeps its own openshift/rpms.lock.yaml.
   - name: catatonit
   - name: frr
-  - name: frr-headers
   - name: frr-selinux
   - name: grout
   - name: grout-frr

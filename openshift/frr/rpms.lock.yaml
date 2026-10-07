@@ -11,13 +11,6 @@ arches:
     name: frr
     evr: 10.7.0-3.el10fdp
     sourcerpm: frr-10.7.0-3.el10fdp.src.rpm
-  - url: https://cdn.redhat.com/content/dist/layered/rhel10/x86_64/fast-datapath/os/Packages/f/frr-headers-10.7.0-3.el10fdp.noarch.rpm
-    repoid: fast-datapath-for-rhel-10-x86_64-rpms
-    size: 381307
-    checksum: sha256:5b4718f9ba7e14dfa2da535238268310c1f22686d1fccbf15f3a5b0928c20801
-    name: frr-headers
-    evr: 10.7.0-3.el10fdp
-    sourcerpm: frr-10.7.0-3.el10fdp.src.rpm
   - url: https://cdn.redhat.com/content/dist/layered/rhel10/x86_64/fast-datapath/os/Packages/f/frr-selinux-10.7.0-3.el10fdp.noarch.rpm
     repoid: fast-datapath-for-rhel-10-x86_64-rpms
     size: 25492
