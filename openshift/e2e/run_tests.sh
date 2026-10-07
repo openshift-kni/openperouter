@@ -13,7 +13,6 @@ CONTAINER_RUNTIME=docker make e2etests \
 		--openperouter-namespace=openshift-openperouter" \
 	KUBECONFIG_PATH=$KUBECONFIG \
 	GINKGO_ARGS="--label-filter=\!'systemd-mode' \
-        --focus='Single.Session.Baseline' \
 		--skip='editing.the.underlay.parameters|auto-recover.when.the.named.netns.is.deleted|Webhook|Unnumbered|Router.Host.configuration|DHCP'"
 
 popd
