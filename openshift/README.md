@@ -31,9 +31,9 @@ prefetches for the hermetic OpenShift image builds. There are two scopes:
 - **`openshift/`** — the build toolchain consumed by the `grout-builder` stage in
   `Dockerfile.edge.openshift` (the edge/grout image).
 - **`openshift/frr/`** — the FRR runtime consumed by `Dockerfile.openshift` (the
-  non-edge image). `frr` is pulled from Fast Datapath (FDP), via the
-  `fast-datapath-for-rhel-10-x86_64-rpms` repository, instead of a prebuilt FRR
-  base image.
+  non-edge image). `frr`, `grout`, and `grout-frr` are pulled from Fast Datapath
+  (FDP), via the `fast-datapath-for-rhel-10-x86_64-rpms` repository, instead of
+  a prebuilt FRR base image.
 
 Both scopes share `openshift/redhat.repo`.
 

@@ -11,13 +11,6 @@ arches:
     name: frr
     evr: 10.7.0-3.el10fdp
     sourcerpm: frr-10.7.0-3.el10fdp.src.rpm
-  - url: https://cdn.redhat.com/content/dist/layered/rhel10/x86_64/fast-datapath/os/Packages/f/frr-headers-10.7.0-3.el10fdp.noarch.rpm
-    repoid: fast-datapath-for-rhel-10-x86_64-rpms
-    size: 381307
-    checksum: sha256:5b4718f9ba7e14dfa2da535238268310c1f22686d1fccbf15f3a5b0928c20801
-    name: frr-headers
-    evr: 10.7.0-3.el10fdp
-    sourcerpm: frr-10.7.0-3.el10fdp.src.rpm
   - url: https://cdn.redhat.com/content/dist/layered/rhel10/x86_64/fast-datapath/os/Packages/f/frr-selinux-10.7.0-3.el10fdp.noarch.rpm
     repoid: fast-datapath-for-rhel-10-x86_64-rpms
     size: 25492
@@ -30,6 +23,13 @@ arches:
     size: 3116757
     checksum: sha256:a1c124bcabdc9186cee52ba2be42de8426b3e59086c93814e166b3a6d2d2b811
     name: grout
+    evr: 0.18.0-1.el10fdp
+    sourcerpm: grout-0.18.0-1.el10fdp.src.rpm
+  - url: https://cdn.redhat.com/content/dist/layered/rhel10/x86_64/fast-datapath/os/Packages/g/grout-frr-0.18.0-1.el10fdp.x86_64.rpm
+    repoid: fast-datapath-for-rhel-10-x86_64-rpms
+    size: 54709
+    checksum: sha256:571bcc19afb64c990a3196a4b9ed8ed939b245ee959be485ff3923f692e1e398
+    name: grout-frr
     evr: 0.18.0-1.el10fdp
     sourcerpm: grout-0.18.0-1.el10fdp.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/appstream/os/Packages/c/catatonit-0.2.1-1.el10.x86_64.rpm
