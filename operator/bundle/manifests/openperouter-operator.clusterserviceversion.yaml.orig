@@ -1,0 +1,546 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: '[]'
+    capabilities: Basic Install
+<<<<<<< HEAD
+    createdAt: "2026-09-15T05:57:55Z"
+=======
+    createdAt: "2026-06-30T21:07:04Z"
+    features.operators.openshift.io/csi: "false"
+    features.operators.openshift.io/disconnected: "true"
+    features.operators.openshift.io/fips-compliant: "true"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+    operators.openshift.io/valid-subscription: '["OpenShift Container Platform", "OpenShift
+      Platform Plus"]'
+>>>>>>> openshift/main
+    operators.operatorframework.io/builder: operator-sdk-v1.41.1
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
+  name: openperouter-operator.v0.0.0
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - kind: L2VNI
+      name: l2vnis.network.openperouter.io
+      version: v1alpha1
+    - kind: L3Passthrough
+      name: l3passthroughs.network.openperouter.io
+      version: v1alpha1
+    - description: |-
+        L3VNI represents a VXLan VNI to receive EVPN type 5 routes
+        from.
+      displayName: L3VNI
+      kind: L3VNI
+      name: l3vnis.network.openperouter.io
+      version: v1alpha1
+    - kind: L3VPN
+      name: l3vpns.network.openperouter.io
+      version: v1alpha1
+    - description: OpenPERouter is the Schema for the openperouters API
+      displayName: Open PERouter
+      kind: OpenPERouter
+      name: openperouters.network.openperouter.io
+      version: v1alpha1
+    - kind: RawFRRConfig
+      name: rawfrrconfigs.network.openperouter.io
+      version: v1alpha1
+    - kind: RouterNodeConfigurationStatus
+      name: routernodeconfigurationstatuses.network.openperouter.io
+      version: v1alpha1
+    - description: Underlay is the Schema for the underlays API.
+      displayName: Underlay
+      kind: Underlay
+      name: underlays.network.openperouter.io
+      version: v1alpha1
+  description: An operator for deploying OpenPERouter on a Kubernetes cluster.
+  displayName: OpenPERouter Operator
+  icon:
+  - base64data: ""
+    mediatype: ""
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - nodes
+          verbs:
+          - get
+          - list
+          - patch
+          - watch
+        - apiGroups:
+          - network.openperouter.io
+          resources:
+          - l2vnis
+          - l3passthroughs
+          - l3vnis
+          - l3vpns
+          - rawfrrconfigs
+          - routernodeconfigurationstatuses
+          - underlays
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - network.openperouter.io
+          resources:
+          - l2vnis/finalizers
+          - l3passthroughs/finalizers
+          - l3vnis/finalizers
+          - l3vpns/finalizers
+          - rawfrrconfigs/finalizers
+          - underlays/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - network.openperouter.io
+          resources:
+          - l2vnis/status
+          - l3passthroughs/status
+          - l3vnis/status
+          - l3vpns/status
+          - rawfrrconfigs/status
+          - routernodeconfigurationstatuses/status
+          - underlays/status
+          verbs:
+          - get
+          - patch
+          - update
+        serviceAccountName: controller
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - nodes
+          verbs:
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - admissionregistration.k8s.io
+          resources:
+          - validatingwebhookconfigurations
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - admissionregistration.k8s.io
+          resourceNames:
+          - openpe-validating-webhook-configuration
+          resources:
+          - validatingwebhookconfigurations
+          verbs:
+          - update
+        - apiGroups:
+          - network.openperouter.io
+          resources:
+          - l2vnis
+          - l3passthroughs
+          - l3vnis
+          - l3vpns
+          - rawfrrconfigs
+          - underlays
+          verbs:
+          - get
+          - list
+          - watch
+        serviceAccountName: nodemarker
+      - rules:
+        - apiGroups:
+          - network.openperouter.io
+          resources:
+          - openperouters
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - network.openperouter.io
+          resources:
+          - openperouters/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - network.openperouter.io
+          resources:
+          - openperouters/status
+          verbs:
+          - get
+          - patch
+          - update
+        serviceAccountName: operator
+      deployments:
+      - label:
+          app.kubernetes.io/component: operator
+          app.kubernetes.io/created-by: operator
+          app.kubernetes.io/instance: operator
+          app.kubernetes.io/managed-by: kustomize
+          app.kubernetes.io/name: operator
+          app.kubernetes.io/part-of: operator
+          control-plane: operator
+        name: operator
+        spec:
+          selector:
+            matchLabels:
+              control-plane: operator
+          strategy: {}
+          template:
+            metadata:
+              annotations:
+                kubectl.kubernetes.io/default-container: operator
+              labels:
+                app: operator
+                control-plane: operator
+            spec:
+              containers:
+              - args:
+                - --loglevel=debug
+                command:
+                - /operator
+                env:
+                - name: OPERATOR_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                - name: CONTROLLER_IMAGE
+                  value: quay.io/openperouter/router:main
+                - name: FRR_IMAGE
+                  value: quay.io/openperouter/router:main
+                - name: KUBE_RBAC_PROXY_IMAGE
+                  value: quay.io/brancz/kube-rbac-proxy:v0.11.0
+                - name: DEPLOY_KUBE_RBAC_PROXIES
+                  value: "false"
+                - name: GROUT_IMAGE
+                  value: quay.io/openperouter/router:main-grout
+                - name: GROUT_TEST_MODE
+                  value: "false"
+                image: quay.io/openperouter/router:main
+                imagePullPolicy: IfNotPresent
+                name: operator
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 128Mi
+                  requests:
+                    cpu: 10m
+                    memory: 64Mi
+              serviceAccountName: operator
+      - label:
+          app.kubernetes.io/component: webhook
+          app.kubernetes.io/created-by: webhook
+          app.kubernetes.io/instance: webhook
+          app.kubernetes.io/managed-by: kustomize
+          app.kubernetes.io/name: webhook
+          app.kubernetes.io/part-of: webhook
+          component: webhook
+        name: webhook
+        spec:
+          selector:
+            matchLabels:
+              control-plane: webhook
+          strategy: {}
+          template:
+            metadata:
+              annotations:
+                kubectl.kubernetes.io/default-container: webhook
+              labels:
+                component: webhook
+                control-plane: webhook
+            spec:
+              containers:
+              - args:
+                - --loglevel=debug
+                - --namespace=$(NAMESPACE)
+                - --disable-cert-rotation=true
+                - --webhookmode=webhookonly
+                command:
+                - /nodemarker
+                env:
+                - name: NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                image: quay.io/openperouter/router:main
+                imagePullPolicy: IfNotPresent
+                name: webhook
+                ports:
+                - containerPort: 9443
+                  name: webhook-server
+                  protocol: TCP
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 128Mi
+                  requests:
+                    cpu: 10m
+                    memory: 64Mi
+                volumeMounts:
+                - mountPath: /tmp/k8s-webhook-server/serving-certs
+                  name: cert
+                  readOnly: true
+              serviceAccountName: nodemarker
+              volumes:
+              - name: cert
+                secret:
+                  defaultMode: 420
+                  secretName: openpe-webhook-server-cert
+      permissions:
+      - rules:
+        - apiGroups:
+          - security.openshift.io
+          resourceNames:
+          - privileged
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - use
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - pods
+          verbs:
+          - delete
+          - get
+          - list
+          - watch
+        serviceAccountName: controller
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resourceNames:
+          - openpe-webhook-server-cert
+          resources:
+          - secrets
+          verbs:
+          - update
+        serviceAccountName: nodemarker
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          - services
+          verbs:
+          - create
+          - delete
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        - apiGroups:
+          - apps
+          resources:
+          - daemonsets
+          - deployments
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        serviceAccountName: operator
+      - rules:
+        - apiGroups:
+          - security.openshift.io
+          resourceNames:
+          - privileged
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - use
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - get
+        serviceAccountName: perouter
+    strategy: deployment
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - openperouter-operator
+  links:
+  - name: OpenPERouter Operator
+    url: https://github.com/openperouter/openperouter
+  maintainers:
+  - email: fpaoline@redhat.com
+    name: Federico Paolinelli
+  maturity: alpha
+  provider:
+    name: Community
+    url: https://github.com/openperouter/openperouter
+  version: 0.0.0
+  webhookdefinitions:
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: webhook
+    failurePolicy: Fail
+    generateName: l2vnivalidationwebhook.openperouter.io
+    rules:
+    - apiGroups:
+      - network.openperouter.io
+      apiVersions:
+      - v1alpha1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - l2vnis
+    sideEffects: None
+    targetPort: 9443
+    type: ValidatingAdmissionWebhook
+    webhookPath: /validate-openperouter-io-v1alpha1-l2vni
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: webhook
+    failurePolicy: Fail
+    generateName: l3passthroughvalidationwebhook.openperouter.io
+    rules:
+    - apiGroups:
+      - network.openperouter.io
+      apiVersions:
+      - v1alpha1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - l3passthroughs
+    sideEffects: None
+    targetPort: 9443
+    type: ValidatingAdmissionWebhook
+    webhookPath: /validate-openperouter-io-v1alpha1-l3passthrough
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: webhook
+    failurePolicy: Fail
+    generateName: l3vnivalidationwebhook.openperouter.io
+    rules:
+    - apiGroups:
+      - network.openperouter.io
+      apiVersions:
+      - v1alpha1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - l3vnis
+    sideEffects: None
+    targetPort: 9443
+    type: ValidatingAdmissionWebhook
+    webhookPath: /validate-openperouter-io-v1alpha1-l3vni
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: webhook
+    failurePolicy: Fail
+    generateName: l3vpnsvalidationwebhook.openperouter.io
+    rules:
+    - apiGroups:
+      - network.openperouter.io
+      apiVersions:
+      - v1alpha1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - l3vpns
+    sideEffects: None
+    targetPort: 9443
+    type: ValidatingAdmissionWebhook
+    webhookPath: /validate-openperouter-io-v1alpha1-l3vpn
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: webhook
+    failurePolicy: Fail
+    generateName: rawfrrconfigvalidationwebhook.openperouter.io
+    rules:
+    - apiGroups:
+      - network.openperouter.io
+      apiVersions:
+      - v1alpha1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - rawfrrconfigs
+    sideEffects: None
+    targetPort: 9443
+    type: ValidatingAdmissionWebhook
+    webhookPath: /validate-openperouter-io-v1alpha1-rawfrrconfig
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: webhook
+    failurePolicy: Fail
+    generateName: underlayvalidationwebhook.openperouter.io
+    rules:
+    - apiGroups:
+      - network.openperouter.io
+      apiVersions:
+      - v1alpha1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - underlays
+    sideEffects: None
+    targetPort: 9443
+    type: ValidatingAdmissionWebhook
+    webhookPath: /validate-openperouter-io-v1alpha1-underlay

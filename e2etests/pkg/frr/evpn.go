@@ -94,6 +94,23 @@ func (e *EVPNData) ContainsType2MACIPRouteForVNI(ip string, vtep string, vni int
 	return false
 }
 
+// ContainsType2MACIPRouteWithRT tells if a Type 2 MAC+IP route has the given
+// next hop and every specified route target.
+func (e *EVPNData) ContainsType2MACIPRouteWithRT(ip string, vtep string, routeTargets []v1alpha1.RouteTarget) bool {
+	isType2MACIPRoute := func(p Path) bool {
+		return p.RouteType == 2 && p.IPLen > 0
+	}
+	for _, path := range e.matchingPaths(isType2MACIPRoute) {
+		if path.IP != ip || !pathHasVTEP(path, vtep) {
+			continue
+		}
+		if pathHasAllRouteTargets(path, routeTargets) {
+			return true
+		}
+	}
+	return false
+}
+
 // allPaths returns a flat slice of paths from all entries and prefixes.
 func (e *EVPNData) allPaths() []Path {
 	var paths []Path
@@ -124,9 +141,28 @@ func (e *EVPNData) matchingPaths(predicate func(Path) bool) []Path {
 }
 
 func pathHasRouteTarget(path Path, routeTargets []v1alpha1.RouteTarget) bool {
+	communityValues := strings.Fields(path.ExtendedCommunity.String)
 	for _, rt := range routeTargets {
-		routeTarget := fmt.Sprintf("RT:%s", rt)
-		if strings.Contains(path.ExtendedCommunity.String, routeTarget) {
+		if slices.Contains(communityValues, fmt.Sprintf("RT:%s", rt)) {
+			return true
+		}
+	}
+	return false
+}
+
+func pathHasAllRouteTargets(path Path, routeTargets []v1alpha1.RouteTarget) bool {
+	communityValues := strings.Fields(path.ExtendedCommunity.String)
+	for _, rt := range routeTargets {
+		if !slices.Contains(communityValues, fmt.Sprintf("RT:%s", rt)) {
+			return false
+		}
+	}
+	return true
+}
+
+func pathHasVTEP(path Path, vtep string) bool {
+	for _, n := range path.Nexthops {
+		if n.IP == vtep {
 			return true
 		}
 	}
@@ -134,15 +170,7 @@ func pathHasRouteTarget(path Path, routeTargets []v1alpha1.RouteTarget) bool {
 }
 
 func pathHasVTEPAndRouteTarget(path Path, vtep string, routeTargets []v1alpha1.RouteTarget) bool {
-	for _, rt := range routeTargets {
-		routeTarget := fmt.Sprintf("RT:%s", rt)
-		for _, n := range path.Nexthops {
-			if n.IP == vtep && strings.Contains(path.ExtendedCommunity.String, routeTarget) {
-				return true
-			}
-		}
-	}
-	return false
+	return pathHasVTEP(path, vtep) && pathHasRouteTarget(path, routeTargets)
 }
 
 // pathHasVTEPAndVNI checks if a path has the given VTEP as a nexthop and the given VNI in its extended community.
@@ -281,4 +309,29 @@ func vnisFromExtendedCommunity(extendedCommunity string) ([]int, error) {
 
 func containsVNI(vnis []int, vni int) bool {
 	return slices.Contains(vnis, vni)
+}
+
+// EVPNVNIInfo represents the zebra-level status of a provisioned VNI
+// as returned by 'show evpn vni <N> json'.
+type EVPNVNIInfo struct {
+	VNI       int    `json:"vni"`
+	Type      string `json:"type"`
+	TenantVrf string `json:"tenantVrf"`
+}
+
+// EVPNVNIStatus returns the provisioning status of a specific VNI from
+// zebra's EVPN VNI database. Returns nil if the VNI is not provisioned.
+func EVPNVNIStatus(exec executor.Executor, vni int) (*EVPNVNIInfo, error) {
+	res, err := exec.Exec("vtysh", "-c", fmt.Sprintf("show evpn vni %d json", vni))
+	if err != nil {
+		return nil, fmt.Errorf("failed to query evpn vni %d: %w. Output: %s", vni, err, res)
+	}
+	var info EVPNVNIInfo
+	if err := json.Unmarshal([]byte(res), &info); err != nil {
+		return nil, fmt.Errorf("failed to parse evpn vni %d json: %w. Output: %s", vni, err, res)
+	}
+	if info.VNI == 0 {
+		return nil, nil
+	}
+	return &info, nil
 }

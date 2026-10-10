@@ -166,7 +166,7 @@ func APItoFRR(config APIConfigData, nodeIndex int, logLevel string) (frr.Config,
 		return frr.Config{}, err
 	}
 
-	vniConfigs, err := vniConfigsToFRR(
+	l3VNIConfigs, err := l3vniConfigsToFRR(
 		config.L3VNIs,
 		routerID,
 		underlay.Spec.ASN,
@@ -195,13 +195,31 @@ func APItoFRR(config APIConfigData, nodeIndex int, logLevel string) (frr.Config,
 
 	return frr.Config{
 		Underlay:    underlayConfig,
-		VNIs:        vniConfigs,
+		L2VNIs:      l2vniConfigsToFRR(config.L2VNIs),
+		L3VNIs:      l3VNIConfigs,
 		Passthrough: passthroughConfig,
 		BFDProfiles: bfdProfilesFromNeighbors(underlay.Spec.Neighbors),
 		VPNs:        vpnConfigs,
 		Loglevel:    logLevel,
 		RawConfig:   rawSnippets,
 	}, nil
+}
+
+func l2vniConfigsToFRR(l2vnis []v1alpha1.L2VNI) []frr.L2VNIConfig {
+	var configs []frr.L2VNIConfig
+	for _, l2vni := range l2vnis {
+		exportRTs := convertRTsToSliceOfStrings(l2vni.Spec.ExportRTs)
+		importRTs := convertRTsToSliceOfStrings(l2vni.Spec.ImportRTs)
+		if len(exportRTs) == 0 && len(importRTs) == 0 {
+			continue
+		}
+		configs = append(configs, frr.L2VNIConfig{
+			VNI:       l2vni.Spec.VNI,
+			ExportRTs: exportRTs,
+			ImportRTs: importRTs,
+		})
+	}
+	return configs
 }
 
 func neighborsToFRR(apiNeighbors []v1alpha1.Neighbor, segmentRouting *frr.UnderlaySegmentRouting,
@@ -300,7 +318,7 @@ func tunnelEndpointToFRR(tunnelEndpointConfig *v1alpha1.TunnelEndpointConfig, no
 	return tunnelEndpoint, nil
 }
 
-func vniConfigsToFRR(
+func l3vniConfigsToFRR(
 	l3vnis []v1alpha1.L3VNI,
 	routerID string,
 	underlayASN int64,
@@ -393,16 +411,21 @@ func underlayISISToFRR(isisConfig *v1alpha1.ISISConfig, interfaces []string, nod
 		},
 	}
 
-	// Add underlay.Spec.Interfaces as IPv6 only, non-passive interfaces.
-	for _, iface := range interfaces {
-		isisInterfaces[iface] = frr.ISISInterface{
-			Name: iface,
-			IPv6: true,
+	// When no explicit ISIS interfaces are configured, add all underlay
+	// NetworkDevice interfaces as IPv6 only, non-passive defaults.
+	// When explicit ISIS interfaces ARE configured, only those (plus the
+	// loopback) participate in ISIS — the explicit list is authoritative.
+	if len(isisConfig.Interfaces) == 0 {
+		for _, iface := range interfaces {
+			isisInterfaces[iface] = frr.ISISInterface{
+				Name: iface,
+				IPv6: true,
+			}
 		}
 	}
 
-	// The ISISInterface slice may override default settings from loopback and
-	// from interfaces. CEL enforces uniqueness by name.
+	// The ISISInterface slice may override default settings from loopback.
+	// CEL enforces uniqueness by name.
 	for _, intf := range isisConfig.Interfaces {
 		hasIPv4 := intf.IPFamily != nil &&
 			(*intf.IPFamily == v1alpha1.IPFamilyIPv4 || *intf.IPFamily == v1alpha1.IPFamilyDualStack)
@@ -636,6 +659,7 @@ func l3vpnToFRR(
 			ExportRTs:          exportRTs,
 			ImportRTs:          importRTs,
 			RouteDistinguisher: routeDistinguisher(routerID, vpn.Spec.RDAssignedNumber),
+			UDT4UDT6:           slices.Contains(vpn.Spec.Features, v1alpha1.UDT4UDT6),
 		}
 		for _, opt := range opts {
 			if err := opt(&cfg); err != nil {
@@ -682,6 +706,7 @@ func l3vpnToFRR(
 			},
 			ToAdvertiseIPv4: toAdvertiseIPv4,
 			ToAdvertiseIPv6: toAdvertiseIPv6,
+			UDT4UDT6:        slices.Contains(vpn.Spec.Features, v1alpha1.UDT4UDT6),
 		})
 	}
 	for i := range configs {

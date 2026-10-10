@@ -5,6 +5,7 @@ package tests
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -18,6 +19,7 @@ import (
 	"github.com/openperouter/openperouter/e2etests/pkg/k8s"
 	"github.com/openperouter/openperouter/e2etests/pkg/k8sclient"
 	"github.com/openperouter/openperouter/e2etests/pkg/openperouter"
+	"github.com/openperouter/openperouter/e2etests/pkg/validate"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
@@ -28,7 +30,7 @@ import (
 // are:
 // - This reduces the number of overall tests run (by just spotchecking that IPv6 and Unnumbered functionality work).
 // - It reduces the number of underlay creations and teardowns.
-var _ = Describe("Routes between bgp and the fabric", Ordered, func() {
+var _ = Describe("Routes between bgp and the fabric", Ordered, GroutSupport, func() {
 	DescribeTableSubtree("underlay address family", runUnderlayTests,
 		Entry("IPv6", ipfamily.IPv6, infra.UnderlayIPv6),
 		Entry("Unnumbered", ipfamily.Unnumbered, infra.UnderlayUnnumbered),
@@ -110,6 +112,18 @@ var runUnderlayTests = func(af ipfamily.Family, underlay v1alpha1.Underlay) {
 		Expect(err).NotTo(HaveOccurred())
 		routers.Dump(GinkgoWriter)
 
+		if GroutMode {
+			for i := range underlay.Spec.Neighbors {
+				if underlay.Spec.Neighbors[i].Interface != nil {
+					if strings.HasPrefix(*underlay.Spec.Neighbors[i].Interface, "u_") {
+						continue
+					}
+					iface := "u_" + *underlay.Spec.Neighbors[i].Interface
+					underlay.Spec.Neighbors[i].Interface = &iface
+				}
+			}
+		}
+
 		err = Updater.Update(config.Resources{
 			Underlays: []v1alpha1.Underlay{
 				underlay,
@@ -163,13 +177,16 @@ var runUnderlayTests = func(af ipfamily.Family, underlay v1alpha1.Underlay) {
 			for _, leaf := range leaves {
 				neighbor, err := infra.NeighborForFamily(node.Name, leaf, af)
 				Expect(err).NotTo(HaveOccurred())
-				validateSessionWithNeighbor(
+				if GroutMode && neighbor.IsInterface {
+					neighbor.ID = "u_" + neighbor.ID
+				}
+				validate.SessionWithNeighbor(
 					exec,
-					validationParameters{
-						fromName:    node.Name,
-						toName:      leaf,
-						neighborIP:  neighbor.ID,
-						established: Established,
+					validate.SessionParameters{
+						FromName:    node.Name,
+						ToName:      leaf,
+						NeighborIP:  neighbor.ID,
+						Established: Established,
 					},
 				)
 			}
