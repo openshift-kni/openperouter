@@ -1,0 +1,22 @@
+targetNameSpaces:
+  - name: openperouter-system
+
+podsUnderTestLabels:
+  - "redhat-best-practices-for-k8s.com/generic: target"
+
+operatorsUnderTestLabels:
+  - "redhat-best-practices-for-k8s.com/operator: target"
+
+targetCrdFilters:
+  - nameSuffix: "network.openperouter.io"
+    scalable: false
+
+# operator/webhook are OLM-owned; nodemarker is reconciled from the
+# OpenPERouter CR. Direct replica scaling would fight those controllers.
+skipScalingTestDeployments:
+  - name: operator
+    namespace: openperouter-system
+  - name: webhook
+    namespace: openperouter-system
+  - name: nodemarker
+    namespace: openperouter-system
