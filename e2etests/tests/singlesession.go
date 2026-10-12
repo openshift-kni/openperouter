@@ -21,6 +21,7 @@ import (
 	"github.com/openperouter/openperouter/e2etests/pkg/k8sclient"
 	"github.com/openperouter/openperouter/e2etests/pkg/openperouter"
 	"github.com/openperouter/openperouter/e2etests/pkg/url"
+	"github.com/openperouter/openperouter/e2etests/pkg/validate"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
@@ -33,7 +34,7 @@ var singleSessionUnderlay = v1alpha1.Underlay{
 	},
 	Spec: v1alpha1.UnderlaySpec{
 		ASN:        64514,
-		Interfaces: []v1alpha1.UnderlayInterface{{Type: "NetworkDevice", NetworkDevice: &v1alpha1.NetworkDevice{InterfaceName: infra.UnderlayIface1()}}},
+		Interfaces: []v1alpha1.UnderlayInterface{{Type: "NetworkDevice", NetworkDevice: &v1alpha1.NetworkDevice{InterfaceName: "toswitch1"}}},
 		Neighbors: []v1alpha1.Neighbor{
 			{
 				ASN:     new(int64(64512)),
@@ -94,14 +95,7 @@ var _ = Describe("Single Session Baseline", Ordered, func() {
 		cs = k8sclient.New()
 		nodesItems, err := cs.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 		Expect(err).NotTo(HaveOccurred())
-		// Bastion/CNF: only nodes present in nodelink.json (workers), not masters.
-		nodes = nil
-		for _, n := range nodesItems.Items {
-			if infra.HasKindLeafLink(n.Name) {
-				nodes = append(nodes, n)
-			}
-		}
-		Expect(nodes).NotTo(BeEmpty(), "no nodes with leafkind1 links in nodelink.json")
+		nodes = nodesItems.Items
 
 		By("Setting up underlay with single interface and single neighbor")
 		err = Updater.Update(config.Resources{
@@ -173,13 +167,13 @@ var _ = Describe("Single Session Baseline", Ordered, func() {
 		err = Updater.CleanAll()
 		Expect(err).NotTo(HaveOccurred())
 
-		By("waiting for underlay-node router pods to be ready after removing the underlay")
-		underlayNodes := map[string]bool{}
-		for _, n := range nodes {
-			underlayNodes[n.Name] = true
-		}
+		By("waiting for all router pods to be ready after removing the underlay")
 		Eventually(func() error {
-			return openperouter.AreReadyOnNodes(cs, underlayNodes)
+			routers, err := openperouter.Get(cs, HostMode)
+			if err != nil {
+				return err
+			}
+			return openperouter.AreReady(routers)
 		}, 2*time.Minute, time.Second).ShouldNot(HaveOccurred())
 	})
 
@@ -194,13 +188,13 @@ var _ = Describe("Single Session Baseline", Ordered, func() {
 			for _, node := range nodes {
 				neighborIP, err := infra.NeighborIP(infra.KindLeaf, node.Name)
 				Expect(err).NotTo(HaveOccurred())
-				validateSessionWithNeighbor(
+				validate.SessionWithNeighbor(
 					exec,
-					validationParameters{
-						fromName:    infra.KindLeaf,
-						toName:      node.Name,
-						neighborIP:  neighborIP,
-						established: Established,
+					validate.SessionParameters{
+						FromName:    infra.KindLeaf,
+						ToName:      node.Name,
+						NeighborIP:  neighborIP,
+						Established: Established,
 					},
 				)
 			}

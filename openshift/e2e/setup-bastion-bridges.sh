@@ -16,20 +16,38 @@
 #   - Marks lab NICs NM-unmanaged (no SSH theft) without bouncing eth0
 #   - Does NOT nmcli-mod the live mgmt profile (that drops SSH)
 #   - Idempotent: skips work when already correct
+#   - No rollback: if attach fails after ensure_bridge, bridges stay (rerun is OK)
+#   - CLAB_BASTION_ATTACH_LAB_IFACE: only the literal "true" enables attach
+#   - Requires working passwordless (or cached) sudo
+#   - lab-* NM profiles created here are not removed by teardown-clab (intentional)
+# VLAN 101/177 comments below are hlxcl7 lab map; override ifaces via env elsewhere.
 set -euo pipefail
 
 MGMT_IFACE="${CLAB_BASTION_MGMT_IFACE:-eth0}"
 IFACE_TS1="${CLAB_BASTION_LAB_IFACE_TOSWITCH1:-${CLAB_BASTION_LAB_IFACE:-${OPENPE_BASTION_LAB_IFACE:-eth1}}}"
 IFACE_TS2="${CLAB_BASTION_LAB_IFACE_TOSWITCH2:-eth2}"
+# Only the literal string "true" enables attach (any other value = bridges only).
 ATTACH_LAB="${CLAB_BASTION_ATTACH_LAB_IFACE:-${OPENPE_BASTION_ATTACH_LAB_IFACE:-true}}"
 
 echo "=== Bastion bridges for ocp.clab.yml ==="
 echo "  mgmt: ${MGMT_IFACE} (SSH / default only)"
 echo "  map: ${IFACE_TS1} -> toswitch1 (VLAN 101), ${IFACE_TS2} -> toswitch2 (VLAN 177)"
 
+if ! sudo -n true 2>/dev/null; then
+  echo "ERROR: passwordless sudo required (sudo -n true failed)" >&2
+  exit 1
+fi
+
+# Exact match on the default route's device field (avoid eth1 matching eth10).
+default_route_dev() {
+  ip route 2>/dev/null | awk '/^default/ {print $5; exit}'
+}
+
 refuse_if_default_on() {
   local iface="$1"
-  if ip route show default 2>/dev/null | grep -q "dev ${iface}"; then
+  local def
+  def="$(default_route_dev)"
+  if [[ -n "${def}" && "${def}" == "${iface}" ]]; then
     echo "ERROR: default route is on ${iface}. Fix mgmt (${MGMT_IFACE}) first; refusing to continue." >&2
     ip route show default >&2 || true
     exit 1
@@ -47,8 +65,10 @@ require_mgmt_ok() {
     ip -br addr >&2 || true
     exit 1
   fi
-  if ! ip route show default 2>/dev/null | grep -q "dev ${MGMT_IFACE}"; then
-    echo "ERROR: default route is not on ${MGMT_IFACE}" >&2
+  local def
+  def="$(default_route_dev)"
+  if [[ -z "${def}" || "${def}" != "${MGMT_IFACE}" ]]; then
+    echo "ERROR: default route is not on ${MGMT_IFACE} (got: ${def:-none})" >&2
     ip route show default >&2 || true
     exit 1
   fi
@@ -127,9 +147,29 @@ attach_to_bridge() {
 }
 
 require_mgmt_ok
+
+# Cheap env sanity: mgmt + both lab ifaces must be distinct names.
+if [[ "${MGMT_IFACE}" == "${IFACE_TS1}" || "${MGMT_IFACE}" == "${IFACE_TS2}" || "${IFACE_TS1}" == "${IFACE_TS2}" ]]; then
+  echo "ERROR: mgmt and lab iface names must be distinct" >&2
+  echo "  mgmt=${MGMT_IFACE} toswitch1=${IFACE_TS1} toswitch2=${IFACE_TS2}" >&2
+  exit 1
+fi
+
 refuse_if_default_on "${IFACE_TS1}"
 if ip link show "${IFACE_TS2}" >/dev/null 2>&1; then
   refuse_if_default_on "${IFACE_TS2}"
+fi
+
+# Attach mode needs both lab NICs; fail before creating bridges.
+if [[ "${ATTACH_LAB}" == "true" ]]; then
+  for iface in "${IFACE_TS1}" "${IFACE_TS2}"; do
+    if ! ip link show "${iface}" >/dev/null 2>&1; then
+      echo "ERROR: CLAB_BASTION_ATTACH_LAB_IFACE=true requires both lab NICs" >&2
+      echo "  missing: ${iface} (expected ${IFACE_TS1} -> toswitch1, ${IFACE_TS2} -> toswitch2)" >&2
+      echo "  attach virtio NICs on the HV, or set CLAB_BASTION_ATTACH_LAB_IFACE=false" >&2
+      exit 1
+    fi
+  done
 fi
 
 echo "  note: not modifying NM profile on ${MGMT_IFACE} (avoids SSH drop)"

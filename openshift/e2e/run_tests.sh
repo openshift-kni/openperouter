@@ -2,35 +2,123 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+NODELINK="${SCRIPT_DIR}/nodelink.json"
+STATE_FILE="${SCRIPT_DIR}/.e2e-bastion-state/worker-net.json"
+PROVIDER="${OPENPE_E2E_PROVIDER:-}"
+
+# How the lab was deployed (setup-clab writes "provider" into nodelink.json).
+# Also treat worker-net state / non-toswitch underlay iface as bastion signals.
+deployed_provider() {
+	local p=""
+	if [[ -f "${NODELINK}" ]]; then
+		p="$(python3 -c "import json; print(json.load(open('${NODELINK}')).get('provider') or '')" 2>/dev/null || true)"
+	fi
+	if [[ -n "${p}" ]]; then
+		echo "${p}"
+		return
+	fi
+	if [[ -f "${STATE_FILE}" ]]; then
+		echo "bastion"
+		return
+	fi
+	if [[ -n "${OPENPE_UNDERLAY_IFACE:-}" && "${OPENPE_UNDERLAY_IFACE}" != toswitch* ]]; then
+		echo "bastion"
+		return
+	fi
+	echo ""
+}
+
+DEPLOYED="$(deployed_provider)"
+if [[ -n "${DEPLOYED}" ]]; then
+	if [[ -z "${PROVIDER}" ]]; then
+		echo "ERROR: lab looks like provider=${DEPLOYED} but OPENPE_E2E_PROVIDER is unset" >&2
+		echo "  export OPENPE_E2E_PROVIDER=${DEPLOYED}  # otherwise runtime defaults to docker" >&2
+		exit 1
+	fi
+	if [[ "${PROVIDER}" != "${DEPLOYED}" ]]; then
+		echo "ERROR: OPENPE_E2E_PROVIDER=${PROVIDER} but nodelink/lab was deployed as ${DEPLOYED}" >&2
+		echo "  export OPENPE_E2E_PROVIDER=${DEPLOYED}" >&2
+		exit 1
+	fi
+elif [[ -z "${PROVIDER}" ]]; then
+	# No deploy signal — default virtual-OCP path (docker), same as before.
+	PROVIDER="dev-scripts"
+fi
 
 # Bastion: clab is deployed with sudo podman (rootful). Ginkgo uses
 # CONTAINER_RUNTIME as a single binary — default to podman-root.sh so tests
 # see the same containers. KIND / virtual OCP keep docker unless overridden.
-if [[ "${OPENPE_E2E_PROVIDER:-}" == "bastion" ]]; then
+if [[ "${PROVIDER}" == "bastion" ]]; then
 	RUNTIME="${CONTAINER_RUNTIME:-${SCRIPT_DIR}/podman-root.sh}"
+	if [[ "${RUNTIME}" == "${SCRIPT_DIR}/podman-root.sh" && ! -x "${RUNTIME}" ]]; then
+		echo "ERROR: bastion default runtime missing or not executable: ${RUNTIME}" >&2
+		exit 1
+	fi
 else
 	RUNTIME="${CONTAINER_RUNTIME:-${CLAB_RUNTIME:-${OPENPE_CLAB_RUNTIME:-docker}}}"
 fi
 
 # Namespace where OpenPERouter runs (OCP CI: openshift-openperouter; some labs: openperouter-system)
 OPENPE_NS="${OPENPE_E2E_NAMESPACE:-openshift-openperouter}"
+FRRK8S_NAMESPACE="${FRRK8S_NAMESPACE:-openshift-frr-k8s}"
 
 # Ginkgo --focus regex. Override with OPENPE_E2E_FOCUS to widen/narrow.
 # Default: Baseline + next bastion-safe wave (no SRv6 / DHCP / webhooks).
 FOCUS="${OPENPE_E2E_FOCUS:-Single.Session.Baseline|Node.Router.Status|Router.BGP.sessions|North/south.traffic.after.FRR}"
 SKIP="${OPENPE_E2E_SKIP:-editing.the.underlay.parameters|auto-recover.when.the.named.netns.is.deleted|Webhook|Unnumbered|Router.Host.configuration|DHCP|SRV6}"
 
+# Bastion preflight: same contract as configure-bastion-worker-net.sh so Ginkgo
+# sees the real underlay NIC (not default toswitch1). Export for make e2etests.
+if [[ "${PROVIDER}" == "bastion" ]]; then
+	if [[ -z "${KUBECONFIG:-}" ]]; then
+		echo "ERROR: KUBECONFIG must be set for bastion e2e" >&2
+		exit 1
+	fi
+	if [[ ! -f "${KUBECONFIG}" ]]; then
+		echo "ERROR: KUBECONFIG file not found: ${KUBECONFIG}" >&2
+		exit 1
+	fi
+	if [[ ! -f "${NODELINK}" ]]; then
+		echo "ERROR: ${NODELINK} missing — run setup-clab.sh / deploy-bastion first" >&2
+		exit 1
+	fi
+	if [[ -z "${OPENPE_UNDERLAY_IFACE:-}" && -f "${STATE_FILE}" ]]; then
+		OPENPE_UNDERLAY_IFACE="$(python3 -c "import json; print(json.load(open('${STATE_FILE}')).get('underlayIface') or '')")"
+	fi
+	if [[ -z "${OPENPE_UNDERLAY_IFACE2:-}" && -f "${STATE_FILE}" ]]; then
+		OPENPE_UNDERLAY_IFACE2="$(python3 -c "import json; print(json.load(open('${STATE_FILE}')).get('underlayIface2') or '')")"
+	fi
+	if [[ -z "${OPENPE_UNDERLAY_IFACE:-}" ]]; then
+		echo "ERROR: OPENPE_UNDERLAY_IFACE must be set on bastion (e.g. ens8f0np0)" >&2
+		echo "  setup-clab does not rename worker NICs; default toswitch1 is not safe here" >&2
+		exit 1
+	fi
+	export OPENPE_UNDERLAY_IFACE
+	export OPENPE_UNDERLAY_IFACE2="${OPENPE_UNDERLAY_IFACE2:-}"
+fi
+
 echo "=== Run e2e tests ==="
+echo "  OPENPE_E2E_PROVIDER=${PROVIDER}"
 echo "  CONTAINER_RUNTIME=${RUNTIME} KUBECONFIG=${KUBECONFIG:-}"
 echo "  openperouter-namespace=${OPENPE_NS}"
+echo "  frrk8s-namespace=${FRRK8S_NAMESPACE}"
+echo "  nodelink=${NODELINK}"
+if [[ "${PROVIDER}" == "bastion" ]]; then
+	echo "  OPENPE_UNDERLAY_IFACE=${OPENPE_UNDERLAY_IFACE}"
+	if [[ -n "${OPENPE_UNDERLAY_IFACE2}" ]]; then
+		echo "  OPENPE_UNDERLAY_IFACE2=${OPENPE_UNDERLAY_IFACE2} (dual-leaf)"
+	else
+		echo "  OPENPE_UNDERLAY_IFACE2=<unset> (leaf2 skipped)"
+	fi
+fi
 echo "  focus=${FOCUS}"
 echo "  skip=${SKIP}"
 
 pushd "$SCRIPT_DIR"/../..
 
 CONTAINER_RUNTIME="${RUNTIME}" make e2etests \
-	TEST_ARGS="--nodelink-config=$SCRIPT_DIR/nodelink.json \
-		--frrk8s-namespace=openshift-frr-k8s \
+	TEST_ARGS="--nodelink-config=${NODELINK} \
+		--frrk8s-namespace=${FRRK8S_NAMESPACE} \
 		--openperouter-namespace=${OPENPE_NS}" \
 	KUBECONFIG_PATH=$KUBECONFIG \
 	GINKGO_ARGS="--label-filter=\!'systemd-mode' \

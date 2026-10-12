@@ -19,6 +19,7 @@ import (
 	"github.com/openperouter/openperouter/e2etests/pkg/k8sclient"
 	"github.com/openperouter/openperouter/e2etests/pkg/openperouter"
 	"github.com/openperouter/openperouter/e2etests/pkg/url"
+	"github.com/openperouter/openperouter/e2etests/pkg/validate"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
@@ -71,13 +72,9 @@ var _ = Describe("North/south traffic after FRR container restart", Ordered, fun
 
 		routers.Dump(ginkgo.GinkgoWriter)
 
-		underlay := infra.Underlay
-		if !infra.DualLeafEnabled() {
-			underlay = singleSessionUnderlay
-		}
 		err = Updater.Update(config.Resources{
 			Underlays: []v1alpha1.Underlay{
-				underlay,
+				infra.Underlay,
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -89,19 +86,13 @@ var _ = Describe("North/south traffic after FRR container restart", Ordered, fun
 	AfterAll(func() {
 		err := Updater.CleanAll()
 		Expect(err).NotTo(HaveOccurred())
-		By("waiting for underlay-node router pods to be ready after removing the underlay")
+		By("waiting for all router pods to be ready after removing the underlay")
 		Eventually(func() error {
-			allNodes, err := k8s.GetNodes(cs)
+			routers, err := openperouter.Get(cs, HostMode)
 			if err != nil {
 				return err
 			}
-			underlayNodes := map[string]bool{}
-			for _, n := range allNodes {
-				if infra.HasKindLeafLink(n.Name) {
-					underlayNodes[n.Name] = true
-				}
-			}
-			return openperouter.AreReadyOnNodes(cs, underlayNodes)
+			return openperouter.AreReady(routers)
 		}, 2*time.Minute, time.Second).ShouldNot(HaveOccurred())
 	})
 
@@ -139,14 +130,8 @@ var _ = Describe("North/south traffic after FRR container restart", Ordered, fun
 
 		allNodes, err := k8s.GetNodes(cs)
 		Expect(err).NotTo(HaveOccurred())
-		// Bastion/CNF: schedule on underlay workers, not masters
-		var nodes []v1.Node
-		for _, n := range allNodes {
-			if infra.HasKindLeafLink(n.Name) {
-				nodes = append(nodes, n)
-			}
-		}
-		Expect(nodes).NotTo(BeEmpty(), "no underlay-capable nodes in nodelink.json")
+		nodes := infra.NodesWithUnderlayLabel(allNodes)
+		Expect(nodes).NotTo(BeEmpty(), "no nodes with label %s=%s", infra.UnderlayE2ELabelKey, infra.UnderlayE2ELabelValue)
 
 		By("creating the pods")
 		clientPod, err := k8s.CreateAgnhostPod(cs, "pod1", testNamespace,
@@ -208,13 +193,13 @@ var _ = Describe("North/south traffic after FRR container restart", Ordered, fun
 		nodeName := routerPod.Spec.NodeName
 		neighborIP, err := infra.NeighborIP(infra.KindLeaf, nodeName)
 		Expect(err).NotTo(HaveOccurred())
-		validateSessionWithNeighbor(
+		validate.SessionWithNeighbor(
 			executor.ForContainer(infra.KindLeaf),
-			validationParameters{
-				fromName:    infra.KindLeaf,
-				toName:      nodeName,
-				neighborIP:  neighborIP,
-				established: Established,
+			validate.SessionParameters{
+				FromName:    infra.KindLeaf,
+				ToName:      nodeName,
+				NeighborIP:  neighborIP,
+				Established: Established,
 			},
 		)
 

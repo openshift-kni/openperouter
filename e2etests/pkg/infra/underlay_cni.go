@@ -57,7 +57,7 @@ func cniUnderlayForNode(nodeIndex int, node corev1.Node, ifName string) v1alpha1
   "plugins": [
     {
       "type": "macvlan",
-      "master": "%s",
+      "master": "toswitch1",
       "mode": "bridge",
       "ipam": {
         "type": "static",
@@ -67,7 +67,7 @@ func cniUnderlayForNode(nodeIndex int, node corev1.Node, ifName string) v1alpha1
       }
     }
   ]
-}`, UnderlayIface1(), CNIUnderlayNeighborIP(nodeIndex))
+}`, CNIUnderlayNeighborIP(nodeIndex))
 
 	return v1alpha1.Underlay{
 		ObjectMeta: metav1.ObjectMeta{
@@ -127,20 +127,20 @@ func DHCPCNIUnderlaysForNodes(nodes []corev1.Node, ifName string) []v1alpha1.Und
 }
 
 func dhcpCNIUnderlayForNode(nodeIndex int, node corev1.Node, ifName string) v1alpha1.Underlay {
-	rawConfig := fmt.Sprintf(`{
+	rawConfig := `{
   "cniVersion": "1.0.0",
   "name": "macvlan-underlay",
   "plugins": [
     {
       "type": "macvlan",
-      "master": "%s",
+      "master": "toswitch1",
       "mode": "bridge",
       "ipam": {
         "type": "dhcp"
       }
     }
   ]
-}`, UnderlayIface1())
+}`
 	return v1alpha1.Underlay{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("underlay-dhcp-%d", nodeIndex),
