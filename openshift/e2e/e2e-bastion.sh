@@ -1,14 +1,20 @@
 #!/usr/bin/env bash
 # Bastion / OCP e2e lifecycle (CI entrypoint):
-#   1) bridges + clab fabric   (deploy-bastion.sh → setup-clab.sh)
-#   2) existing focused tests  (run_tests.sh)
-#   3) tear down fabric        (teardown-clab.sh) — always, via EXIT trap
-#   4) tear down worker underlay IPs (teardown-bastion-worker-net.sh)
-#   5) tear down CNO FRR       (teardown_frrk8s.sh) if this run enabled it
+#   1) deploy-bastion.sh       — wait for shared frr-k8s + bridges + clab
+#   2) configure-bastion-worker-net.sh — worker underlay IPs from nodelink
+#   3) run_tests.sh            — focused Ginkgo suite
+#   EXIT trap (always, unless OPENPE_E2E_SKIP_TEARDOWN=true):
+#   4) teardown-bastion-worker-net.sh — flush worker underlay IPs first
+#   5) teardown-clab.sh        — destroy fabric; keep toswitch*/mgmt
+#   6) teardown_frrk8s.sh      — no-op by default (shared CNO FRR); only if
+#                                OPENPE_E2E_TEARDOWN_FRRK8S=true and marker set
+#
+# Worker-net teardown runs before clab so oc debug / the API still work.
 #
 # This is the OCP/bastion counterpart to KIND "make deploy && make e2etests && make clean".
-# It does NOT run KIND "make deploy". OpenPE operator + OpenPERouter CR must already be installed; frr-k8s is enabled via deploy-bastion (CNO FRR)
-# (CI installs operators before this job).
+# It does NOT run KIND "make deploy". OpenPE (underlay CRDs + controller/router
+# DaemonSets) and CNO FRR must already be installed on telco QE clusters
+# (CI installs operators / FRR before this job).
 #
 # Usage (on bastion):
 #   export KUBECONFIG=/path/to/ocp/kubeconfig
@@ -17,7 +23,9 @@
 #
 #   # or: make e2e-bastion
 #
-# Debug: OPENPE_E2E_SKIP_TEARDOWN=true keeps the fabric after the run.
+# Debug: OPENPE_E2E_SKIP_TEARDOWN=true skips *all* EXIT cleanup (worker-net IPs,
+# clab fabric, and CNO FRR) — not fabric-only. For selective cleanup use
+# OPENPE_E2E_TEARDOWN_WORKER_NET / OPENPE_E2E_TEARDOWN_FRRK8S instead.
 #
 set -euo pipefail
 
@@ -38,29 +46,38 @@ export CONTAINER_RUNTIME="${CONTAINER_RUNTIME:-${SCRIPT_DIR}/podman-root.sh}"
 SKIP_TEARDOWN="${OPENPE_E2E_SKIP_TEARDOWN:-false}"
 TEST_RC=0
 
+# EXIT trap must not mask deploy/test status: prefer TEST_RC, then the status
+# that triggered EXIT, then a teardown failure.
 teardown() {
+  local causing_rc=$?
+  local td_rc=0
   if [[ "${SKIP_TEARDOWN}" == "true" ]]; then
-    echo "=== SKIP teardown (OPENPE_E2E_SKIP_TEARDOWN=true) ==="
-    return 0
+    echo "=== SKIP all teardown (OPENPE_E2E_SKIP_TEARDOWN=true): worker-net + clab + frrk8s ==="
+  else
+    echo "=== EXIT trap: teardown-bastion-worker-net ==="
+    bash "${SCRIPT_DIR}/teardown-bastion-worker-net.sh" || {
+      echo "ERROR: teardown-bastion-worker-net failed" >&2
+      td_rc=1
+    }
+    echo "=== EXIT trap: teardown-clab ==="
+    bash "${SCRIPT_DIR}/teardown-clab.sh" || {
+      echo "ERROR: teardown-clab failed" >&2
+      td_rc=1
+    }
+    # Remove CNO FRR if this e2e run enabled it (see deploy_frrk8s.sh marker).
+    echo "=== EXIT trap: teardown-frrk8s ==="
+    bash "${SCRIPT_DIR}/teardown_frrk8s.sh" || {
+      echo "ERROR: teardown-frrk8s failed" >&2
+      td_rc=1
+    }
   fi
-  local rc=0
-  echo "=== EXIT trap: teardown-bastion-worker-net ==="
-  bash "${SCRIPT_DIR}/teardown-bastion-worker-net.sh" || {
-    echo "ERROR: teardown-bastion-worker-net failed" >&2
-    rc=1
-  }
-  echo "=== EXIT trap: teardown-clab ==="
-  bash "${SCRIPT_DIR}/teardown-clab.sh" || {
-    echo "ERROR: teardown-clab failed" >&2
-    rc=1
-  }
-  # Remove CNO FRR if this e2e run enabled it (see deploy_frrk8s.sh marker).
-  echo "=== EXIT trap: teardown-frrk8s ==="
-  bash "${SCRIPT_DIR}/teardown_frrk8s.sh" || {
-    echo "ERROR: teardown-frrk8s failed" >&2
-    rc=1
-  }
-  return "${rc}"
+  if [[ "${TEST_RC}" -ne 0 ]]; then
+    exit "${TEST_RC}"
+  fi
+  if [[ "${causing_rc}" -ne 0 ]]; then
+    exit "${causing_rc}"
+  fi
+  exit "${td_rc}"
 }
 
 trap teardown EXIT

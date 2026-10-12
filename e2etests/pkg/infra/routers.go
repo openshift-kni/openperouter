@@ -4,7 +4,6 @@ package infra
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/openperouter/openperouter/e2etests/pkg/frr"
 	"github.com/openperouter/openperouter/e2etests/pkg/ipfamily"
@@ -63,15 +62,49 @@ func registerFabricLinks() {
 	addLinkIPs(LeafB, ClabPrefix+"hostB_blue", "192.169.21.1", HostBBlueIPv4)
 }
 
-func registerNodeLinks(cfg nodeLinksConfig) {
-	for nodeName, nc := range cfg.Nodes {
-		addLinkIPs(KindLeaf, nodeName, kindLeafIP, nc.IPForKindLeaf)
-		addLinkIPs(KindLeaf2, nodeName, kindLeaf2IP, nc.IPForKindLeaf2)
-		addLinkIPv6s(KindLeaf, nodeName, kindLeafIPv6, nc.IPv6ForKindLeaf)
-		addLinkIPv6s(KindLeaf2, nodeName, kindLeaf2IPv6, nc.IPv6ForKindLeaf2)
-		addLinkInterfaces(KindLeaf, nodeName, nc.LeafIfaceForKindLeaf, nc.IfaceForKindLeaf)
-		addLinkInterfaces(KindLeaf2, nodeName, nc.LeafIfaceForKindLeaf2, nc.IfaceForKindLeaf2)
+// registerNodeLinks registers per-node underlay links from nodelink JSON.
+// When dualLeaf is true, leaf2 fields are required; otherwise they are ignored.
+func registerNodeLinks(cfg nodeLinksConfig, dualLeaf bool) error {
+	if len(cfg.Nodes) == 0 {
+		return fmt.Errorf("nodelink config has no nodes")
 	}
+	for nodeName, nc := range cfg.Nodes {
+		if nc.IPForKindLeaf == "" {
+			return fmt.Errorf("node %q: ipForKindLeaf is required", nodeName)
+		}
+		addLinkIPs(KindLeaf, nodeName, kindLeafIP, nc.IPForKindLeaf)
+
+		if dualLeaf {
+			if nc.IPForKindLeaf2 == "" {
+				return fmt.Errorf("node %q: ipForKindLeaf2 is required when underlayHostIfaces enables dual-leaf", nodeName)
+			}
+			addLinkIPs(KindLeaf2, nodeName, kindLeaf2IP, nc.IPForKindLeaf2)
+		}
+
+		if nc.IPv6ForKindLeaf != "" {
+			addLinkIPv6s(KindLeaf, nodeName, kindLeafIPv6, nc.IPv6ForKindLeaf)
+			if dualLeaf {
+				if nc.IPv6ForKindLeaf2 == "" {
+					return fmt.Errorf("node %q: ipv6ForKindLeaf2 is required when ipv6ForKindLeaf is set in dual-leaf mode", nodeName)
+				}
+				addLinkIPv6s(KindLeaf2, nodeName, kindLeaf2IPv6, nc.IPv6ForKindLeaf2)
+			}
+		}
+
+		if nc.LeafIfaceForKindLeaf != "" || nc.IfaceForKindLeaf != "" {
+			if nc.LeafIfaceForKindLeaf == "" || nc.IfaceForKindLeaf == "" {
+				return fmt.Errorf("node %q: leafIfaceForKindLeaf and ifaceForKindLeaf must both be set", nodeName)
+			}
+			addLinkInterfaces(KindLeaf, nodeName, nc.LeafIfaceForKindLeaf, nc.IfaceForKindLeaf)
+			if dualLeaf {
+				if nc.LeafIfaceForKindLeaf2 == "" || nc.IfaceForKindLeaf2 == "" {
+					return fmt.Errorf("node %q: leafIfaceForKindLeaf2 and ifaceForKindLeaf2 are required when leaf1 ifaces are set in dual-leaf mode", nodeName)
+				}
+				addLinkInterfaces(KindLeaf2, nodeName, nc.LeafIfaceForKindLeaf2, nc.IfaceForKindLeaf2)
+			}
+		}
+	}
+	return nil
 }
 
 type link struct {
@@ -82,25 +115,22 @@ type linkAddresses struct {
 	from, to string
 }
 
+// HasLink reports whether nodelink.json registered a link between from and to.
+func HasLink(from, to string) bool {
+	_, err := NeighborIP(from, to)
+	return err == nil
+}
 
 // HasKindLeafLink reports whether nodelink.json registered a link between
 // leafkind1 and nodeName (underlay-capable nodes only).
 func HasKindLeafLink(nodeName string) bool {
-	_, err := NeighborIP(KindLeaf, nodeName)
-	return err == nil
+	return HasLink(KindLeaf, nodeName)
 }
 
 // HasKindLeaf2Link reports whether nodelink.json registered a link between
 // leafkind2 and nodeName.
 func HasKindLeaf2Link(nodeName string) bool {
-	_, err := NeighborIP(KindLeaf2, nodeName)
-	return err == nil
-}
-
-// DualLeafEnabled is true when OPENPE_UNDERLAY_IFACE2 is set (second TOR path).
-// Bastion single-uplink labs leave it unset and only peer leafkind1.
-func DualLeafEnabled() bool {
-	return os.Getenv(EnvUnderlayIface2) != ""
+	return HasLink(KindLeaf2, nodeName)
 }
 
 // NeighborIP is a wrapper around NeighborForFamily for IPv4.

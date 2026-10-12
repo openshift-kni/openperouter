@@ -5,7 +5,6 @@ package openperouter
 import (
 	"fmt"
 	"log"
-	"os"
 	"strings"
 
 	"github.com/openperouter/openperouter/e2etests/pkg/executor"
@@ -102,13 +101,23 @@ func UnderlayConfigured(nodeName string) (bool, error) {
 	return false, nil
 }
 
-// UnderlayVethExists checks whether the underlay interfaces exist on nodeName,
+// underlayHostIfaces are the host ifaces checked by UnderlayVethsExists.
+var underlayHostIfaces = []string{"toswitch1", "toswitch2"}
+
+// SetUnderlayHostIfaces sets the host underlay ifaces for netns helpers.
+// Empty is a no-op (keeps Kind defaults).
+func SetUnderlayHostIfaces(ifaces []string) {
+	if len(ifaces) == 0 {
+		return
+	}
+	underlayHostIfaces = append([]string(nil), ifaces...)
+}
+
+// UnderlayVethsExists checks whether the underlay interfaces exist on nodeName,
 // either in the default netns or inside the perouter netns.
-// Names default to toswitch1/toswitch2; override with OPENPE_UNDERLAY_IFACE /
-// OPENPE_UNDERLAY_IFACE2 (see infra.UnderlayIfaces).
 func UnderlayVethsExists(nodeName string) bool {
 	exec := executor.ForNode(nodeName)
-	for _, iface := range underlayHostIfaces() {
+	for _, iface := range underlayHostIfaces {
 		if _, err := exec.Exec("ip", "link", "show", iface); err == nil {
 			return true
 		}
@@ -117,19 +126,6 @@ func UnderlayVethsExists(nodeName string) bool {
 		}
 	}
 	return false
-}
-
-
-func underlayHostIfaces() []string {
-	iface1 := "toswitch1"
-	iface2 := "toswitch2"
-	if v := os.Getenv("OPENPE_UNDERLAY_IFACE"); v != "" {
-		iface1 = v
-	}
-	if v := os.Getenv("OPENPE_UNDERLAY_IFACE2"); v != "" {
-		iface2 = v
-	}
-	return []string{iface1, iface2}
 }
 
 // deleteNetnsDevices lists all devices inside the perouter netns and deletes

@@ -13,8 +13,7 @@ import (
 // and restore the old interfaces before setting up the new ones. While this is now graceful (no pod restart
 // required), changing interfaces mid-test can still disrupt E2E tests that cache router state in BeforeAll().
 //
-// Names default to toswitch1/toswitch2 and can be overridden with OPENPE_UNDERLAY_IFACE /
-// OPENPE_UNDERLAY_IFACE2 for baremetal clusters that keep vendor NIC names.
+// Interface names default to toswitch1/toswitch2; RegisterLinks may override them.
 
 var defaultInterfaces []v1alpha1.UnderlayInterface
 
@@ -23,21 +22,44 @@ var defaultInterfaces []v1alpha1.UnderlayInterface
 // interface parity described above.
 var DefaultInterfaces []v1alpha1.UnderlayInterface
 
-func buildDefaultInterfaces() []v1alpha1.UnderlayInterface {
-	return []v1alpha1.UnderlayInterface{
+func buildDefaultInterfaces(cfg UnderlayIfacesConfig) []v1alpha1.UnderlayInterface {
+	ifaces := []v1alpha1.UnderlayInterface{
 		{
 			Type:          "NetworkDevice",
-			NetworkDevice: &v1alpha1.NetworkDevice{InterfaceName: UnderlayIface1()},
-		},
-		{
-			Type:          "NetworkDevice",
-			NetworkDevice: &v1alpha1.NetworkDevice{InterfaceName: UnderlayIface2()},
+			NetworkDevice: &v1alpha1.NetworkDevice{InterfaceName: cfg.Iface1},
 		},
 	}
+	if cfg.DualLeaf {
+		ifaces = append(ifaces, v1alpha1.UnderlayInterface{
+			Type:          "NetworkDevice",
+			NetworkDevice: &v1alpha1.NetworkDevice{InterfaceName: cfg.Iface2},
+		})
+	}
+	return ifaces
 }
 
-func init() {
-	defaultInterfaces = buildDefaultInterfaces()
+// Full dual-leaf neighbor lists; trimmed by ConfigureUnderlayIfaces when needed.
+var (
+	underlayNeighborsFull           []v1alpha1.Neighbor
+	underlayIPv6NeighborsFull       []v1alpha1.Neighbor
+	underlayListenNeighborsFull     []v1alpha1.Neighbor
+	underlayListenIPv6NeighborsFull []v1alpha1.Neighbor
+)
+
+// neighborsFor returns full when dualLeaf is set, otherwise only the first neighbor.
+func neighborsFor(dualLeaf bool, full []v1alpha1.Neighbor) []v1alpha1.Neighbor {
+	n := full
+	if !dualLeaf && len(full) > 1 {
+		n = full[:1]
+	}
+	out := make([]v1alpha1.Neighbor, len(n))
+	copy(out, n)
+	return out
+}
+
+// applyUnderlayInterfaces updates shared underlay fixtures from cfg.
+func applyUnderlayInterfaces(cfg UnderlayIfacesConfig) {
+	defaultInterfaces = buildDefaultInterfaces(cfg)
 	DefaultInterfaces = defaultInterfaces
 	Underlay.Spec.Interfaces = defaultInterfaces
 	UnderlayIPv6.Spec.Interfaces = defaultInterfaces
@@ -46,15 +68,33 @@ func init() {
 	UnderlaySRv6.Spec.Interfaces = defaultInterfaces
 	UnderlaySRv6EncapRed.Spec.Interfaces = defaultInterfaces
 	UnderlayEVPNandSRv6.Spec.Interfaces = defaultInterfaces
+
+	Underlay.Spec.Neighbors = neighborsFor(cfg.DualLeaf, underlayNeighborsFull)
+	UnderlayIPv6.Spec.Neighbors = neighborsFor(cfg.DualLeaf, underlayIPv6NeighborsFull)
+	UnderlayListenRange.Spec.Neighbors = neighborsFor(cfg.DualLeaf, underlayListenNeighborsFull)
+	UnderlayListenRangeIPv6.Spec.Neighbors = neighborsFor(cfg.DualLeaf, underlayListenIPv6NeighborsFull)
+
 	if UnderlaySRv6.Spec.ISIS != nil && len(UnderlaySRv6.Spec.ISIS.Interfaces) > 0 {
-		UnderlaySRv6.Spec.ISIS.Interfaces[0].Name = UnderlayIface1()
+		UnderlaySRv6.Spec.ISIS.Interfaces[0].Name = cfg.Iface1
 	}
 	if UnderlaySRv6EncapRed.Spec.ISIS != nil && len(UnderlaySRv6EncapRed.Spec.ISIS.Interfaces) > 0 {
-		UnderlaySRv6EncapRed.Spec.ISIS.Interfaces[0].Name = UnderlayIface1()
+		UnderlaySRv6EncapRed.Spec.ISIS.Interfaces[0].Name = cfg.Iface1
 	}
 	if UnderlayEVPNandSRv6.Spec.ISIS != nil && len(UnderlayEVPNandSRv6.Spec.ISIS.Interfaces) > 0 {
-		UnderlayEVPNandSRv6.Spec.ISIS.Interfaces[0].Name = UnderlayIface1()
+		UnderlayEVPNandSRv6.Spec.ISIS.Interfaces[0].Name = cfg.Iface1
 	}
+}
+
+func init() {
+	underlayNeighborsFull = append([]v1alpha1.Neighbor(nil), Underlay.Spec.Neighbors...)
+	underlayIPv6NeighborsFull = append([]v1alpha1.Neighbor(nil), UnderlayIPv6.Spec.Neighbors...)
+	underlayListenNeighborsFull = append([]v1alpha1.Neighbor(nil), UnderlayListenRange.Spec.Neighbors...)
+	underlayListenIPv6NeighborsFull = append([]v1alpha1.Neighbor(nil), UnderlayListenRangeIPv6.Spec.Neighbors...)
+	cfg, err := ResolveUnderlayHostIfaces(nil)
+	if err != nil {
+		panic(err)
+	}
+	applyUnderlayInterfaces(cfg)
 }
 
 // Underlay is the multi-session configuration with multiple interfaces and neighbors
