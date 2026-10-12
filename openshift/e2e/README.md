@@ -44,34 +44,33 @@ Target: QE bastions (e.g. `bastion-hlxcl7`) with:
 ### CI / full lifecycle (setup → test → teardown)
 
 This is the bastion/OCP counterpart to KIND `make deploy` + e2e + clean.  
-**Do not** use KIND `make deploy` on the bastion. OpenPE operator must already be installed; **frr-k8s** is enabled by `deploy-bastion.sh` via CNO `additionalRoutingCapabilities` (not a cluster default; set `OPENPE_E2E_DEPLOY_FRRK8S=false` to skip).
+**Do not** use KIND `make deploy` on the bastion. OpenPE must already be installed. Telco QE clusters already enable CNO **FRR** (frr-k8s) as shared lab infra — `deploy-bastion.sh` defaults to waiting for existing pods (`OPENPE_E2E_DEPLOY_FRRK8S=false`) and does not tear FRR down (`OPENPE_E2E_TEARDOWN_FRRK8S=false`). Set both to `true` only when this job must enable/restore CNO FRR itself.
 
 ```bash
-export KUBECONFIG=/path/to/ocp/kubeconfig
 set -a && source openshift/e2e/bastion.env.example && set +a
 
-# Preferred:
-make e2e-bastion
-# same as: ./openshift/e2e/e2e-bastion.sh
-```
-
-`make` exports KIND’s `bin/kubeconfig` as `KUBECONFIG`. For bastion CI use:
-
-```bash
+# make e2e-bastion requires OPENPE_KUBECONFIG (Make would otherwise export KIND's
+# bin/kubeconfig as KUBECONFIG). Sourcing bastion.env alone is not enough for Make.
 export OPENPE_KUBECONFIG=/path/to/ocp/kubeconfig
 make e2e-bastion
-# or bypass make: KUBECONFIG=/path/to/ocp/kubeconfig ./openshift/e2e/e2e-bastion.sh
+
+# Or bypass Make and set KUBECONFIG for the script directly:
+# export KUBECONFIG=/path/to/ocp/kubeconfig
+# ./openshift/e2e/e2e-bastion.sh
 ```
 
 Flow:
 
-1. `deploy-bastion.sh` → frr-k8s + bridges + `setup-clab.sh` (fabric + nodelink)
-2. `configure-bastion-worker-net.sh` → apply worker underlay IPs
+1. `deploy-bastion.sh` → wait for existing frr-k8s (default) + bridges + `setup-clab.sh` (fabric + nodelink). With `OPENPE_E2E_DEPLOY_FRRK8S=true`, enables CNO FRR via `deploy_frrk8s.sh` first.
+2. `configure-bastion-worker-net.sh` → apply worker underlay IPs (`OPENPE_UNDERLAY_IFACE`)
 3. `run_tests.sh` → existing focused Ginkgo suite (`Single.Session.Baseline`, …)
-3. `teardown-clab.sh` → always (EXIT trap); keeps `toswitch*` / mgmt NICs; asserts default route stays on `eth0`
-4. `teardown_frrk8s.sh` → removes CNO `additionalRoutingCapabilities` **only if** this run enabled FRR (marker under `.e2e-bastion-state/`); set `OPENPE_E2E_TEARDOWN_FRRK8S=false` to keep it, or `force` to always remove
+4. EXIT trap (always unless `OPENPE_E2E_SKIP_TEARDOWN=true`):
+   1. `teardown-bastion-worker-net.sh` → remove planned worker underlay IPs (while cluster API still usable)
+   2. `teardown-clab.sh` → destroy fabric; keeps `toswitch*` / mgmt NICs; asserts default route stays on `eth0`
+   3. `teardown_frrk8s.sh` → **skipped by default** (shared CNO FRR). With `OPENPE_E2E_TEARDOWN_FRRK8S=true`, reverts CNO only if this run patched it (marker + `providersBefore`). `force` drops FRR from the current list; does not delete the frr-k8s namespace / ConfigMap.
 
-Debug (keep fabric): `OPENPE_E2E_SKIP_TEARDOWN=true make e2e-bastion`
+Debug (skip **all** EXIT cleanup — worker-net IPs, clab, and CNO FRR): `OPENPE_E2E_SKIP_TEARDOWN=true OPENPE_KUBECONFIG=… make e2e-bastion`.  
+For selective cleanup, leave that unset and use `OPENPE_E2E_TEARDOWN_WORKER_NET` / `OPENPE_E2E_TEARDOWN_FRRK8S` (see `bastion.env.example`).
 
 ### Shared `CLAB_*` variables (OpenPE + MetalLB)
 
@@ -80,21 +79,21 @@ Same bastion will later host MetalLB **external FRR** containers. Use one var se
 | Variable | Purpose | Example (hlxcl7) |
 | --- | --- | --- |
 | `CLAB_EXECUTOR` | `local` (CI/bastion) or `ssh` (laptop later) | `local` |
-| `CLAB_BASTION_HOST` | Bastion hostname/IP | `registry.hlxcl7.lab.eng.tlv2.redhat.com` |
-| `CLAB_BASTION_USER` | SSH user | `telcov10n` |
-| `CLAB_BASTION_SSH` | `user@host` for ssh | `telcov10n@registry.hlxcl7…` |
-| `CLAB_BASTION_WORKDIR` | Checkout / topo dir on bastion | `/home/telcov10n/openperouter` |
+| `CLAB_BASTION_HOST` / `SSH` / `WORKDIR` | Future / MetalLB laptop→bastion; **unused** by OpenPE when `CLAB_EXECUTOR=local` | (optional) |
 | `CLAB_RUNTIME` | `podman` or `docker` | `podman` |
-| `CLAB_BASTION_LAB_IFACE` | Lab NIC (never default route) | `eth1` |
-| `CLAB_BASTION_ATTACH_LAB_IFACE` | Enslave lab NIC to `toswitch1` | `true` |
+| `CLAB_BASTION_LAB_IFACE_TOSWITCH1` | Lab NIC → `toswitch1` (never default route) | `eth1` |
+| `CLAB_BASTION_LAB_IFACE_TOSWITCH2` | Lab NIC → `toswitch2` | `eth2` |
+| `CLAB_BASTION_ATTACH_LAB_IFACE` | Enslave lab NICs: eth1→toswitch1, eth2→toswitch2 | `true` |
 | `OPENPE_E2E_PROVIDER` | OpenPE only: `dev-scripts` \| `bastion` | `bastion` |
-| `KUBECONFIG` | Cluster under test | path to hlxcl7 kubeconfig |
+| `OPENPE_KUBECONFIG` | Required for `make e2e-bastion` | path to OCP kubeconfig |
+| `KUBECONFIG` | Required by scripts when not using Make | same path |
 
-See `bastion.env.example`. Phase 1: **`CLAB_EXECUTOR=local` only** (run tests + clab on the bastion). `ssh` executor comes later for laptop-driven runs; CI stays `local`.
+See `bastion.env.example`. Phase 1: **`CLAB_EXECUTOR=local` only** (run tests + clab on the bastion). Remote `ssh` / `CLAB_BASTION_HOST` is future (e.g. MetalLB); CI stays `local`.
 
 ```bash
 set -a && source openshift/e2e/bastion.env.example && set +a
 export KUBECONFIG=/path/to/ocp/kubeconfig
+# bastion.env sets OPENPE_UNDERLAY_IFACE (required; e.g. ens8f0np0 on hlxcl7)
 
 # Bring-up only (no tests / no teardown):
 ./openshift/e2e/deploy-bastion.sh
@@ -102,18 +101,21 @@ export KUBECONFIG=/path/to/ocp/kubeconfig
 # Or step by step:
 # ./openshift/e2e/setup-bastion-bridges.sh
 # ./openshift/e2e/setup-clab.sh
+# ./openshift/e2e/configure-bastion-worker-net.sh   # needs OPENPE_UNDERLAY_IFACE
 # ./openshift/e2e/run_tests.sh
+# ./openshift/e2e/teardown-bastion-worker-net.sh
 # ./openshift/e2e/teardown-clab.sh
+# ./openshift/e2e/teardown_frrk8s.sh   # no-op unless this run enabled CNO FRR
 ```
 
 `setup-clab.sh` with `OPENPE_E2E_PROVIDER=bastion`:
 
 - Uses `CLAB_RUNTIME` (default **podman**)
 - Skips libvirt/virsh DHCP and `ostest_*` NIC rename
-- Writes planned `nodelink.json` (`OPENPE_BASTION_SKIP_WORKER_NET=true` by default)
+- Writes planned `nodelink.json` only (worker IPs applied later by `configure-bastion-worker-net.sh`)
 - Refuses to continue if default route is on `eth1`/`eth2`
 
-**Worker underlay IPs:** `e2e-bastion` runs `configure-bastion-worker-net.sh` after clab (applies addresses from `nodelink.json` onto `OPENPE_UNDERLAY_IFACE`) and removes them in EXIT via `teardown-bastion-worker-net.sh`.
+**Worker underlay IPs:** `e2e-bastion` runs `configure-bastion-worker-net.sh` after clab (applies addresses from `nodelink.json` onto `OPENPE_UNDERLAY_IFACE`) and removes them in EXIT via `teardown-bastion-worker-net.sh`. `run_tests.sh` exports `OPENPE_UNDERLAY_IFACE*` into `make e2etests` / Ginkgo (hydrates from configure state if unset).
 
 ## KIND
 
@@ -124,12 +126,18 @@ Unaffected by this directory. Use the existing Kind-based developer and CI flows
 | File | Role |
 | --- | --- |
 | `ocp.clab.yml` | Fabric topo; bridges `toswitch1`/`toswitch2` (shared by virtual OCP + bastion) |
+| `bastion.env.example` | Lab env template (hlxcl7 examples — replace for your lab) |
 | `setup-clab.sh` | Deploy fabric, IPs, setups, nodelink (provider-aware) |
 | `teardown-clab.sh` | Destroy fabric only (podman-safe); keep bridges/mgmt; assert eth0 default |
 | `setup_extra_networks.sh` | **Virtual OCP only** — libvirt extra nets |
-| `setup-bastion-bridges.sh` | **Bastion only** — create `toswitch*` + NM-harden lab NICs (no SSH theft) |
-| `deploy-bastion.sh` | **Bastion only** — bridges + `setup-clab.sh` (not KIND `make deploy`) |
-| `e2e-bastion.sh` | **Bastion only** — deploy → `run_tests.sh` → teardown (`make e2e-bastion`) |
+| `setup-bastion-bridges.sh` | **Bastion only** — create `toswitch*` + attach eth1/eth2 (no SSH theft) |
+| `deploy_frrk8s.sh` | Enable CNO FRR / wait for frr-k8s (marker when this run patches CNO) |
+| `teardown_frrk8s.sh` | Restore CNO FRR if marker present; no-op by default on telco |
+| `deploy-bastion.sh` | **Bastion only** — frr wait/enable + bridges + `setup-clab.sh` (not KIND `make deploy`) |
+| `configure-bastion-worker-net.sh` | Apply worker underlay IPs from nodelink (`OPENPE_UNDERLAY_IFACE`) |
+| `teardown-bastion-worker-net.sh` | Remove planned worker underlay IPs; keep state on failure |
+| `podman-root.sh` | Rootful `sudo -n podman` wrapper for Ginkgo `CONTAINER_RUNTIME` |
+| `e2e-bastion.sh` | **Bastion only** — deploy → configure → `run_tests.sh` → teardown (`make e2e-bastion`) |
+| `run_tests.sh` | Focused e2e against `nodelink.json` (bastion preflight + podman-root) |
 | `ip_map_ocp.txt` | Static IPs inside clab nodes |
 | `deploy.sh` | Full virtual-OCP bring-up |
-| `run_tests.sh` | Focused e2e against `nodelink.json` |

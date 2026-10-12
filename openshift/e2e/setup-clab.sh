@@ -15,9 +15,9 @@
 #
 # Bastion extras:
 #   CLAB_RUNTIME=podman|docker (default podman for bastion, docker for dev-scripts)
-#   Worker NIC rename / static IPs via virsh are skipped; nodelink.json is written
-#   with planned addresses when OPENPE_BASTION_SKIP_WORKER_NET=true (default).
-#   Full worker L2 still needs lab uplink cable + manual/future worker iface config.
+#   Bastion always writes nodelink.json with planned addresses only (no virsh /
+#   in-script IP apply). Worker underlay IPs are applied by
+#   configure-bastion-worker-net.sh (e2e-bastion lifecycle).
 #
 # Usage:
 #   export KUBECONFIG=...
@@ -35,12 +35,18 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 NODELINK_OUT="${SCRIPT_DIR}/nodelink.json"
 
 PROVIDER="${OPENPE_E2E_PROVIDER:-dev-scripts}"
+case "${PROVIDER}" in
+  bastion|dev-scripts) ;;
+  *)
+    echo "ERROR: unknown OPENPE_E2E_PROVIDER=${PROVIDER} (want bastion or dev-scripts)" >&2
+    exit 1
+    ;;
+esac
 if [[ "${PROVIDER}" == "bastion" ]]; then
     RUNTIME="${CLAB_RUNTIME:-${OPENPE_CLAB_RUNTIME:-podman}}"
 else
     RUNTIME="${CLAB_RUNTIME:-${OPENPE_CLAB_RUNTIME:-docker}}"
 fi
-SKIP_WORKER_NET="${OPENPE_BASTION_SKIP_WORKER_NET:-true}"
 # First nodelink node gets 192.168.11.${BASE} (use 103 if workers already use .103/.104)
 NODE_IP_BASE="${OPENPE_BASTION_NODE_IP_BASE:-100}"
 
@@ -72,7 +78,7 @@ if [[ "${PROVIDER}" == "dev-scripts" ]]; then
             echo "  ${net}: no DHCP range configured"
         fi
     done
-else
+elif [[ "${PROVIDER}" == "bastion" ]]; then
     echo "=== Step 1: Skip libvirt DHCP (bastion host bridges) ==="
     for br in toswitch1 toswitch2; do
         if ! ip link show "${br}" >/dev/null 2>&1; then
@@ -81,10 +87,12 @@ else
         fi
         echo "  ${br}: present"
     done
-    # Refuse if lab NICs stole the default route
+    # Refuse if lab NICs stole the default route (exact device match; not eth1⊂eth10).
+    MGMT_IFACE="${CLAB_BASTION_MGMT_IFACE:-eth0}"
+    def_dev="$(ip route 2>/dev/null | awk '/^default/ {print $5; exit}')"
     for iface in "${CLAB_BASTION_LAB_IFACE_TOSWITCH1:-eth1}" "${CLAB_BASTION_LAB_IFACE_TOSWITCH2:-eth2}"; do
-        if ip route show default 2>/dev/null | grep -q "dev ${iface}"; then
-            echo "ERROR: default route is on ${iface}; fix mgmt (eth0) before continuing" >&2
+        if [[ -n "${def_dev}" && "${def_dev}" == "${iface}" ]]; then
+            echo "ERROR: default route is on ${iface}; fix mgmt (${MGMT_IFACE}) before continuing" >&2
             ip route show default >&2 || true
             exit 1
         fi
@@ -137,11 +145,15 @@ cd "${REPO_ROOT}"
 # containerlab 0.79 + podman: --reconfigure can SEGV in destroy/ListContainers.
 # Destroy explicitly first, then deploy clean.
 sudo "${CLAB_BIN}" destroy --runtime "${RUNTIME}" \
-    --topo "${SCRIPT_DIR}/ocp.clab.yml" --cleanup 2>/dev/null || true
+  --topo "${SCRIPT_DIR}/ocp.clab.yml" --cleanup 2>/dev/null || true
+# Remove leftover lab containers that confuse the next deploy (both runtimes;
+# same pattern as teardown-clab.sh).
 if [[ "${RUNTIME}" == "podman" ]]; then
-    # Remove any leftover lab containers that confuse the next deploy
     sudo podman ps -a --filter name=clab-kind --format '{{.Names}}' \
       | xargs -r sudo podman rm -f 2>/dev/null || true
+elif [[ "${RUNTIME}" == "docker" ]]; then
+    sudo docker ps -a --filter name=clab-kind --format '{{.Names}}' \
+      | xargs -r sudo docker rm -f 2>/dev/null || true
 fi
 sudo "${CLAB_BIN}" deploy --runtime "${RUNTIME}" \
     --topo "${SCRIPT_DIR}/ocp.clab.yml"
@@ -157,7 +169,12 @@ ${CLI} exec clab-kind-leafkind2 ip link set dev toswitch2 mtu 1500
 echo "=== Step 6: Run container setup scripts ==="
 # leafSRV6 / hostSRV6_* enable SRv6 sysctls that hang this bastion kernel under podman
 # (guest soft-lock / SSH loss). Skip on bastion until that is root-caused.
-SKIP_SRV6_SETUP="${OPENPE_BASTION_SKIP_SRV6_SETUP:-false}"
+# Bastion default: skip SRv6 setups (sysctls hang under podman). Opt in with =false.
+if [[ "${PROVIDER}" == "bastion" ]]; then
+    SKIP_SRV6_SETUP="${OPENPE_BASTION_SKIP_SRV6_SETUP:-true}"
+else
+    SKIP_SRV6_SETUP="${OPENPE_BASTION_SKIP_SRV6_SETUP:-false}"
+fi
 if [[ "${PROVIDER}" == "bastion" && "${SKIP_SRV6_SETUP}" == "true" ]]; then
     echo "  skipping leafSRV6/hostSRV6_* setups (OPENPE_BASTION_SKIP_SRV6_SETUP=true)"
 fi
@@ -207,14 +224,25 @@ if [[ -z "${NODES//[[:space:]]/}" ]]; then
 fi
 
 OPENPE_NS="${OPENPE_E2E_NAMESPACE:-openshift-openperouter}"
+# Bastion is single-homed unless OPENPE_UNDERLAY_IFACE2 is set (matches DualLeafEnabled).
+# Require real worker NIC name — bastion does not virsh-rename to toswitch*.
+if [[ "${PROVIDER}" == "bastion" && -z "${OPENPE_UNDERLAY_IFACE:-}" ]]; then
+    echo "ERROR: OPENPE_UNDERLAY_IFACE must be set for bastion (e.g. ens8f0np0)" >&2
+    echo "  workers keep vendor NIC names; default toswitch1 is not safe" >&2
+    exit 1
+fi
 BASTION_IFACE1="${OPENPE_UNDERLAY_IFACE:-toswitch1}"
-BASTION_IFACE2="${OPENPE_UNDERLAY_IFACE2:-toswitch2}"
+BASTION_IFACE2="${OPENPE_UNDERLAY_IFACE2:-}"
 
 node_exec() {
     local node=$1; shift
     local pod
     pod=$(oc get pods -n "${OPENPE_NS}" -l app=controller \
         --field-selector spec.nodeName="${node}" -o jsonpath='{.items[0].metadata.name}')
+    if [[ -z "${pod}" ]]; then
+        echo "ERROR: no controller pod on ${node} in ${OPENPE_NS}" >&2
+        return 1
+    fi
     oc exec -n "${OPENPE_NS}" "${pod}" -- nsenter -t 1 -m -u -i -n "$@"
 }
 if [[ "${PROVIDER}" == "dev-scripts" ]]; then
@@ -285,8 +313,13 @@ if [[ "${PROVIDER}" == "dev-scripts" ]]; then
       \"leafIfaceForKindLeaf2\": \"toswitch2\"
     }"
     done
-else
+elif [[ "${PROVIDER}" == "bastion" ]]; then
     echo "=== Step 7/8: Bastion — nodelink only (worker IPs via configure-bastion-worker-net.sh) ==="
+    if [[ -n "${BASTION_IFACE2}" ]]; then
+        echo "  dual-leaf: iface1=${BASTION_IFACE1} iface2=${BASTION_IFACE2}"
+    else
+        echo "  single-homed: iface1=${BASTION_IFACE1} (set OPENPE_UNDERLAY_IFACE2 for leaf2)"
+    fi
     NODE_INDEX=0
     NODES_JSON=""
     for node in ${NODES}; do
@@ -295,12 +328,17 @@ else
         TS1_V6="2001:db8:11::$((NODE_IP_BASE + NODE_INDEX))"
         TS2_V6="2001:db8:12::$((NODE_IP_BASE + NODE_INDEX))"
         NODE_INDEX=$((NODE_INDEX + 1))
-        echo "  planned ${node}: ts1=${TS1_V4} ts2=${TS2_V4} ifaces=${BASTION_IFACE1}/${BASTION_IFACE2}"
+        if [[ -n "${BASTION_IFACE2}" ]]; then
+            echo "  planned ${node}: ${BASTION_IFACE1}=${TS1_V4} ${BASTION_IFACE2}=${TS2_V4}"
+        else
+            echo "  planned ${node}: ${BASTION_IFACE1}=${TS1_V4}"
+        fi
 
         if [ -n "${NODES_JSON}" ]; then
             NODES_JSON="${NODES_JSON},"
         fi
-        NODES_JSON="${NODES_JSON}
+        if [[ -n "${BASTION_IFACE2}" ]]; then
+            NODES_JSON="${NODES_JSON}
     \"${node}\": {
       \"ipForKindLeaf\": \"${TS1_V4}\",
       \"ipForKindLeaf2\": \"${TS2_V4}\",
@@ -311,11 +349,21 @@ else
       \"leafIfaceForKindLeaf\": \"toswitch1\",
       \"leafIfaceForKindLeaf2\": \"toswitch2\"
     }"
+        else
+            NODES_JSON="${NODES_JSON}
+    \"${node}\": {
+      \"ipForKindLeaf\": \"${TS1_V4}\",
+      \"ipv6ForKindLeaf\": \"${TS1_V6}\",
+      \"ifaceForKindLeaf\": \"${BASTION_IFACE1}\",
+      \"leafIfaceForKindLeaf\": \"toswitch1\"
+    }"
+        fi
     done
 fi
 
 cat > "${NODELINK_OUT}" << TOPOEOF
 {
+  "provider": "${PROVIDER}",
   "nodes": {${NODES_JSON}
   }
 }
@@ -331,6 +379,7 @@ if [[ "${PROVIDER}" == "bastion" ]]; then
     echo ""
     echo "Bastion notes:"
     echo "  - Fabric is up on host bridges toswitch1/toswitch2"
-    echo "  - Default route must stay on eth0 (mgmt)"
-    echo "  - End-to-end Baseline needs ens1f1 lab uplink + worker secondary NICs"
+    echo "  - Default route must stay on ${CLAB_BASTION_MGMT_IFACE:-eth0} (mgmt)"
+    echo "  - Lab NICs: ${CLAB_BASTION_LAB_IFACE_TOSWITCH1:-eth1}->toswitch1, ${CLAB_BASTION_LAB_IFACE_TOSWITCH2:-eth2}->toswitch2"
+    echo "  - Worker underlay IPs: configure-bastion-worker-net.sh (OPENPE_UNDERLAY_IFACE, e.g. ens8f0np0)"
 fi
