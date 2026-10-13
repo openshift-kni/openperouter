@@ -4,7 +4,7 @@ metadata:
   annotations:
     alm-examples: '[]'
     capabilities: Basic Install
-    createdAt: "2026-06-30T21:07:04Z"
+    createdAt: "2026-09-15T05:57:55Z"
     features.operators.openshift.io/csi: "false"
     features.operators.openshift.io/disconnected: "true"
     features.operators.openshift.io/fips-compliant: "true"
@@ -302,14 +302,6 @@ spec:
       permissions:
       - rules:
         - apiGroups:
-          - security.openshift.io
-          resourceNames:
-          - privileged
-          resources:
-          - securitycontextconstraints
-          verbs:
-          - use
-        - apiGroups:
           - ""
           resources:
           - secrets
@@ -379,14 +371,6 @@ spec:
           - watch
         serviceAccountName: operator
       - rules:
-        - apiGroups:
-          - security.openshift.io
-          resourceNames:
-          - privileged
-          resources:
-          - securitycontextconstraints
-          verbs:
-          - use
         - apiGroups:
           - ""
           resources:
