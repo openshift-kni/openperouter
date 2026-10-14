@@ -71,9 +71,13 @@ var _ = Describe("North/south traffic after FRR container restart", Ordered, fun
 
 		routers.Dump(ginkgo.GinkgoWriter)
 
+		underlay := infra.Underlay
+		if !infra.DualLeafEnabled() {
+			underlay = singleSessionUnderlay
+		}
 		err = Updater.Update(config.Resources{
 			Underlays: []v1alpha1.Underlay{
-				infra.Underlay,
+				underlay,
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -85,13 +89,19 @@ var _ = Describe("North/south traffic after FRR container restart", Ordered, fun
 	AfterAll(func() {
 		err := Updater.CleanAll()
 		Expect(err).NotTo(HaveOccurred())
-		By("waiting for all router pods to be ready after removing the underlay")
+		By("waiting for underlay-node router pods to be ready after removing the underlay")
 		Eventually(func() error {
-			routers, err := openperouter.Get(cs, HostMode)
+			allNodes, err := k8s.GetNodes(cs)
 			if err != nil {
 				return err
 			}
-			return openperouter.AreReady(routers)
+			underlayNodes := map[string]bool{}
+			for _, n := range allNodes {
+				if infra.HasKindLeafLink(n.Name) {
+					underlayNodes[n.Name] = true
+				}
+			}
+			return openperouter.AreReadyOnNodes(cs, underlayNodes)
 		}, 2*time.Minute, time.Second).ShouldNot(HaveOccurred())
 	})
 
@@ -127,9 +137,16 @@ var _ = Describe("North/south traffic after FRR container restart", Ordered, fun
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		nodes, err := k8s.GetNodes(cs)
+		allNodes, err := k8s.GetNodes(cs)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(len(nodes)).To(BeNumerically(">=", 2), "Expected at least 2 nodes, but got fewer")
+		// Bastion/CNF: schedule on underlay workers, not masters
+		var nodes []v1.Node
+		for _, n := range allNodes {
+			if infra.HasKindLeafLink(n.Name) {
+				nodes = append(nodes, n)
+			}
+		}
+		Expect(nodes).NotTo(BeEmpty(), "no underlay-capable nodes in nodelink.json")
 
 		By("creating the pods")
 		clientPod, err := k8s.CreateAgnhostPod(cs, "pod1", testNamespace,

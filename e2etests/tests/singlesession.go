@@ -33,7 +33,7 @@ var singleSessionUnderlay = v1alpha1.Underlay{
 	},
 	Spec: v1alpha1.UnderlaySpec{
 		ASN:        64514,
-		Interfaces: []v1alpha1.UnderlayInterface{{Type: "NetworkDevice", NetworkDevice: &v1alpha1.NetworkDevice{InterfaceName: "toswitch1"}}},
+		Interfaces: []v1alpha1.UnderlayInterface{{Type: "NetworkDevice", NetworkDevice: &v1alpha1.NetworkDevice{InterfaceName: infra.UnderlayIface1()}}},
 		Neighbors: []v1alpha1.Neighbor{
 			{
 				ASN:     new(int64(64512)),
@@ -94,7 +94,14 @@ var _ = Describe("Single Session Baseline", Ordered, func() {
 		cs = k8sclient.New()
 		nodesItems, err := cs.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 		Expect(err).NotTo(HaveOccurred())
-		nodes = nodesItems.Items
+		// Bastion/CNF: only nodes present in nodelink.json (workers), not masters.
+		nodes = nil
+		for _, n := range nodesItems.Items {
+			if infra.HasKindLeafLink(n.Name) {
+				nodes = append(nodes, n)
+			}
+		}
+		Expect(nodes).NotTo(BeEmpty(), "no nodes with leafkind1 links in nodelink.json")
 
 		By("Setting up underlay with single interface and single neighbor")
 		err = Updater.Update(config.Resources{
@@ -166,13 +173,13 @@ var _ = Describe("Single Session Baseline", Ordered, func() {
 		err = Updater.CleanAll()
 		Expect(err).NotTo(HaveOccurred())
 
-		By("waiting for all router pods to be ready after removing the underlay")
+		By("waiting for underlay-node router pods to be ready after removing the underlay")
+		underlayNodes := map[string]bool{}
+		for _, n := range nodes {
+			underlayNodes[n.Name] = true
+		}
 		Eventually(func() error {
-			routers, err := openperouter.Get(cs, HostMode)
-			if err != nil {
-				return err
-			}
-			return openperouter.AreReady(routers)
+			return openperouter.AreReadyOnNodes(cs, underlayNodes)
 		}, 2*time.Minute, time.Second).ShouldNot(HaveOccurred())
 	})
 
