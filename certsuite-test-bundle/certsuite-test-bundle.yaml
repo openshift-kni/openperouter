@@ -1,0 +1,53 @@
+apiVersion: certsuite.redhat.com/v1alpha1
+kind: TestBundle
+metadata:
+  name: openperouter-test-bundle
+  labels:
+    app.kubernetes.io/part-of: openperouter
+spec:
+  # CSV only supports AllNamespaces. Keep namespace pinned so the resolver
+  # does not generate an oo-* install NS that would miss certsuite_config
+  # and the operand apply.
+  namespace: openperouter-system
+  installMode: AllNamespaces
+
+  # Rewrite CSV images to a live operator digest after OLM creates the CSV
+  # in case the FBC-cataloged bundle relatedImages are stale. Keep
+  # registry.redhat.io so guest IDMS maps it to
+  # telco-5g-tenant/openperouter-operator-5-1.
+  # 01-discovery-pod-labels pins certsuite labels on operator/webhook
+  # templates so OLM does not revert Konflux's post-install patch.
+  csvPatches:
+    - path: csv-patches/00-live-operator-image.json
+    - path: csv-patches/01-discovery-pod-labels.json
+
+  # Konflux patches these kinds after CSV Succeeded and before operands.
+  # OLM-owned operator/webhook keep labels via csvPatches above. Operand
+  # nodemarker is created later from OpenPERouter CR labels (helm
+  # openperouter.labels); discoveryLabels still covers any Deployment
+  # already present at CSV-ready time.
+  discoveryLabels:
+    operator: "redhat-best-practices-for-k8s.com/operator=target"
+    pod: "redhat-best-practices-for-k8s.com/generic=target"
+    resources:
+      - kind: DaemonSet
+      - kind: Deployment
+
+  description: |
+    Software-only test deployment of openperouter-operator operands. Creates an
+    OpenPERouter CR that exercises the operator's reconciliation logic and
+    deploys the controller DaemonSet, router DaemonSet, and nodemarker
+    Deployment without requiring specialized networking hardware. Network CRs
+    (Underlay, L3VNI, etc.) are omitted because they depend on real NICs.
+
+  readiness:
+    timeout: 300
+    checks:
+      - kind: DaemonSet
+        name: controller
+      - kind: DaemonSet
+        name: router
+      - kind: Deployment
+        name: nodemarker
+      - kind: OpenPERouter
+        name: openperouter

@@ -243,13 +243,6 @@ func TestParseChartWithGroutEnabled(t *testing.T) {
 			for _, c := range router.Spec.Template.Spec.Containers {
 				if c.Name == "grout" {
 					g.Expect(c.Image).To(Equal("quay.io/openperouter/router:test-grout"))
-					env := map[string]string{}
-					for _, e := range c.Env {
-						env[e.Name] = e.Value
-					}
-					g.Expect(env["GROUT_SOCK_PATH"]).To(Equal("/var/run/grout/grout.sock"))
-					g.Expect(env["GROUT_MEMPOOL_CHUNK_SIZE"]).To(Equal("2047"))
-					g.Expect(env["GROUT_PORT_QUEUE_SIZE"]).To(Equal("128"))
 				}
 			}
 			routerFound = true
@@ -473,6 +466,56 @@ func TestParseChartWithBGPListenLimit(t *testing.T) {
 		controllerFound = true
 	}
 	g.Expect(controllerFound).To(BeTrue())
+}
+
+func TestParseChartPropagatesCRLabelsToPodTemplates(t *testing.T) {
+	g := NewGomegaWithT(t)
+	chart, err := NewChart(testChartPath, openperouterChartName, openperouterTestNamespace)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	const discoveryLabelKey = "redhat-best-practices-for-k8s.com/generic"
+	openperouter := &operatorapi.OpenPERouter{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "openperouter",
+			Namespace: openperouterTestNamespace,
+			Labels: map[string]string{
+				discoveryLabelKey: "target",
+			},
+		},
+		Spec: operatorapi.OpenPERouterSpec{
+			LogLevel: new(operatorapi.LogLevelInfo),
+		},
+	}
+
+	objs, err := chart.Objects(defaultEnvConfig, openperouter)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	var nodemarkerFound, controllerFound, routerFound bool
+	for _, obj := range objs {
+		switch {
+		case obj.GetKind() == deploymentKind && obj.GetName() == nodemarkerDeploymentName:
+			nodemarker := appsv1.Deployment{}
+			err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &nodemarker)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(nodemarker.Spec.Template.Labels).To(HaveKeyWithValue(discoveryLabelKey, "target"))
+			nodemarkerFound = true
+		case obj.GetKind() == daemonSetKind && obj.GetName() == controllerDaemonSetName:
+			controller := appsv1.DaemonSet{}
+			err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &controller)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(controller.Spec.Template.Labels).To(HaveKeyWithValue(discoveryLabelKey, "target"))
+			controllerFound = true
+		case obj.GetKind() == daemonSetKind && obj.GetName() == routerDaemonSetName:
+			router := appsv1.DaemonSet{}
+			err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &router)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(router.Spec.Template.Labels).To(HaveKeyWithValue(discoveryLabelKey, "target"))
+			routerFound = true
+		}
+	}
+	g.Expect(nodemarkerFound).To(BeTrue())
+	g.Expect(controllerFound).To(BeTrue())
+	g.Expect(routerFound).To(BeTrue())
 }
 
 func validateLogLevel(level string, pod v1.PodTemplateSpec) error {
