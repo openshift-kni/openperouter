@@ -18,7 +18,8 @@ function dump_topology() {
 
 	if command -v containerlab > /dev/null 2>&1; then
 		local -r logfile="${dir}/containerlab_inspect.log"
-		containerlab inspect &> "$logfile"
+		local -r runtime="$(basename "$CONTAINER_RUNTIME")"
+		containerlab inspect --all --runtime "$runtime" &> "$logfile"
 		echo "Dumped containerlab inspect to [$logfile]"
 	else
 		echo "containerlab command not found, skipping containerlab inspect"
