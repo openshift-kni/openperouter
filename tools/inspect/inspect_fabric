@@ -1,0 +1,122 @@
+#!/usr/bin/env bash
+
+# SPDX-License-Identifier:Apache-2.0
+
+set -ueo pipefail
+
+SCRIPT_DIR="$(dirname "$(realpath -s "$0")")"
+
+# script for collecting FRR and network state from a fabric container
+readonly FABRIC_INFO_SCRIPT="${SCRIPT_DIR}/fabric_info"
+# containerlab prefixes the containers it manages with "clab-"
+readonly CLAB_CONTAINER_PREFIX="clab-"
+# frr configuration file inside the fabric containers
+readonly FRR_CONF="/etc/frr/frr.conf"
+
+function dump_topology() {
+	local -r dir="$1"
+
+	if command -v containerlab > /dev/null 2>&1; then
+		local -r logfile="${dir}/containerlab_inspect.log"
+		containerlab inspect &> "$logfile"
+		echo "Dumped containerlab inspect to [$logfile]"
+	else
+		echo "containerlab command not found, skipping containerlab inspect"
+	fi
+}
+
+function dump_containers() {
+	local -r dir="$1"
+
+	local -r containers="$($CONTAINER_RUNTIME ps -a --format '{{.Names}}' \
+		| grep "^${CLAB_CONTAINER_PREFIX}" | sort || true)"
+	if [[ -z "$containers" ]]; then
+		echo "No ${CLAB_CONTAINER_PREFIX}* containers found"
+		return
+	fi
+
+	echo "$containers" > "${dir}/containers.log"
+
+	local container
+	for container in $containers; do
+		dump_container "${dir}/${container}" "$container"
+	done
+}
+
+function dump_container() {
+	local -r dir="$1"
+	local -r container="$2"
+
+	mkdir -p "$dir"
+
+	local logfile
+	logfile="${dir}/docker_inspect.json"
+	$CONTAINER_RUNTIME inspect "$container" &> "$logfile"
+	echo "Dumped docker inspect of [$container] to [$logfile]"
+
+	logfile="${dir}/docker.log"
+	$CONTAINER_RUNTIME logs --tail "$LOGS_TAIL" "$container" &> "$logfile"
+	echo "Dumped logs of [$container] to [$logfile]"
+
+	if $CONTAINER_RUNTIME cp "${container}:${FRR_CONF}" "${dir}/frr.conf" 2> /dev/null; then
+		echo "Dumped frr.conf of [$container] to [${dir}/frr.conf]"
+	fi
+
+	logfile="${dir}/fabric_info.log"
+	if $CONTAINER_RUNTIME exec -i "$container" bash < "$FABRIC_INFO_SCRIPT" &> "$logfile"; then
+		echo "Dumped fabric info of [$container] to [$logfile]"
+	else
+		echo "Failed to collect fabric info of [$container], see [$logfile]"
+	fi
+}
+
+function help() {
+	cat <<EOF
+Inspect the containerlab fabric and export its state and logs.
+
+Runs on the host where the fabric containers live (e.g. the dev
+environment or the CI remote host), independently from the Kubernetes
+API. Complements the "inspect" tool, which covers the cluster side.
+
+Usage: inspect_fabric [options]=<value>
+
+Example
+  inspect_fabric --dest-dir=/tmp/fabric-logs --container-runtime=docker
+
+Options:
+  --dest-dir           The directory to store artifacts (default: "openperouter-fabric-inspect")
+  --container-runtime  Container runtime binary path (default: "docker")
+  --logs-tail          Lines of container logs to collect (default: "5000")
+  -h, --help           Show this help message and exit
+EOF
+}
+
+DEST_DIR="./openperouter-fabric-inspect"
+CONTAINER_RUNTIME="docker"
+LOGS_TAIL="5000"
+
+while [[ $# -gt 0 ]]; do
+	case "$1" in
+		--dest-dir=*)          DEST_DIR="${1#*=}" ;;
+		--container-runtime=*) CONTAINER_RUNTIME="${1#*=}" ;;
+		--logs-tail=*)         LOGS_TAIL="${1#*=}" ;;
+		-h | --help)           help; exit 0 ;;
+		*) echo "Unknown option: $1"; help; exit 1 ;;
+	esac
+	shift
+done
+
+if ! command -v "$CONTAINER_RUNTIME" &> /dev/null; then
+	echo "FATAL: '$CONTAINER_RUNTIME' command not found" && exit 1
+fi
+
+mkdir -p "$DEST_DIR"
+date --rfc-3339=ns > "${DEST_DIR}/timestamp"
+
+(
+	set +e
+	dump_topology "$DEST_DIR"
+	dump_containers "$DEST_DIR"
+) 2>&1 | tee -a "${DEST_DIR}/inspect.log"
+
+echo "Inspect fabric completed. Artifacts are stored in $DEST_DIR"
