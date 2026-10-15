@@ -20,7 +20,7 @@ CONTAINER_RUNTIME=docker make e2etests \
 		--openperouter-namespace=openshift-openperouter" \
 	KUBECONFIG_PATH=$KUBECONFIG \
 	GINKGO_ARGS="--junit-report=junit_e2e.xml \
-		--label-filter=\!'systemd-mode && \!grout-only' \
+		--label-filter='!systemdmode && !grout-support' \
         --focus='Single.Session.Baseline' \
 	--focus='with Underlay in ipv4 should create two pods connected to the l2 overlay' \
 	--focus='should allow pod-to-pod L2 connectivity without a VRF' \
