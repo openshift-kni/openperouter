@@ -39,12 +39,17 @@ func handleFlags() {
 	flag.StringVar(&openperouter.Namespace, "openperouter-namespace", openperouter.Namespace, "namespace where OpenPERouter pods run")
 	flag.StringVar(&nodeLinkConfigPath, "nodelink-config", "../nodelink-default.json", "path to node links config JSON")
 	flag.StringVar(&nodeExecImage, "node-exec-image", "busybox:1.36", "container image for node-exec-helper pods")
+	flag.BoolVar(&tests.SingleUnderlayInterface, "singleinterface", false,
+		"when set, only connect toswitch1 to underlay (default: toswitch1, toswitch2)")
 	flag.Parse()
 }
 
 func TestMain(m *testing.M) {
 	// Register test flags, then parse flags.
 	handleFlags()
+	if tests.SingleUnderlayInterface {
+		infra.SetSingleDefaultInterface()
+	}
 	if testing.Short() {
 		return
 	}

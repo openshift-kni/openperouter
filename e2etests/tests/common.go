@@ -15,6 +15,7 @@ var (
 	HostMode                bool
 	GroutMode               bool
 	SkipUnderlayPassthrough bool
+	SingleUnderlayInterface bool
 )
 
 var GroutSupport = ginkgo.Label("grout-support")

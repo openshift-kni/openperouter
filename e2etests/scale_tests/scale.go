@@ -65,6 +65,7 @@ var _ = Describe("VNI Scale Tests", Ordered, func() {
 			Underlays: []v1alpha1.Underlay{infra.Underlay},
 		})
 		Expect(err).NotTo(HaveOccurred())
+		fmt.Println("akaris ---------------------------------> infra.Underlay")
 	})
 
 	AfterEach(func() {

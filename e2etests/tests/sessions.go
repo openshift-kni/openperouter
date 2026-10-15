@@ -102,6 +102,9 @@ var _ = Describe("Router BGP sessions", Ordered, GroutSupport, func() {
 		}
 	}
 	It("peers with both TOR switches", func() {
+		if SingleUnderlayInterface {
+			Skip("skipping when single underlay interface is configured")
+		}
 		validateTORSessions()
 	})
 

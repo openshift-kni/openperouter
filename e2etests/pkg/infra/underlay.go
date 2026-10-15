@@ -8,12 +8,34 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// SetSingleDefaultInterface restricts the shared underlay fixtures to a single
+// interface (toswitch1). Because each underlay captured its own copy of the
+// DefaultInterfaces slice header at package-init time, reassigning the global
+// alone does not reach them; we must set the new slice onto every struct that
+// uses DefaultInterfaces.
+func SetSingleDefaultInterface() {
+	single := []v1alpha1.UnderlayInterface{
+		{
+			Type:          "NetworkDevice",
+			NetworkDevice: &v1alpha1.NetworkDevice{InterfaceName: "toswitch1"},
+		},
+	}
+	DefaultInterfaces = single
+	Underlay.Spec.Interfaces = single
+	UnderlayIPv6.Spec.Interfaces = single
+	UnderlayListenRange.Spec.Interfaces = single
+	UnderlayListenRangeIPv6.Spec.Interfaces = single
+	UnderlaySRv6.Spec.Interfaces = single
+	UnderlaySRv6EncapRed.Spec.Interfaces = single
+	UnderlayEVPNandSRv6.Spec.Interfaces = single
+}
+
 // We want to use the same Interfaces for all underlays wherever possible. The reason is that if the underlay is
 // updated and the interfaces change, the controller will tear down dependent resources (VNIs, passthrough)
 // and restore the old interfaces before setting up the new ones. While this is now graceful (no pod restart
 // required), changing interfaces mid-test can still disrupt E2E tests that cache router state in BeforeAll().
 
-var defaultInterfaces = []v1alpha1.UnderlayInterface{
+var DefaultInterfaces = []v1alpha1.UnderlayInterface{
 	{
 		Type:          "NetworkDevice",
 		NetworkDevice: &v1alpha1.NetworkDevice{InterfaceName: "toswitch1"},
@@ -24,11 +46,6 @@ var defaultInterfaces = []v1alpha1.UnderlayInterface{
 	},
 }
 
-// DefaultInterfaces exposes the interfaces shared by all the underlay
-// fixtures, so underlays defined outside this package can keep the
-// interface parity described above.
-var DefaultInterfaces = defaultInterfaces
-
 // Underlay is the multi-session configuration with multiple interfaces and neighbors
 var Underlay = v1alpha1.Underlay{
 	ObjectMeta: metav1.ObjectMeta{
@@ -37,7 +54,7 @@ var Underlay = v1alpha1.Underlay{
 	},
 	Spec: v1alpha1.UnderlaySpec{
 		ASN:        64514,
-		Interfaces: defaultInterfaces,
+		Interfaces: DefaultInterfaces,
 		Neighbors: []v1alpha1.Neighbor{
 			{
 				ASN:                  new(int64(64512)),
@@ -67,7 +84,7 @@ var UnderlayIPv6 = v1alpha1.Underlay{
 	},
 	Spec: v1alpha1.UnderlaySpec{
 		ASN:        64514,
-		Interfaces: defaultInterfaces,
+		Interfaces: DefaultInterfaces,
 		Neighbors: []v1alpha1.Neighbor{
 			{
 				ASN:                  new(int64(64512)),
@@ -133,7 +150,7 @@ var UnderlayListenRange = v1alpha1.Underlay{
 	},
 	Spec: v1alpha1.UnderlaySpec{
 		ASN:        64514,
-		Interfaces: defaultInterfaces,
+		Interfaces: DefaultInterfaces,
 		Neighbors: []v1alpha1.Neighbor{
 			{
 				ASN:         new(int64(64512)),
@@ -169,7 +186,7 @@ var UnderlayListenRangeIPv6 = v1alpha1.Underlay{
 	},
 	Spec: v1alpha1.UnderlaySpec{
 		ASN:        64514,
-		Interfaces: defaultInterfaces,
+		Interfaces: DefaultInterfaces,
 		Neighbors: []v1alpha1.Neighbor{
 			{
 				ASN:         new(int64(64512)),
@@ -203,7 +220,7 @@ var UnderlaySRv6 = v1alpha1.Underlay{
 	},
 	Spec: v1alpha1.UnderlaySpec{
 		ASN:        64514,
-		Interfaces: defaultInterfaces,
+		Interfaces: DefaultInterfaces,
 		Neighbors: []v1alpha1.Neighbor{
 			{
 				ASN:                  new(int64(64520)),
@@ -246,7 +263,7 @@ var UnderlaySRv6EncapRed = v1alpha1.Underlay{
 	},
 	Spec: v1alpha1.UnderlaySpec{
 		ASN:        64514,
-		Interfaces: defaultInterfaces,
+		Interfaces: DefaultInterfaces,
 		Neighbors: []v1alpha1.Neighbor{
 			{
 				ASN:                  new(int64(64520)),
@@ -290,7 +307,7 @@ var UnderlayEVPNandSRv6 = v1alpha1.Underlay{
 	},
 	Spec: v1alpha1.UnderlaySpec{
 		ASN:        64514,
-		Interfaces: defaultInterfaces,
+		Interfaces: DefaultInterfaces,
 		Neighbors: []v1alpha1.Neighbor{
 			// leafSRV6 - use automatically derived address families.
 			{
