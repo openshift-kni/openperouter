@@ -229,6 +229,8 @@ spec:
                   value: "false"
                 - name: GROUT_IMAGE
                   value: quay.io/openperouter/router:main-grout
+                - name: GROUT_TEST_MODE
+                  value: "false"
                 image: quay.io/openperouter/router:main
                 imagePullPolicy: IfNotPresent
                 name: operator

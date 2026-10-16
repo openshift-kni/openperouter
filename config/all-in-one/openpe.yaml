@@ -63,6 +63,17 @@ spec:
           spec:
             description: spec defines the desired state of L2VNI.
             properties:
+              exportRTs:
+                description: exportRTs are the Route Targets to be used for exporting
+                  L2 EVPN routes.
+                items:
+                  description: RouteTarget defines a BGP Extended Community for route
+                    filtering.
+                  maxLength: 21
+                  type: string
+                maxItems: 100
+                type: array
+                x-kubernetes-list-type: atomic
               gatewayIPs:
                 description: |-
                   gatewayIPs is a list of IP addresses in CIDR notation for the
@@ -157,6 +168,17 @@ spec:
                     field, ''OVSBridge'' requires ovsBridge field'
                   rule: (self.type == 'LinuxBridge' && has(self.linuxBridge) && !has(self.ovsBridge))
                     || (self.type == 'OVSBridge' && has(self.ovsBridge) && !has(self.linuxBridge))
+              importRTs:
+                description: importRTs are the Route Targets to be used for importing
+                  L2 EVPN routes.
+                items:
+                  description: RouteTarget defines a BGP Extended Community for route
+                    filtering.
+                  maxLength: 21
+                  type: string
+                maxItems: 100
+                type: array
+                x-kubernetes-list-type: atomic
               nodeSelector:
                 description: |-
                   nodeSelector specifies which nodes this L2VNI applies to.
@@ -273,6 +295,8 @@ spec:
                 default: 4789
                 description: vxlanPort is the port to be used for VXLan encapsulation.
                 format: int32
+                maximum: 65535
+                minimum: 1
                 type: integer
             required:
             - vni
@@ -673,6 +697,8 @@ spec:
                 default: 4789
                 description: vxlanPort is the port to be used for VXLan encapsulation.
                 format: int32
+                maximum: 65535
+                minimum: 1
                 type: integer
             required:
             - vni
@@ -751,6 +777,21 @@ spec:
                   maxLength: 21
                   type: string
                 maxItems: 100
+                type: array
+                x-kubernetes-list-type: atomic
+              features:
+                description: |-
+                  features enables L3VPN boolean features.
+                  Supported features are:
+                  uDT4uDT6: configures the OpenPERouter to create separate functions for uDT4 and uDT6 (default: unified uDT46).
+                items:
+                  description: L3VPNFeature represents a single L3VPN feature.
+                  enum:
+                  - uDT4uDT6
+                  maxLength: 128
+                  minLength: 1
+                  type: string
+                maxItems: 32
                 type: array
                 x-kubernetes-list-type: atomic
               hostSession:
@@ -1149,6 +1190,7 @@ spec:
                       - Underlay
                       - L2VNI
                       - L3VNI
+                      - L3VPN
                       - FrrConfiguration
                       - L3Passthrough
                       type: string
@@ -1690,8 +1732,8 @@ spec:
                         port is the port to dial when establishing the session.
                         Defaults to 179.
                       format: int32
-                      maximum: 16384
-                      minimum: 0
+                      maximum: 65535
+                      minimum: 1
                       type: integer
                     properties:
                       description: |-
@@ -2584,9 +2626,6 @@ spec:
             - NET_BIND_SERVICE
           privileged: true
         volumeMounts:
-        - mountPath: /containerd.sock
-          name: varrun
-          subPath: containerd.sock
         - mountPath: /run/netns
           mountPropagation: Bidirectional
           name: runns
@@ -2614,9 +2653,6 @@ spec:
       - hostPath:
           path: /run/netns
         name: runns
-      - hostPath:
-          path: /run/containerd
-        name: varrun
       - hostPath:
           path: /etc/perouter/frr
           type: DirectoryOrCreate
