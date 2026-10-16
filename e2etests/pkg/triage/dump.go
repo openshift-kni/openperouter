@@ -57,7 +57,7 @@ func DumpIfFails(cs clientset.Interface, config Config) {
 		if logsSince.IsZero() || logsSince.After(failureTime) {
 			logsSince = failureTime.Add(-10 * time.Minute)
 		}
-		dumpFRRContainerLogs(ReportPath, specReport.FullText(), logsSince, failureTime)
+		dumpFRRContainerLogs(config.ReportPath, specReport.FullText(), logsSince, failureTime)
 
 		opts := []func(dumpOptions *dumpOptions){
 			withFRR(),
@@ -82,6 +82,7 @@ func DumpIfFails(cs clientset.Interface, config Config) {
 			opts...,
 		)
 
+		dumpHostNetworkInfo(config.ReportPath, ginkgo.CurrentSpecReport().FullText(), cs, config.AdditionalNamespaces...)
 		for _, namespace := range config.AdditionalNamespaces {
 			dumpWorkloadInfo(config.ReportPath, ginkgo.CurrentSpecReport().FullText(), cs, namespace)
 		}
