@@ -339,6 +339,7 @@ jobs:
             make e2etests GINKGO_ARGS="--label-filter='grout-support'" TEST_ARGS="--groutmode"
           else
             export GINKGO_ARGS="--label-filter='!systemdmode'"
+            export TEST_ARGS="-singleinterface"
             make e2etests
           fi
 
