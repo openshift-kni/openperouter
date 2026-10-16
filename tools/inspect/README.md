@@ -121,6 +121,74 @@ $ tree /tmp/openperouter-inspect/
        └── underlay.yaml
 ```
 
+## Inspect the containerlab fabric
+
+The `inspect_fabric` tool collects the state of the containerlab fabric (leaves, spine, hosts)
+on the host where the fabric containers run. It does not use the Kubernetes API, so it
+complements the `inspect` tool, which covers the cluster side.
+
+### Prerequisites
+- A containerlab fabric running on the local host (e.g. the dev environment deployed with
+  `make deploy`).
+- The container runtime CLI (`docker` by default).
+
+### How to use:
+
+#### Options
+| Option                 | Description                                | Default                       |
+|------------------------|--------------------------------------------|-------------------------------|
+| `--dest-dir`           | Output directory path                      | `openperouter-fabric-inspect` |
+| `--container-runtime`  | Container runtime binary                   | `docker`                      |
+| `--logs-tail`          | Lines of container logs to collect         | `5000`                        |
+| `-h`, `--help`         | Print usage instructions                   |                               |
+
+**Note:** Options must be specified with `=`.
+
+#### Example:
+```bash
+$ cd tools/inspect
+$ ./inspect_fabric
+
+# override parameters
+$ ./inspect_fabric --dest-dir=/tmp/fabric-logs --container-runtime=docker
+
+# via repository make target, artifacts stored at /tmp/openperouter-fabric-inspect
+$ make inspect-fabric
+```
+
+### Output
+The output root directory contains the following:
+- `timestamp` - Execution timestamp
+- `inspect.log` - Execution log
+- `containerlab_inspect.log` - `containerlab inspect` output, when the containerlab binary is available
+- `containers.log` - List of the discovered fabric containers
+- `<container name>/` - Per container state
+
+The per container directory structure:
+- `docker_inspect.json` - Container manifest (image, mounts, networks)
+- `docker.log` - Container logs (tail)
+- `frr.conf` - The FRR configuration in effect in the container (FRR containers only)
+- `fabric_info.log` - FRR (vtysh) and network state: BGP/EVPN tables, interfaces,
+  `bridge fdb`, FRR log tail
+
+#### Example:
+```bash
+$ tree /tmp/openperouter-fabric-inspect/
+├── containerlab_inspect.log
+├── containers.log
+├── inspect.log
+├── timestamp
+├── clab-kind-leafA
+│   ├── docker.log
+│   ├── docker_inspect.json
+│   ├── fabric_info.log
+│   └── frr.conf
+├── clab-kind-leafkind1
+│   ├── ...
+└── clab-kind-spine
+    ├── ...
+```
+
 ## Inspect OpenPERouter nodes when running on systemd mode
 
 When OpenPERouter runs on systemd mode, related info cannot be collected via cluster API as the router container is not
