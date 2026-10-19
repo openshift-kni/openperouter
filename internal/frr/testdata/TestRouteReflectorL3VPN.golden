@@ -9,6 +9,8 @@ router bgp 64514
   no bgp ebgp-requires-policy
   no bgp network import-check
   no bgp default ipv4-unicast
+  maximum-paths 1
+  maximum-paths ibgp 1
   bgp router-id 10.0.0.1
   bgp cluster-id 192.0.2.1
   neighbor fc00::2:172:31:1:12 remote-as internal
