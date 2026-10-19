@@ -167,18 +167,7 @@ func validateVLANUniquenessPerTrunk(l2vnis []v1alpha1.L2VNI) error {
 			continue
 		}
 		cfg := l2vni.Spec.SRIOVVFPair
-		var trunkKey string
-		if cfg.PCIAddress != nil {
-			trunkKey = *cfg.PCIAddress
-		} else if cfg.PFName != nil && cfg.VFIndex != nil {
-			trunkKey = fmt.Sprintf("%s/vf%d", *cfg.PFName, *cfg.VFIndex)
-		} else if cfg.NetlinkName != nil {
-			trunkKey = "netlink:" + *cfg.NetlinkName
-		}
-		if trunkKey == "" {
-			continue
-		}
-
+		trunkKey := cfg.TrunkVFName
 		for _, existing := range trunkVLANs[trunkKey] {
 			if existing.vlan == cfg.VLAN {
 				return fmt.Errorf("L2VNI %q and %q both use VLAN %d on trunk VF %s",

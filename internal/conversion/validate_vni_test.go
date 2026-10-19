@@ -1758,7 +1758,6 @@ func TestValidateRouteTarget(t *testing.T) {
 }
 
 func TestValidateL2VNIMutualExclusion(t *testing.T) {
-	pci := "0000:03:02.0"
 	tests := []struct {
 		name    string
 		l2vni   v1alpha1.L2VNI
@@ -1777,8 +1776,8 @@ func TestValidateL2VNIMutualExclusion(t *testing.T) {
 						},
 					},
 					SRIOVVFPair: &v1alpha1.SRIOVVFPairConfig{
-						PCIAddress: &pci,
-						VLAN:       10,
+						TrunkVFName: "enp3s2",
+						VLAN:        10,
 					},
 				},
 			},
@@ -1791,8 +1790,8 @@ func TestValidateL2VNIMutualExclusion(t *testing.T) {
 				Spec: v1alpha1.L2VNISpec{
 					VNI: 100,
 					SRIOVVFPair: &v1alpha1.SRIOVVFPairConfig{
-						PCIAddress: &pci,
-						VLAN:       10,
+						TrunkVFName: "enp3s2",
+						VLAN:        10,
 					},
 				},
 			},

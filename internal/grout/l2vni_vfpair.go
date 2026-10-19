@@ -6,9 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"hash/fnv"
 	"log/slog"
-	"strconv"
 	"strings"
 
 	"github.com/openperouter/openperouter/internal/grout/devicestate"
@@ -27,17 +25,13 @@ func setupL2VNIVFPair(
 ) error {
 	vfPair := params.VFPair
 
-	pciAddr, err := resolveVFPairPCI(vfPair, store, sysfs)
+	pciAddr, err := resolveTrunkVFPCI(vfPair.TrunkVFName, store, sysfs)
 	if err != nil {
 		return fmt.Errorf("SetupL2VNI VF-pair: failed to resolve PCI address: %w", err)
 	}
-	trunkPortName := "t_" + pciAddressToIfName(pciAddr)
+	trunkPortName := "t_" + vfPair.TrunkVFName
 
-	opts := portOptions{
-		RXQueues: vfPair.RXQueues,
-		QSize:    vfPair.QSize,
-	}
-	if err := prepareAndBindTrunkVF(ctx, client, params.TargetNS, pciAddr, trunkPortName, opts, sysfs); err != nil {
+	if err := prepareAndBindTrunkVF(ctx, client, params.TargetNS, pciAddr, trunkPortName, sysfs); err != nil {
 		return fmt.Errorf("SetupL2VNI VF-pair: failed to prepare trunk VF %s: %w", pciAddr, err)
 	}
 
@@ -85,12 +79,7 @@ func RemoveStaleVFPairResources(
 		if l2.VFPair == nil {
 			continue
 		}
-		pciAddr, err := resolveVFPairPCI(l2.VFPair, store, sysfs)
-		if err != nil {
-			slog.ErrorContext(ctx, "failed to resolve PCI address for L2VNI VF-pair during cleanup", "l2vni", l2.Name, "error", err)
-			continue
-		}
-		trunkPortName := "t_" + pciAddressToIfName(pciAddr)
+		trunkPortName := "t_" + l2.VFPair.TrunkVFName
 		vlanIfName := VLANSubInterfaceName(l2.VFPair.VLAN, trunkPortName)
 		expectedVLANIfs[vlanIfName] = true
 		referencedTrunks[trunkPortName] = true
@@ -129,37 +118,9 @@ func RemoveStaleVFPairResources(
 	return nil
 }
 
-// pciAddressToIfName returns a 6-character hash of the PCI address using
-// FNV-1a, encoded in base-36 (0-9a-z). Used for VF pair trunk port names.
-func pciAddressToIfName(pciAddr string) string {
-	h := fnv.New32a()
-	h.Write([]byte(pciAddr))
-	s := strconv.FormatUint(uint64(h.Sum32()), 36)
-	for len(s) < 6 {
-		s = "0" + s
-	}
-	return s[len(s)-6:]
-}
-
-func resolveVFPairPCI(cfg *hostnetwork.VFPairParams, store devicestate.Store, sysfs pci.Sysfs) (string, error) {
-	if cfg.PCIAddress != nil {
-		if err := sysfs.ResolvePCIAddress(*cfg.PCIAddress); err != nil {
-			return "", err
-		}
-		return *cfg.PCIAddress, nil
-	}
-	if cfg.PFName != nil && cfg.VFIndex != nil {
-		return sysfs.ResolvePFVFIndex(*cfg.PFName, int(*cfg.VFIndex))
-	}
-	if cfg.NetlinkName != nil {
-		return resolveFromNetlinkName(*cfg.NetlinkName, store, sysfs)
-	}
-	return "", fmt.Errorf("sriovVFPair must specify pciAddress, pfName+vfIndex, or netlinkName")
-}
-
-// resolveFromNetlinkName resolves the PCI address for a netlink device name,
+// resolveTrunkVFPCI resolves the PCI address for the trunk VF netlink name,
 // using a cached device state file when available.
-func resolveFromNetlinkName(netlinkName string, store devicestate.Store, sysfs pci.Sysfs) (string, error) {
+func resolveTrunkVFPCI(netlinkName string, store devicestate.Store, sysfs pci.Sysfs) (string, error) {
 	devState, err := store.Load(netlinkName)
 	if err == nil {
 		return devState.PCIAddress, nil
@@ -192,7 +153,6 @@ func prepareAndBindTrunkVF(
 	ctx context.Context,
 	client *Client,
 	targetNS, pciAddr, portName string,
-	opts portOptions,
 	sysfs pci.Sysfs,
 ) error {
 	perouterNetNS, err := netns.GetFromPath(targetNS)
@@ -209,6 +169,5 @@ func prepareAndBindTrunkVF(
 		return fmt.Errorf("failed to prepare trunk VF driver for %s: %w", pciAddr, err)
 	}
 
-	opts.Devargs = pciAddr
-	return client.ensurePort(ctx, portName, opts)
+	return client.ensurePort(ctx, portName, portOptions{Devargs: pciAddr})
 }

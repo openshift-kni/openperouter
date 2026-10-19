@@ -65,13 +65,8 @@ type L2VNIParams struct {
 // handed to the grout datapath and the VLAN carrying the VNI traffic
 // between it and the workload VF.
 type VFPairParams struct {
-	PCIAddress  *string
-	PFName      *string
-	VFIndex     *int32
-	NetlinkName *string
+	TrunkVFName string
 	VLAN        int32
-	RXQueues    *int32
-	QSize       *int32
 }
 
 type HostMaster struct {

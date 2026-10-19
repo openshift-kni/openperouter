@@ -37,7 +37,6 @@ AcceleratedConfig holds optional grout port parameters for underlay interfaces.
 
 _Appears in:_
 - [NetworkDevice](#networkdevice)
-- [SRIOVVFPairConfig](#sriovvfpairconfig)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
@@ -961,8 +960,6 @@ _Appears in:_
 
 SRIOVVFPairConfig specifies the SR-IOV trunk VF and VLAN for VF-to-VF
 communication on an L2VNI.
-Exactly one VF selector must be used: pciAddress, pfName + vfIndex, or
-netlinkName.
 
 
 
@@ -971,12 +968,8 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `pciAddress` _string_ | pciAddress is the PCI Bus:Device.Function address of the trunk VF to<br />bind to grout (e.g. "0000:03:02.0"). The trunk VF must have no VLAN<br />configured (VLAN 0) so it receives all tagged frames from other VFs.<br />Mutually exclusive with pfName/vfIndex and netlinkName. |  | Pattern: `^[0-9a-fA-F]\{4\}:[0-9a-fA-F]\{2\}:[0-9a-fA-F]\{2\}\.[0-7]$` <br />Optional: \{\} <br /> |
-| `pfName` _string_ | pfName is the name of the Physical Function whose VF will be the<br />trunk port. Must be used together with vfIndex.<br />Mutually exclusive with pciAddress and netlinkName. |  | MaxLength: 15 <br />Pattern: `^[a-zA-Z][a-zA-Z0-9._-]*$` <br />Optional: \{\} <br /> |
-| `vfIndex` _integer_ | vfIndex is the index of the Virtual Function on the PF to use as<br />the trunk port. Must be used together with pfName.<br />Mutually exclusive with pciAddress and netlinkName. |  | Minimum: 0 <br />Optional: \{\} <br /> |
-| `netlinkName` _string_ | netlinkName is the kernel network interface name of the trunk VF<br />(e.g. "enp3s2"). The controller resolves it to a PCI address via<br />sysfs at runtime. Mutually exclusive with pciAddress and<br />pfName/vfIndex. |  | MaxLength: 15 <br />Pattern: `^[a-zA-Z][a-zA-Z0-9._-]*$` <br />Optional: \{\} <br /> |
+| `trunkVFName` _string_ | trunkVFName is the kernel network interface name of the trunk VF<br />(e.g. "enp3s2") to bind to grout. The controller resolves it to a PCI<br />address via sysfs at runtime. The trunk VF must have no VLAN<br />configured (VLAN 0) so it receives all tagged frames from other VFs. |  | MaxLength: 15 <br />MinLength: 1 <br />Pattern: `^[a-zA-Z][a-zA-Z0-9._-]*$` <br />Required: \{\} <br /> |
 | `vlan` _integer_ | vlan is the 802.1Q VLAN ID that maps to this L2VNI. Workload VFs<br />on the same PF configured with this VLAN ID will participate in<br />this L2VNI's VXLAN overlay. |  | Maximum: 4094 <br />Minimum: 1 <br />Required: \{\} <br /> |
-| `acceleratedConfig` _[AcceleratedConfig](#acceleratedconfig)_ | acceleratedConfig specifies optional DPDK port parameters for the trunk VF. |  | Optional: \{\} <br /> |
 
 
 #### SRV6Config

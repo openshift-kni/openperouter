@@ -60,7 +60,7 @@ var _ = Describe("HWEmulation VF-to-VF", Ordered, QEMUSupport, GroutSupport, fun
 			RoutingDomain: l3vniRoutingDomain("red"),
 			GatewayIPs:    []string{"10.110.0.1/24"},
 			SRIOVVFPair: &v1alpha1.SRIOVVFPairConfig{
-				NetlinkName: new(trunkVFNetlinkName),
+				TrunkVFName: trunkVFNetlinkName,
 				VLAN:        33,
 			},
 		},
@@ -76,7 +76,7 @@ var _ = Describe("HWEmulation VF-to-VF", Ordered, QEMUSupport, GroutSupport, fun
 			RoutingDomain: l3vniRoutingDomain("red"),
 			GatewayIPs:    []string{"10.120.0.1/24"},
 			SRIOVVFPair: &v1alpha1.SRIOVVFPairConfig{
-				NetlinkName: new(trunkVFNetlinkName),
+				TrunkVFName: trunkVFNetlinkName,
 				VLAN:        44,
 			},
 		},

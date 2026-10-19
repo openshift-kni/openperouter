@@ -800,16 +800,8 @@ func cniDeviceInterfaceToHost(iface v1alpha1.UnderlayInterface) (hostnetwork.Und
 }
 
 func convertSRIOVVFPair(cfg *v1alpha1.SRIOVVFPairConfig) *hostnetwork.VFPairParams {
-	params := &hostnetwork.VFPairParams{
-		PCIAddress:  cfg.PCIAddress,
-		PFName:      cfg.PFName,
-		VFIndex:     cfg.VFIndex,
-		NetlinkName: cfg.NetlinkName,
+	return &hostnetwork.VFPairParams{
+		TrunkVFName: cfg.TrunkVFName,
 		VLAN:        cfg.VLAN,
 	}
-	if cfg.AcceleratedConfig != nil {
-		params.RXQueues = cfg.AcceleratedConfig.RXQueues
-		params.QSize = cfg.AcceleratedConfig.QSize
-	}
-	return params
 }
