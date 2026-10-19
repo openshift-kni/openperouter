@@ -61,8 +61,7 @@ func TestRenderedConfigPasswordRedacted(t *testing.T) {
 		"  no bgp ebgp-requires-policy\n" +
 		"  no bgp network import-check\n" +
 		"  no bgp default ipv4-unicast\n" +
-		"  maximum-paths 1\n" +
-		"  maximum-paths ibgp 1\n" +
+		"  bgp bestpath as-path multipath-relax\n" +
 		"  bgp router-id 10.0.0.1\n" +
 		"  neighbor 192.168.1.2 remote-as 64513\n" +
 		"  \n" +
