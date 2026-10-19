@@ -291,13 +291,6 @@ spec:
                     description: acceleratedConfig specifies optional DPDK port parameters
                       for the trunk VF.
                     properties:
-                      portName:
-                        description: |-
-                          portName overrides the grout port name. When unset, the port is
-                          named "u_<interfaceName>".
-                        maxLength: 15
-                        minLength: 1
-                        type: string
                       qSize:
                         description: |-
                           qSize is the descriptor ring size for each receive queue. Larger
