@@ -11,6 +11,7 @@ import (
 
 	"github.com/openperouter/openperouter/internal/grout/devicestate"
 	"github.com/openperouter/openperouter/internal/hostnetwork"
+	"github.com/openperouter/openperouter/internal/netnamespace"
 	"github.com/openperouter/openperouter/internal/pci"
 	"github.com/vishvananda/netns"
 )
@@ -25,14 +26,11 @@ func setupL2VNIVFPair(
 ) error {
 	vfPair := params.VFPair
 
-	pciAddr, err := resolveTrunkVFPCI(vfPair.TrunkVFName, store, sysfs)
-	if err != nil {
-		return fmt.Errorf("SetupL2VNI VF-pair: failed to resolve PCI address: %w", err)
-	}
 	trunkPortName := "t_" + vfPair.TrunkVFName
 
-	if err := prepareAndBindTrunkVF(ctx, client, params.TargetNS, pciAddr, trunkPortName, sysfs); err != nil {
-		return fmt.Errorf("SetupL2VNI VF-pair: failed to prepare trunk VF %s: %w", pciAddr, err)
+	if err := prepareAndBindTrunkVF(ctx, client, params.TargetNS, vfPair.TrunkVFName, trunkPortName,
+		store, sysfs); err != nil {
+		return fmt.Errorf("SetupL2VNI VF-pair: failed to prepare trunk VF %s: %w", vfPair.TrunkVFName, err)
 	}
 
 	vlanIfName := VLANSubInterfaceName(vfPair.VLAN, trunkPortName)
@@ -118,6 +116,51 @@ func RemoveStaleVFPairResources(
 	return nil
 }
 
+// prepareAndBindTrunkVF prepares the DPDK driver for a trunk VF and creates
+// the grout port for it. It is idempotent: calling it for a trunk VF that
+// is already bound is a no-op, so several L2VNIs can share the same trunk VF.
+func prepareAndBindTrunkVF(
+	ctx context.Context,
+	client *Client,
+	targetNS, netdev, portName string,
+	store devicestate.Store,
+	sysfs pci.Sysfs,
+) error {
+	pciAddr, err := resolveTrunkVFPCI(netdev, store, sysfs)
+	if err != nil {
+		return fmt.Errorf("failed to resolve PCI address: %w", err)
+	}
+
+	perouterNetNS, err := netns.GetFromPath(targetNS)
+	if err != nil {
+		return fmt.Errorf("failed to get namespace %s: %w", targetNS, err)
+	}
+	defer func() {
+		if err := perouterNetNS.Close(); err != nil {
+			slog.Error("failed to close namespace", "namespace", targetNS, "error", err)
+		}
+	}()
+
+	if err := setupInterfaceForHWAcceleration(ctx, perouterNetNS, pciAddr, netdev, sysfs); err != nil {
+		return fmt.Errorf("failed to prepare trunk VF driver for %s: %w", pciAddr, err)
+	}
+
+	if err := client.ensurePort(ctx, portName, portOptions{Devargs: pciAddr}); err != nil {
+		return fmt.Errorf("failed to create grout trunk port %s: %w", portName, err)
+	}
+
+	driver, err := sysfs.DriverForPCIAddress(pciAddr)
+	if err != nil {
+		return fmt.Errorf("failed to get PCI driver for %s: %w", pciAddr, err)
+	}
+	if !pci.IsBifurcated(driver) {
+		return nil
+	}
+	return netnamespace.In(perouterNetNS, func() error {
+		return quiesceBifurcatedNetdev(netdev)
+	})
+}
+
 // resolveTrunkVFPCI resolves the PCI address for the trunk VF netlink name,
 // using a cached device state file when available.
 func resolveTrunkVFPCI(netlinkName string, store devicestate.Store, sysfs pci.Sysfs) (string, error) {
@@ -144,30 +187,4 @@ func resolveTrunkVFPCI(netlinkName string, store devicestate.Store, sysfs pci.Sy
 		return "", fmt.Errorf("failed to save device state for %s: %w", netlinkName, err)
 	}
 	return pciAddr, nil
-}
-
-// PrepareAndBindTrunkVF prepares the DPDK driver for a trunk VF and creates
-// the grout port for it. It is idempotent: calling it for a PCI address that
-// is already bound is a no-op.
-func prepareAndBindTrunkVF(
-	ctx context.Context,
-	client *Client,
-	targetNS, pciAddr, portName string,
-	sysfs pci.Sysfs,
-) error {
-	perouterNetNS, err := netns.GetFromPath(targetNS)
-	if err != nil {
-		return fmt.Errorf("failed to get namespace %s: %w", targetNS, err)
-	}
-	defer func() {
-		if err := perouterNetNS.Close(); err != nil {
-			slog.Error("failed to close namespace", "namespace", targetNS, "error", err)
-		}
-	}()
-
-	if err := setupInterfaceForHWAcceleration(ctx, perouterNetNS, pciAddr, "", sysfs); err != nil {
-		return fmt.Errorf("failed to prepare trunk VF driver for %s: %w", pciAddr, err)
-	}
-
-	return client.ensurePort(ctx, portName, portOptions{Devargs: pciAddr})
 }
