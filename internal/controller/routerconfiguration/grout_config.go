@@ -14,7 +14,6 @@ import (
 	"github.com/openperouter/openperouter/internal/grout"
 	"github.com/openperouter/openperouter/internal/grout/devicestate"
 	"github.com/openperouter/openperouter/internal/hostnetwork"
-	"github.com/openperouter/openperouter/internal/hostnetwork/bridgerefresh"
 	"github.com/openperouter/openperouter/internal/pci"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
@@ -88,6 +87,11 @@ func (g *GroutDatapathConfigurator) Configure(ctx context.Context, config interf
 		return fmt.Errorf("failed to setup underlay: %w", err)
 	}
 
+	// No BridgeRefresher on grout: grout probes its expired neighbors itself.
+	if err := grout.EnsureNeighborAgeing(ctx, groutClient); err != nil {
+		return err
+	}
+
 	var resourceErrors []error
 	failedL3Domains := sets.New[string]()
 	reason := v1alpha1.FailedResourceReasonOverlayAttachmentFailed
@@ -131,14 +135,6 @@ func (g *GroutDatapathConfigurator) Configure(ctx context.Context, config interf
 			})
 			continue
 		}
-		if err := bridgerefresh.StartForVNI(ctx, vni); err != nil {
-			resourceErrors = append(resourceErrors, &openpeerrors.ResourceError{
-				Obj: v1alpha1.FailedResource{
-					Kind: openpeerrors.KindL2VNI, Name: vni.Name, Reason: reason, Message: err.Error(),
-				},
-			})
-			continue
-		}
 		configuredL2VNIs = append(configuredL2VNIs, vni)
 	}
 
@@ -171,7 +167,6 @@ func (g *GroutDatapathConfigurator) Configure(ctx context.Context, config interf
 	if err := grout.RemoveNonConfiguredVNIs(ctx, groutClient, config.targetNamespace, configuredVNIs); err != nil {
 		return fmt.Errorf("failed to remove deleted vnis: %w", err)
 	}
-	bridgerefresh.StopForRemovedVNIs(configuredL2VNIs)
 
 	slog.InfoContext(ctx, "removing stale VF-pair resources")
 	if err := grout.RemoveStaleVFPairResources(ctx, groutClient, configuredL2VNIs, g.deviceStateStore, g.sysfs); err != nil {
@@ -231,7 +226,6 @@ func (g *GroutDatapathConfigurator) cleanupGroutInterfaces(
 	if err := grout.RemoveAllVNIs(ctx, groutClient, targetNamespace); err != nil {
 		slog.Warn("failed to remove vnis after underlay removal", "err", err)
 	}
-	bridgerefresh.StopAllVNIs()
 	if err := grout.RemoveAllL3VPNs(ctx, groutClient); err != nil {
 		slog.Warn("failed to remove l3vpns after underlay removal", "err", err)
 	}
