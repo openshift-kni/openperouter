@@ -3,7 +3,7 @@
 ip link set toleafkind1_br type bridge vlan_filtering 1
 
 
-for vf_index in {0..3}; do
+for vf_index in {0..5}; do
     nic="toleafkind1v${vf_index}"
     tap="${nic}_t"
     br="toleafkind1_br"
@@ -35,13 +35,17 @@ bridge vlan add vid 33 dev "toleafkind1v1_t"
 bridge vlan add vid 44 dev "toleafkind1v1_t"
 
 
-# TAP 2 (fake VF for VLAN 33): access port, PVID 33, untagged egress.
+# TAP 2 and 3 (fake VF for VLAN 33): access port, PVID 33, untagged egress.
 bridge vlan del vid 1 dev "toleafkind1v2_t"
 bridge vlan add vid 33 dev "toleafkind1v2_t" pvid untagged
-
-# TAP 3 (fake VF for VLAN 44): access port, PVID 44, untagged egress.
 bridge vlan del vid 1 dev "toleafkind1v3_t"
-bridge vlan add vid 44 dev "toleafkind1v3_t" pvid untagged
+bridge vlan add vid 33 dev "toleafkind1v3_t" pvid untagged
+
+# TAP 4 and 5 (fake VF for VLAN 44): access port, PVID 44, untagged egress.
+bridge vlan del vid 1 dev "toleafkind1v4_t"
+bridge vlan add vid 44 dev "toleafkind1v4_t" pvid untagged
+bridge vlan del vid 1 dev "toleafkind1v5_t"
+bridge vlan add vid 44 dev "toleafkind1v5_t" pvid untagged
 
 # Allow VLANs 33 and 44 on the bridge itself.
 bridge vlan add vid 33 dev "toleafkind1_br" self

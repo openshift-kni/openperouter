@@ -5,6 +5,7 @@ package qemu_e2e
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -22,9 +23,16 @@ import (
 	clientset "k8s.io/client-go/kubernetes"
 )
 
-// Trunk VF identifiers in the QEMU VM
+// Emulated VFs in the QEMU VM, see clab/qemu/vm/create-vfs.sh. The trunk VF
+// is bound by grout, the workload VFs are access ports of the same emulated
+// embedded switch on VLAN 33 or 44.
 const (
 	trunkVFNetlinkName = "toleafkind1v1"
+	vlan33VF1          = "toleafkind1v2"
+	vlan33VF2          = "toleafkind1v3"
+	vlan44VF1          = "toleafkind1v4"
+	vlan44VF2          = "toleafkind1v5"
+	vf2vfTestNamespace = "test-vf2vf"
 )
 
 var _ = Describe("HWEmulation VF-to-VF", Ordered, QEMUSupport, GroutSupport, func() {
@@ -114,6 +122,7 @@ var _ = Describe("HWEmulation VF-to-VF", Ordered, QEMUSupport, GroutSupport, fun
 	})
 
 	AfterAll(func() {
+		Expect(k8s.DeleteNamespace(cs, vf2vfTestNamespace)).To(Succeed())
 		Expect(Updater.CleanAll()).To(Succeed())
 		Eventually(func() error {
 			routers, err := openperouter.Get(cs, false)
@@ -125,7 +134,7 @@ var _ = Describe("HWEmulation VF-to-VF", Ordered, QEMUSupport, GroutSupport, fun
 	})
 
 	AfterEach(func() {
-		dumpIfFails(cs)
+		dumpIfFails(cs, vf2vfTestNamespace)
 	})
 
 	It("should reconcile two L2VNIs sharing a trunk VF", func() {
@@ -247,4 +256,62 @@ var _ = Describe("HWEmulation VF-to-VF", Ordered, QEMUSupport, GroutSupport, fun
 			}
 		}
 	})
+
+	It("should provide connectivity between pods attached to the same L2VNI", func() {
+		// Each pod gets its own VF, so that same-VNI traffic crosses the
+		// emulated embedded switch instead of staying inside the node.
+		pods := []vfPod{
+			{name: "tenant-a-1", vni: l2vniA, ip: "10.110.0.10/24", vf: vlan33VF1},
+			{name: "tenant-a-2", vni: l2vniA, ip: "10.110.0.11/24", vf: vlan33VF2},
+			{name: "tenant-b-1", vni: l2vniB, ip: "10.120.0.10/24", vf: vlan44VF1},
+			{name: "tenant-b-2", vni: l2vniB, ip: "10.120.0.11/24", vf: vlan44VF2},
+		}
+
+		nodeName := routerPods[0].Spec.NodeName
+		nodeExec := executor.ForNode(nodeName)
+		for _, p := range pods {
+			out, err := nodeExec.Exec("ip", "link", "set", p.vf, "up")
+			Expect(err).To(Succeed(), "failed to set %s up on %s: %s", p.vf, nodeName, out)
+		}
+
+		_, err := k8s.CreateNamespace(cs, vf2vfTestNamespace)
+		Expect(err).To(Succeed())
+
+		executors := map[string]executor.Executor{}
+		for _, p := range pods {
+			By(fmt.Sprintf("creating pod %s in VNI %d", p.name, p.vni.Spec.VNI))
+			n, err := k8s.CreateMacvlanNad(p.name, vf2vfTestNamespace, p.vf, p.vni.Spec.GatewayIPs)
+			Expect(err).To(Succeed())
+			pod, err := k8s.CreateAgnhostPod(cs, p.name, vf2vfTestNamespace,
+				k8s.WithNad(n.Name, vf2vfTestNamespace, []string{p.ip}),
+				k8s.OnNode(nodeName),
+			)
+			Expect(err).To(Succeed())
+			executors[p.name] = executor.ForPod(pod.Namespace, pod.Name, "agnhost")
+		}
+
+		for _, from := range pods {
+			By(fmt.Sprintf("pinging the gateway of VNI %d from %s", from.vni.Spec.VNI, from.name))
+			canPingFromPod(executors[from.name], addressOnly(from.vni.Spec.GatewayIPs[0]))
+
+			for _, to := range pods {
+				if to.name == from.name || to.vni.Name != from.vni.Name {
+					continue
+				}
+				By(fmt.Sprintf("pinging %s from %s", to.name, from.name))
+				canPingFromPod(executors[from.name], addressOnly(to.ip))
+			}
+		}
+	})
 })
+
+type vfPod struct {
+	name string
+	vni  v1alpha1.L2VNI
+	ip   string
+	vf   string
+}
+
+func addressOnly(cidr string) string {
+	return strings.Split(cidr, "/")[0]
+}
