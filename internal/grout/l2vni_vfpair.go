@@ -4,7 +4,6 @@ package grout
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -63,10 +62,13 @@ func VLANSubInterfaceName(vlan int32, trunkPortName string) string {
 }
 
 // RemoveStaleVFPairResources removes VLAN sub-interfaces and trunk ports
-// that are not referenced by any configured L2VNI.
+// that are not referenced by any configured L2VNI, then hands the trunk VFs
+// no longer referenced back to the kernel as described by their saved
+// device state.
 func RemoveStaleVFPairResources(
 	ctx context.Context,
 	client *Client,
+	targetNS string,
 	configuredL2VNIs []hostnetwork.L2VNIParams,
 	store devicestate.Store,
 	sysfs pci.Sysfs,
@@ -113,7 +115,8 @@ func RemoveStaleVFPairResources(
 			return fmt.Errorf("failed to delete stale trunk port %s: %w", iface.Name, err)
 		}
 	}
-	return nil
+
+	return restoreStaleTrunkVFs(ctx, targetNS, referencedTrunks, store, sysfs)
 }
 
 // prepareAndBindTrunkVF prepares the DPDK driver for a trunk VF and creates
@@ -126,9 +129,9 @@ func prepareAndBindTrunkVF(
 	store devicestate.Store,
 	sysfs pci.Sysfs,
 ) error {
-	pciAddr, err := resolveTrunkVFPCI(netdev, store, sysfs)
+	state, err := ensureDeviceState(netdev, PortModeAccelerated, store, sysfs)
 	if err != nil {
-		return fmt.Errorf("failed to resolve PCI address: %w", err)
+		return err
 	}
 
 	perouterNetNS, err := netns.GetFromPath(targetNS)
@@ -141,19 +144,15 @@ func prepareAndBindTrunkVF(
 		}
 	}()
 
-	if err := setupInterfaceForHWAcceleration(ctx, perouterNetNS, pciAddr, netdev, sysfs); err != nil {
-		return fmt.Errorf("failed to prepare trunk VF driver for %s: %w", pciAddr, err)
+	if err := setupInterfaceForHWAcceleration(ctx, perouterNetNS, state.PCIAddress, netdev, sysfs); err != nil {
+		return fmt.Errorf("failed to prepare trunk VF driver for %s: %w", state.PCIAddress, err)
 	}
 
-	if err := client.ensurePort(ctx, portName, portOptions{Devargs: pciAddr}); err != nil {
+	if err := client.ensurePort(ctx, portName, portOptions{Devargs: state.PCIAddress}); err != nil {
 		return fmt.Errorf("failed to create grout trunk port %s: %w", portName, err)
 	}
 
-	driver, err := sysfs.DriverForPCIAddress(pciAddr)
-	if err != nil {
-		return fmt.Errorf("failed to get PCI driver for %s: %w", pciAddr, err)
-	}
-	if !pci.IsBifurcated(driver) {
+	if !pci.IsBifurcated(state.OriginalDriver) {
 		return nil
 	}
 	return netnamespace.In(perouterNetNS, func() error {
@@ -161,30 +160,31 @@ func prepareAndBindTrunkVF(
 	})
 }
 
-// resolveTrunkVFPCI resolves the PCI address for the trunk VF netlink name,
-// using a cached device state file when available.
-func resolveTrunkVFPCI(netlinkName string, store devicestate.Store, sysfs pci.Sysfs) (string, error) {
-	devState, err := store.Load(netlinkName)
-	if err == nil {
-		return devState.PCIAddress, nil
-	}
-	if !errors.Is(err, devicestate.ErrNotFound) {
-		return "", fmt.Errorf("failed to load device state for %s: %w", netlinkName, err)
-	}
-
-	slog.Info("device state not found, resolving PCI address from netlink name", "netlinkName", netlinkName)
-	pciAddr, err := sysfs.PCIAddressForNetlinkName(netlinkName)
+// restoreStaleTrunkVFs hands the trunk VFs whose grout port is not
+// referenced anymore back to the kernel. The device state is deleted last, so
+// an interrupted restore is resumed by the next call.
+func restoreStaleTrunkVFs(
+	ctx context.Context,
+	targetNS string,
+	referencedTrunks map[string]bool,
+	store devicestate.Store,
+	sysfs pci.Sysfs,
+) error {
+	states, err := store.List()
 	if err != nil {
-		return "", fmt.Errorf("failed to resolve PCI address for %s: %w", netlinkName, err)
+		return fmt.Errorf("failed to list saved trunk VF states: %w", err)
 	}
-
-	slog.Info("resolved PCI address from netlink name", "pciAddr", pciAddr)
-	state := devicestate.State{
-		InterfaceName: netlinkName,
-		PCIAddress:    pciAddr,
+	for _, state := range states {
+		if referencedTrunks["t_"+state.InterfaceName] {
+			continue
+		}
+		slog.InfoContext(ctx, "restoring stale trunk VF", "name", state.InterfaceName, "pciAddress", state.PCIAddress)
+		if err := restoreAcceleratedDevice(ctx, targetNS, state, sysfs); err != nil {
+			return fmt.Errorf("failed to restore trunk VF %s: %w", state.InterfaceName, err)
+		}
+		if err := store.Delete(state.InterfaceName); err != nil {
+			return fmt.Errorf("failed to delete device state for trunk VF %s: %w", state.InterfaceName, err)
+		}
 	}
-	if err := store.Save(state); err != nil {
-		return "", fmt.Errorf("failed to save device state for %s: %w", netlinkName, err)
-	}
-	return pciAddr, nil
+	return nil
 }

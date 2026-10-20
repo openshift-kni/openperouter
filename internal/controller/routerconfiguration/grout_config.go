@@ -24,6 +24,9 @@ type GroutDatapathConfigurator struct {
 
 	groutSocketPath  string
 	deviceStateStore devicestate.Store
+	// trunkStateStore is kept apart from deviceStateStore, which tracks the
+	// underlays: a trunk VF state there would be taken for a stale underlay.
+	trunkStateStore  devicestate.Store
 	sysfs            pci.Sysfs
 	underlayPortMode grout.UnderlayPortMode
 }
@@ -32,6 +35,7 @@ func NewGroutConfigurator(groutSocketPath string, mode grout.UnderlayPortMode) *
 	return &GroutDatapathConfigurator{
 		groutSocketPath:  groutSocketPath,
 		deviceStateStore: devicestate.Store{Dir: "/var/run/grout/device-state"},
+		trunkStateStore:  devicestate.Store{Dir: "/var/run/grout/trunk-state"},
 		sysfs:            pci.Sysfs{Root: "/sys"},
 		underlayPortMode: mode,
 	}
@@ -127,7 +131,7 @@ func (g *GroutDatapathConfigurator) Configure(ctx context.Context, config interf
 			continue
 		}
 		slog.InfoContext(ctx, "setting up L2VNI", "vni", vni.VNI)
-		if err := grout.SetupL2VNI(ctx, groutClient, vni, g.deviceStateStore, g.sysfs); err != nil {
+		if err := grout.SetupL2VNI(ctx, groutClient, vni, g.trunkStateStore, g.sysfs); err != nil {
 			resourceErrors = append(resourceErrors, &openpeerrors.ResourceError{
 				Obj: v1alpha1.FailedResource{
 					Kind: openpeerrors.KindL2VNI, Name: vni.Name, Reason: reason, Message: err.Error(),
@@ -169,7 +173,8 @@ func (g *GroutDatapathConfigurator) Configure(ctx context.Context, config interf
 	}
 
 	slog.InfoContext(ctx, "removing stale VF-pair resources")
-	if err := grout.RemoveStaleVFPairResources(ctx, groutClient, configuredL2VNIs, g.deviceStateStore, g.sysfs); err != nil {
+	if err := grout.RemoveStaleVFPairResources(ctx, groutClient, config.targetNamespace, configuredL2VNIs,
+		g.trunkStateStore, g.sysfs); err != nil {
 		return fmt.Errorf("failed to remove stale VF-pair resources: %w", err)
 	}
 
@@ -223,6 +228,10 @@ func (g *GroutDatapathConfigurator) cleanupGroutInterfaces(
 	currentUnderlayIfaces []hostnetwork.UnderlayInterface,
 ) error {
 	slog.InfoContext(ctx, "underlay removed, cleaning up VNIs and underlay interfaces")
+	if err := grout.RemoveStaleVFPairResources(ctx, groutClient, targetNamespace, nil,
+		g.trunkStateStore, g.sysfs); err != nil {
+		slog.Warn("failed to remove VF-pair resources after underlay removal", "err", err)
+	}
 	if err := grout.RemoveAllVNIs(ctx, groutClient, targetNamespace); err != nil {
 		slog.Warn("failed to remove vnis after underlay removal", "err", err)
 	}
