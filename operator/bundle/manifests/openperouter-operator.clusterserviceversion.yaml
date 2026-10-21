@@ -4,7 +4,7 @@ metadata:
   annotations:
     alm-examples: '[]'
     capabilities: Basic Install
-    createdAt: "2026-06-30T21:07:04Z"
+    createdAt: "2026-10-19T17:36:48Z"
     features.operators.openshift.io/csi: "false"
     features.operators.openshift.io/disconnected: "true"
     features.operators.openshift.io/fips-compliant: "true"
@@ -230,6 +230,8 @@ spec:
                 - name: GROUT_IMAGE
                   value: quay.io/openperouter/router:main-grout
                 - name: GROUT_TEST_MODE
+                  value: "false"
+                - name: GROUT_TAP_UNDERLAY
                   value: "false"
                 image: quay.io/openperouter/router:main
                 imagePullPolicy: IfNotPresent
