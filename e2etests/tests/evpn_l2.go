@@ -450,13 +450,14 @@ var _ = Describe("Routes between bgp and the fabric with Underlay in ipv4", Grou
 		// reply for the VIP, including those the VTEPs proxy, must carry the
 		// owner's MAC.
 		expectObserversReach = func(g Gomega, ownerName, ownerMAC string) {
+			GinkgoHelper()
 			for name, observer := range observers {
-				g.Expect(vipMACs(observer, vip)).To(HaveEach(ownerMAC), "VIP ARP replies seen by %s", name)
+				g.Expect(arpingMACs(observer, vip)).To(HaveEach(ownerMAC), "VIP ARP replies seen by %s", name)
 				g.Expect(vipOwner(observer, vip)).To(Equal(ownerName), "VIP owner seen by %s", name)
 			}
 		}
 
-		FIt("moves the VIP when the new owner claims it right after the old owner releases it", func() {
+		It("moves the VIP when the new owner claims it right after the old owner releases it", func() {
 			By(fmt.Sprintf("moving the VIP from %s to %s", oldOwner.Name, newOwner.Name))
 			Expect(delVIP(oldOwnerExec, vipCIDR)).To(Succeed())
 			Expect(addVIP(newOwnerExec, vipCIDR)).To(Succeed())
@@ -773,11 +774,16 @@ func vipOwner(exec executor.Executor, vip string) (string, error) {
 
 var arpReplyMAC = regexp.MustCompile(`reply from \S+ \[([0-9A-Fa-f:]{17})\]`)
 
-// vipMACs returns the MAC address of every ARP reply for the VIP. The requests
+// arpingMACs returns the MAC address of every ARP reply for the VIP. The requests
 // stay broadcast (-b) so that every responder, including a VTEP proxying the
 // reply from its EVPN neighbor cache, answers each of them.
-func vipMACs(exec executor.Executor, vip string) ([]string, error) {
-	out, err := exec.Exec("arping", "-b", "-c", "2", "-w", "3", "-I", "net1", vip)
+func arpingMACs(exec executor.Executor, vip string) ([]string, error) {
+	out, err := exec.Exec("arping",
+		"-b",      // broadcast
+		"-c", "2", // count
+		"-w", "3", // timeout in seconds
+		"-I", "net1", // interface to use
+		vip)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve VIP %s: %s: %w", vip, out, err)
 	}
