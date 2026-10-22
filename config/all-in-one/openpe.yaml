@@ -2743,7 +2743,6 @@ spec:
           httpGet:
             path: /healthz
             port: 9080
-          initialDelaySeconds: 30
           periodSeconds: 20
           timeoutSeconds: 10
         name: frr
@@ -2764,6 +2763,13 @@ spec:
             - ALL
           seccompProfile:
             type: Unconfined
+        startupProbe:
+          failureThreshold: 24
+          httpGet:
+            path: /healthz
+            port: 9080
+          periodSeconds: 5
+          timeoutSeconds: 5
         volumeMounts:
         - mountPath: /var/run/frr
           name: frr-sockets
@@ -2786,7 +2792,6 @@ spec:
           httpGet:
             path: /healthz
             port: 9080
-          initialDelaySeconds: 15
           periodSeconds: 20
           timeoutSeconds: 10
         name: reloader
@@ -2799,7 +2804,6 @@ spec:
           httpGet:
             path: /readyz
             port: 9080
-          initialDelaySeconds: 5
           periodSeconds: 10
           timeoutSeconds: 10
         securityContext:
@@ -2811,6 +2815,13 @@ spec:
             type: spc_t
           seccompProfile:
             type: RuntimeDefault
+        startupProbe:
+          failureThreshold: 24
+          httpGet:
+            path: /healthz
+            port: 9080
+          periodSeconds: 5
+          timeoutSeconds: 5
         volumeMounts:
         - mountPath: /etc/frr
           name: frrconfig
