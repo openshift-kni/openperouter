@@ -5,7 +5,9 @@ package grout
 import (
 	"context"
 	"fmt"
+	"hash/fnv"
 	"log/slog"
+	"strconv"
 	"strings"
 
 	"github.com/openperouter/openperouter/internal/grout/devicestate"
@@ -13,6 +15,14 @@ import (
 	"github.com/openperouter/openperouter/internal/netnamespace"
 	"github.com/openperouter/openperouter/internal/pci"
 	"github.com/vishvananda/netns"
+)
+
+const (
+	trunkPortNamePrefix = "t_"
+	trunkPortHashLen    = 6
+	// The longest trunk VF name used verbatim in the port name: "t_" plus
+	// 8 characters plus the longest VLAN suffix ".4094" fits IFNAMSIZ-1.
+	maxVerbatimTrunkVFNameLen = 8
 )
 
 func setupL2VNIVFPair(
@@ -25,7 +35,7 @@ func setupL2VNIVFPair(
 ) error {
 	vfPair := params.VFPair
 
-	trunkPortName := "t_" + vfPair.TrunkVFName
+	trunkPortName := trunkVFPortName(vfPair.TrunkVFName)
 
 	if err := prepareAndBindTrunkVF(ctx, client, params.TargetNS, vfPair.TrunkVFName, trunkPortName,
 		store, sysfs); err != nil {
@@ -61,6 +71,20 @@ func VLANSubInterfaceName(vlan int32, trunkPortName string) string {
 	return fmt.Sprintf("%s.%d", trunkPortName, vlan)
 }
 
+// trunkVFPortName returns the grout port name for a trunk VF. Grout interface
+// names are limited to IFNAMSIZ-1 characters and the VLAN sub-interfaces
+// append a ".<vlan>" suffix to the port name, so long VF names are hashed.
+func trunkVFPortName(trunkVFName string) string {
+	if len(trunkVFName) <= maxVerbatimTrunkVFNameLen {
+		return trunkPortNamePrefix + trunkVFName
+	}
+	h := fnv.New32a()
+	h.Write([]byte(trunkVFName))
+	s := strconv.FormatUint(uint64(h.Sum32()), 36)
+	s = strings.Repeat("0", max(0, trunkPortHashLen-len(s))) + s
+	return trunkPortNamePrefix + s[len(s)-trunkPortHashLen:]
+}
+
 // RemoveStaleVFPairResources removes VLAN sub-interfaces and trunk ports
 // that are not referenced by any configured L2VNI, then hands the trunk VFs
 // no longer referenced back to the kernel as described by their saved
@@ -79,7 +103,7 @@ func RemoveStaleVFPairResources(
 		if l2.VFPair == nil {
 			continue
 		}
-		trunkPortName := "t_" + l2.VFPair.TrunkVFName
+		trunkPortName := trunkVFPortName(l2.VFPair.TrunkVFName)
 		vlanIfName := VLANSubInterfaceName(l2.VFPair.VLAN, trunkPortName)
 		expectedVLANIfs[vlanIfName] = true
 		referencedTrunks[trunkPortName] = true
@@ -91,7 +115,7 @@ func RemoveStaleVFPairResources(
 	}
 
 	for _, iface := range ifaces {
-		if !strings.HasPrefix(iface.Name, "t_") || !strings.Contains(iface.Name, ".") {
+		if !strings.HasPrefix(iface.Name, trunkPortNamePrefix) || !strings.Contains(iface.Name, ".") {
 			continue
 		}
 		if expectedVLANIfs[iface.Name] {
@@ -104,7 +128,7 @@ func RemoveStaleVFPairResources(
 	}
 
 	for _, iface := range ifaces {
-		if !strings.HasPrefix(iface.Name, "t_") || strings.Contains(iface.Name, ".") {
+		if !strings.HasPrefix(iface.Name, trunkPortNamePrefix) || strings.Contains(iface.Name, ".") {
 			continue
 		}
 		if referencedTrunks[iface.Name] {
@@ -175,7 +199,7 @@ func restoreStaleTrunkVFs(
 		return fmt.Errorf("failed to list saved trunk VF states: %w", err)
 	}
 	for _, state := range states {
-		if referencedTrunks["t_"+state.InterfaceName] {
+		if referencedTrunks[trunkVFPortName(state.InterfaceName)] {
 			continue
 		}
 		slog.InfoContext(ctx, "restoring stale trunk VF", "name", state.InterfaceName, "pciAddress", state.PCIAddress)
