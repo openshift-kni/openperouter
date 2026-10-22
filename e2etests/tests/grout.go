@@ -4,6 +4,7 @@ package tests
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openperouter/openperouter/api/v1alpha1"
 	"github.com/openperouter/openperouter/e2etests/pkg/config"
+	"github.com/openperouter/openperouter/e2etests/pkg/executor"
 	"github.com/openperouter/openperouter/e2etests/pkg/infra"
 	"github.com/openperouter/openperouter/e2etests/pkg/k8sclient"
 	"github.com/openperouter/openperouter/e2etests/pkg/openperouter"
@@ -99,20 +101,15 @@ var _ = Describe("Grout datapath", GroutSupport, Ordered, func() {
 	It("should have grout interfaces configured", func() {
 		for router := range routers.GetExecutors() {
 			By("checking grout interfaces on " + router.Name())
-			out, err := router.Exec("grcli", "--err-exit", "--json", "interface", "show")
-			Expect(err).NotTo(HaveOccurred(), "grcli interface show failed on %s: %s", router.Name(), out)
-
-			var ifaces []groutInterface
-			Expect(json.Unmarshal([]byte(out), &ifaces)).To(Succeed(), "failed to parse grcli output on %s", router.Name())
-
-			types := map[string]bool{}
-			for _, iface := range ifaces {
-				types[iface.Type] = true
-			}
-
-			Expect(types).To(HaveKey("vrf"), "no grout VRF found on %s", router.Name())
-			Expect(types).To(HaveKey("vxlan"), "no grout VXLAN found on %s", router.Name())
-			Expect(types).To(HaveKey("port"), "no grout port found on %s", router.Name())
+			// Router pods report ready before the controller finishes
+			// reconciling the L3VNI into grout.
+			Eventually(func() (map[string]struct{}, error) {
+				return groutInterfaceTypes(router)
+			}, 2*time.Minute, time.Second).Should(SatisfyAll(
+				HaveKey("vrf"),
+				HaveKey("vxlan"),
+				HaveKey("port"),
+			), "missing grout interface types on %s", router.Name())
 		}
 	})
 
@@ -137,3 +134,21 @@ var _ = Describe("Grout datapath", GroutSupport, Ordered, func() {
 		}
 	})
 })
+
+func groutInterfaceTypes(router executor.Executor) (map[string]struct{}, error) {
+	out, err := router.Exec("grcli", "--err-exit", "--json", "interface", "show")
+	if err != nil {
+		return nil, fmt.Errorf("grcli interface show failed: %s: %w", out, err)
+	}
+
+	var ifaces []groutInterface
+	if err := json.Unmarshal([]byte(out), &ifaces); err != nil {
+		return nil, fmt.Errorf("failed to parse grcli output: %w", err)
+	}
+
+	types := map[string]struct{}{}
+	for _, iface := range ifaces {
+		types[iface.Type] = struct{}{}
+	}
+	return types, nil
+}
