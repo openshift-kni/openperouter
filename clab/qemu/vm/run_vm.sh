@@ -17,6 +17,11 @@ VM_BASE_IMAGE="${VM_BASE_IMAGE:-/vm/fedora-cloud.qcow2}"
 VM_OVERLAY="/vm/overlay.qcow2"
 CLOUD_INIT_ISO="${CLOUD_INIT_ISO:-/vm/cloud-init.iso}"
 MAX_WAIT="${MAX_WAIT:-120}"
+# Queue pairs and RX ring size of the underlay virtio NICs. A virtio NIC has a
+# single queue pair unless multiqueue is enabled, so grout ports with more than
+# one RX queue or a ring larger than the device one can't be created.
+NIC_QUEUES="${NIC_QUEUES:-4}"
+NIC_RX_QUEUE_SIZE="${NIC_RX_QUEUE_SIZE:-1024}"
 
 # Create a fresh overlay so the base image stays pristine.
 # Every container restart gets a clean VM.
@@ -54,7 +59,7 @@ for nic in "${NICS[@]}"; do
     br="${nic}_br"
     mac=$(printf "52:54:00:ab:cd:%02x" "${slot}")
 
-    ip tuntap add dev "${tap}" mode tap
+    ip tuntap add dev "${tap}" mode tap multi_queue
     ip link add "${br}" type bridge
     ip link set "${nic}" master "${br}"
     ip link set "${tap}" master "${br}"
@@ -64,8 +69,8 @@ for nic in "${NICS[@]}"; do
 
     QEMU_NIC_ARGS+=(
         -device "pcie-root-port,id=rp${slot},slot=${slot}"
-        -netdev "tap,id=${tap},ifname=${tap},script=no,downscript=no"
-        -device "virtio-net-pci,bus=rp${slot},netdev=${tap},mac=${mac},iommu_platform=on,ats=on"
+        -netdev "tap,id=${tap},ifname=${tap},script=no,downscript=no,queues=${NIC_QUEUES}"
+        -device "virtio-net-pci,bus=rp${slot},netdev=${tap},mac=${mac},iommu_platform=on,ats=on,mq=on,vectors=$((2 * NIC_QUEUES + 2)),rx_queue_size=${NIC_RX_QUEUE_SIZE}"
     )
 
     echo "Bridge ${br}: ${nic} <-> ${tap} (mac ${mac})"
