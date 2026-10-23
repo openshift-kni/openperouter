@@ -299,6 +299,7 @@ func TestParseChartWithGroutEnabled(t *testing.T) {
 					g.Expect(env["GROUT_PORT_QUEUE_SIZE"]).To(Equal("128"))
 					g.Expect(env).ToNot(HaveKey("GROUT_FIB4_ALGORITHM"))
 					g.Expect(env).ToNot(HaveKey("GROUT_FIB6_ALGORITHM"))
+					g.Expect(env).ToNot(HaveKey("GROUT_MAX_MTU"))
 					g.Expect(c.Command).ToNot(ContainElement(ContainSubstring("--test-mode")))
 				}
 			}
@@ -342,6 +343,7 @@ func TestParseChartWithGroutTestModeAndTapUnderlay(t *testing.T) {
 	envConfig := defaultEnvConfig
 	envConfig.GroutTestMode = true
 	envConfig.GroutTapUnderlay = true
+	envConfig.GroutMaxMTU = 9500
 
 	objs, err := chart.Objects(envConfig, openperouter)
 	g.Expect(err).ToNot(HaveOccurred())
@@ -375,6 +377,7 @@ func TestParseChartWithGroutTestModeAndTapUnderlay(t *testing.T) {
 			}
 			g.Expect(env["GROUT_FIB4_ALGORITHM"]).To(Equal("DUMMY"))
 			g.Expect(env["GROUT_FIB6_ALGORITHM"]).To(Equal("DUMMY"))
+			g.Expect(env["GROUT_MAX_MTU"]).To(Equal("9500"))
 			g.Expect(c.Command).To(ContainElement(ContainSubstring("--test-mode")))
 			groutFound = true
 		}
@@ -584,6 +587,59 @@ func TestParseChartWithBGPListenLimit(t *testing.T) {
 		controllerFound = true
 	}
 	g.Expect(controllerFound).To(BeTrue())
+}
+
+func TestParseChartWithMaxReconcileBackoff(t *testing.T) {
+	tests := []struct {
+		name      string
+		backoff   *int32
+		wantArg   string
+		wantError string
+	}{
+		{name: "unset"},
+		{name: "override", backoff: new(int32(10)),
+			wantArg: "--max-reconcile-backoff=10s"},
+		{name: "larger override", backoff: new(int32(90)),
+			wantArg: "--max-reconcile-backoff=90s"},
+		{name: "zero", backoff: new(int32(0)), wantError: "at '/openperouter/maxReconcileBackoffSeconds': minimum: got 0, want 1"},
+		{name: "negative", backoff: new(int32(-1)), wantError: "at '/openperouter/maxReconcileBackoffSeconds': minimum: got -1, want 1"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewGomegaWithT(t)
+			chart, err := NewChart(testChartPath, openperouterChartName, openperouterTestNamespace)
+			g.Expect(err).To(Succeed())
+			resource := &operatorapi.OpenPERouter{
+				Spec: operatorapi.OpenPERouterSpec{ControllerMaxReconcileBackoffSeconds: tt.backoff},
+			}
+			objects, err := chart.Objects(defaultEnvConfig, resource)
+			if tt.wantError != "" {
+				g.Expect(err).To(MatchError(ContainSubstring(tt.wantError)))
+				return
+			}
+			g.Expect(err).To(Succeed())
+			var backoffArgs []string
+			for _, obj := range objects {
+				if obj.GetKind() != daemonSetKind || obj.GetName() != controllerDaemonSetName {
+					continue
+				}
+				var controller appsv1.DaemonSet
+				g.Expect(runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &controller)).To(Succeed())
+				for _, container := range controller.Spec.Template.Spec.Containers {
+					for _, arg := range container.Args {
+						if strings.HasPrefix(arg, "--max-reconcile-backoff=") {
+							backoffArgs = append(backoffArgs, arg)
+						}
+					}
+				}
+			}
+			if tt.wantArg == "" {
+				g.Expect(backoffArgs).To(BeEmpty())
+				return
+			}
+			g.Expect(backoffArgs).To(Equal([]string{tt.wantArg}))
+		})
+	}
 }
 
 func validateLogLevel(level string, pod v1.PodTemplateSpec) error {
