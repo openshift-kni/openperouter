@@ -792,6 +792,7 @@ func dumpPreTrafficState(cs clientset.Interface, nodeName string) {
 
 var _ = Describe("Configuration Resiliency", Ordered, func() {
 	var cs clientset.Interface
+	var nodes []v1.Node
 
 	goodL3VNI := v1alpha1.L3VNI{
 		ObjectMeta: metav1.ObjectMeta{
@@ -836,9 +837,13 @@ var _ = Describe("Configuration Resiliency", Ordered, func() {
 	}
 
 	BeforeAll(func() {
-		Expect(Updater.CleanAll()).To(Succeed())
-
+		var err error
 		cs = k8sclient.New()
+		nodes, err = k8s.GetNodes(cs)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(len(nodes)).To(BeNumerically(">=", 1), "Expected at least 1 node, but got fewer")
+
+		Expect(Updater.CleanAll()).To(Succeed())
 
 		Expect(openperouter.DisableWebhooksForNamespace(cs, openperouter.Namespace)).To(Succeed())
 
@@ -866,8 +871,8 @@ var _ = Describe("Configuration Resiliency", Ordered, func() {
 		Expect(Updater.CleanButUnderlay()).To(Succeed())
 
 		Eventually(func(g Gomega) {
-			expectNodeCondition(g, infra.KindControlPlane, "Ready", metav1.ConditionTrue)
-			expectNodeCondition(g, infra.KindControlPlane, "Degraded", metav1.ConditionFalse)
+			expectNodeCondition(g, nodes[0].Name, "Ready", metav1.ConditionTrue)
+			expectNodeCondition(g, nodes[0].Name, "Degraded", metav1.ConditionFalse)
 		}, time.Minute, time.Second).Should(Succeed())
 	})
 
@@ -879,7 +884,7 @@ var _ = Describe("Configuration Resiliency", Ordered, func() {
 			})).To(Succeed())
 
 			Eventually(func(g Gomega) {
-				status, err := openperouter.GetNodeStatus(Updater.Client(), infra.KindControlPlane)
+				status, err := openperouter.GetNodeStatus(Updater.Client(), nodes[0].Name)
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(status.Status.FailedResources).To(HaveLen(1))
 				failed := status.Status.FailedResources[0]
@@ -888,8 +893,8 @@ var _ = Describe("Configuration Resiliency", Ordered, func() {
 				g.Expect(failed.Reason).To(Equal(v1alpha1.FailedResourceReasonValidationFailed))
 				g.Expect(failed.Message).To(ContainSubstring("duplicate vni"))
 
-				expectNodeCondition(g, infra.KindControlPlane, "Ready", metav1.ConditionFalse)
-				expectNodeCondition(g, infra.KindControlPlane, "Degraded", metav1.ConditionTrue)
+				expectNodeCondition(g, nodes[0].Name, "Ready", metav1.ConditionFalse)
+				expectNodeCondition(g, nodes[0].Name, "Degraded", metav1.ConditionTrue)
 			}, time.Minute, time.Second).Should(Succeed())
 		})
 	})
@@ -925,7 +930,7 @@ var _ = Describe("Configuration Resiliency", Ordered, func() {
 			})).To(Succeed())
 
 			Eventually(func(g Gomega) {
-				status, err := openperouter.GetNodeStatus(Updater.Client(), infra.KindControlPlane)
+				status, err := openperouter.GetNodeStatus(Updater.Client(), nodes[0].Name)
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(status.Status.FailedResources).To(HaveLen(2))
 
@@ -943,7 +948,7 @@ var _ = Describe("Configuration Resiliency", Ordered, func() {
 				g.Expect(failedByName["cascade-l2"].Reason).To(Equal(v1alpha1.FailedResourceReasonDependencyFailed))
 				g.Expect(failedByName["cascade-l2"].Message).To(ContainSubstring(`referenced L3VNI "bad-rt-l3" not found`))
 
-				expectNodeCondition(g, infra.KindControlPlane, "Ready", metav1.ConditionFalse)
+				expectNodeCondition(g, nodes[0].Name, "Ready", metav1.ConditionFalse)
 			}, time.Minute, time.Second).Should(Succeed())
 		})
 	})
@@ -967,7 +972,7 @@ var _ = Describe("Configuration Resiliency", Ordered, func() {
 			})).To(Succeed())
 
 			Eventually(func(g Gomega) {
-				status, err := openperouter.GetNodeStatus(Updater.Client(), infra.KindControlPlane)
+				status, err := openperouter.GetNodeStatus(Updater.Client(), nodes[0].Name)
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(status.Status.FailedResources).To(HaveLen(1))
 				failed := status.Status.FailedResources[0]
@@ -976,7 +981,7 @@ var _ = Describe("Configuration Resiliency", Ordered, func() {
 				g.Expect(failed.Reason).To(Equal(v1alpha1.FailedResourceReasonDependencyFailed))
 				g.Expect(failed.Message).To(ContainSubstring(`referenced L3VNI "nonexistent" not found`))
 
-				expectNodeCondition(g, infra.KindControlPlane, "Ready", metav1.ConditionFalse)
+				expectNodeCondition(g, nodes[0].Name, "Ready", metav1.ConditionFalse)
 			}, time.Minute, time.Second).Should(Succeed())
 		})
 	})
@@ -990,7 +995,7 @@ var _ = Describe("Configuration Resiliency", Ordered, func() {
 			})).To(Succeed())
 
 			Eventually(func(g Gomega) {
-				status, err := openperouter.GetNodeStatus(Updater.Client(), infra.KindControlPlane)
+				status, err := openperouter.GetNodeStatus(Updater.Client(), nodes[0].Name)
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(status.Status.FailedResources).To(HaveLen(1))
 				g.Expect(status.Status.FailedResources[0].Name).To(Equal("l2-conflict"))
@@ -1006,12 +1011,12 @@ var _ = Describe("Configuration Resiliency", Ordered, func() {
 			})).To(Succeed())
 
 			Eventually(func(g Gomega) {
-				status, err := openperouter.GetNodeStatus(Updater.Client(), infra.KindControlPlane)
+				status, err := openperouter.GetNodeStatus(Updater.Client(), nodes[0].Name)
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(status.Status.FailedResources).To(BeEmpty())
 
-				expectNodeCondition(g, infra.KindControlPlane, "Ready", metav1.ConditionTrue)
-				expectNodeCondition(g, infra.KindControlPlane, "Degraded", metav1.ConditionFalse)
+				expectNodeCondition(g, nodes[0].Name, "Ready", metav1.ConditionTrue)
+				expectNodeCondition(g, nodes[0].Name, "Degraded", metav1.ConditionFalse)
 			}, time.Minute, time.Second).Should(Succeed())
 		})
 	})
