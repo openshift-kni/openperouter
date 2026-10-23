@@ -25,8 +25,6 @@ spec:
     value: '{{revision}}'
   - name: output-image
     value: quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-bundle-4-22:test-{{revision}}
-  - name: output-image-edge
-    value: quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-bundle-4-22:edge-{{revision}}
   - name: image-expires-after
     value: 5d
   - name: build-platforms
@@ -46,14 +44,9 @@ spec:
     value: 'true'
   - name: operator-image-test
     value: quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-4-22:on-pr-{{revision}}
-  - name: operator-image-edge
-    value: quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-edge-4-22:on-pr-{{revision}}
   - name: additional-tags-test
     value:
     - test-pr-{{pull_request_number}}
-  - name: additional-tags-edge
-    value:
-    - edge-pr-{{pull_request_number}}
   pipelineRef:
     name: dev-pipeline
   taskRunTemplate:
