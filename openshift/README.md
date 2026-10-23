@@ -19,30 +19,25 @@ cp -r /etc/rhsm "$TMPDIR/rhsm"
 # Build the image
 podman build -v "$TMPDIR/entitlement:/run/secrets/etc-pki-entitlement:Z"  \
                -v "$TMPDIR/rhsm:/run/secrets/rhsm:Z" \
-               -f Dockerfile.edge.openshift .
+               -f Dockerfile.openshift .
 ```
 
 ## Refreshing RPM lockfiles
 
-The `rpms.in.yaml` / `rpms.lock.yaml` pairs declare the RPM dependencies Konflux
-prefetches for the hermetic OpenShift image builds. There are two scopes:
+The `openshift/frr/rpms.in.yaml` / `openshift/frr/rpms.lock.yaml` pair declares
+the RPM dependencies Konflux prefetches for the hermetic OpenShift image build
+using `Dockerfile.openshift`. `frr`, `grout`, and `grout-frr` are pulled from
+Fast Datapath (FDP), via the `fast-datapath-for-rhel-9-x86_64-rpms` repository,
+instead of a prebuilt FRR base image.
 
-- **`openshift/`** — the build toolchain consumed by the `grout-builder` stage in
-  `Dockerfile.edge.openshift` (the edge/grout image).
-- **`openshift/frr/`** — the FRR runtime consumed by `Dockerfile.openshift` (the
-  non-edge image). `frr`, `grout`, and `grout-frr` are pulled from Fast Datapath
-  (FDP), via the `fast-datapath-for-rhel-9-x86_64-rpms` repository, instead of
-  a prebuilt FRR base image.
-
-Both scopes share `openshift/redhat.repo`.
+This scope uses `openshift/redhat.repo`.
 
 ## When to refresh
 
-Update the relevant scope whenever:
+Update this scope whenever:
 
-- A package is added or removed in the `dnf install` lines of the corresponding
-  Dockerfile (`grout-builder` stage for `openshift/`, the final stage for
-  `openshift/frr/`).
+- A package is added or removed in the `dnf install` lines of the runtime stage
+  in `Dockerfile.openshift`.
 - You want to pick up newer package versions of `registry.redhat.io/ubi9/ubi`.
 
 ### Steps
@@ -76,10 +71,7 @@ awk 'BEGIN{RS=""; ORS="\n\n"} /^#/ || /enabled = 1/' /etc/yum.repos.d/redhat.rep
 cp /run/secrets/etc-pki-entitlement/* /etc/pki/entitlement/
 skopeo login registry.redhat.io
 
-# edge/grout toolchain scope
-cd /src; rpm-lockfile-prototype --debug --bare --outfile openshift/rpms.lock.yaml openshift/rpms.in.yaml
-
-# FDP FRR scope (non-edge image)
+# FDP FRR runtime scope
 cd /src; rpm-lockfile-prototype --debug --bare --outfile openshift/frr/rpms.lock.yaml openshift/frr/rpms.in.yaml
 ```
 
