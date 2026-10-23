@@ -3,7 +3,7 @@
 #
 # Entrypoint for the pe-kind-control-plane clab container.
 # Waits for clab interfaces, bridges each to a TAP device, and launches
-# QEMU with igb NICs backed by those TAPs.
+# QEMU with virtio NICs backed by those TAPs.
 
 set -euo pipefail
 set -x
@@ -39,7 +39,7 @@ done
 # For each NIC eth0, there is a bridge and a tap device:
 #
 #        eth0 <---------------> eth0_br <---------> eth0_tap <----------> eth0 
-#  <veth created by clab>      <bridge>             <atp>          <igb nic in QEMU VM>
+#  <veth created by clab>      <bridge>             <atp>          <virtio nic in QEMU VM>
 #
 
 QEMU_NIC_ARGS=()
@@ -65,7 +65,7 @@ for nic in "${NICS[@]}"; do
     QEMU_NIC_ARGS+=(
         -device "pcie-root-port,id=rp${slot},slot=${slot}"
         -netdev "tap,id=${tap},ifname=${tap},script=no,downscript=no"
-        -device "igb,bus=rp${slot},netdev=${tap},mac=${mac}"
+        -device "virtio-net-pci,bus=rp${slot},netdev=${tap},mac=${mac},iommu_platform=on,ats=on"
     )
 
     echo "Bridge ${br}: ${nic} <-> ${tap} (mac ${mac})"
@@ -75,12 +75,19 @@ for nic in "${NICS[@]}"; do
     slot=$((slot + 1))
 done
 
-echo "Launching QEMU with ${#NICS[@]} igb NICs..."
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/create-vfs.sh"
+
+echo "Launching QEMU with ${#NICS[@]} virtio NICs..."
 MGMT_NETDEV="user,id=mgmt,hostfwd=tcp::${SSH_PORT}-:22,hostfwd=tcp::${K8S_PORT}-:6443"
 
+# DPDK maps its buffers with IOVA=VA through vfio, so the virtio NICs it
+# drives must translate DMA through the vIOMMU (iommu_platform, plus ats with
+# device-iotlb). Without it QEMU reads the IOVAs as guest-physical addresses
+# and grout hangs waiting on the virtio control queue.
 exec qemu-system-x86_64 \
     -machine q35,kernel-irqchip=split \
-    -device intel-iommu,intremap=on,caching-mode=on \
+    -device intel-iommu,intremap=on,caching-mode=on,device-iotlb=on \
     -enable-kvm \
     -cpu host \
     -smp "${VM_CPUS}" \
