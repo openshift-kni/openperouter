@@ -42,6 +42,7 @@ Kubernetes: `>= 1.19.0-0`
 | openperouter.grout.image.pullPolicy | string | `""` |  |
 | openperouter.grout.image.repository | string | `"quay.io/openperouter/router"` |  |
 | openperouter.grout.image.tag | string | `"main-grout"` |  |
+| openperouter.grout.maxMTU | string | `""` | Maximum MTU grout accepts on its ports (GROUT_MAX_MTU). The underlay ports take the MTU of the underlay interfaces, so it must be at least as large as the underlay MTU. Larger values grow every packet buffer. Leave it empty to use the grout default (1800). |
 | openperouter.grout.resources.limits.cpu | string | `"500m"` |  |
 | openperouter.grout.resources.limits.memory | string | `"2Gi"` |  |
 | openperouter.grout.resources.requests.cpu | string | `"250m"` |  |
@@ -54,6 +55,7 @@ Kubernetes: `>= 1.19.0-0`
 | openperouter.image.tag | string | `""` |  |
 | openperouter.labels | object | `{}` |  |
 | openperouter.logLevel | string | `"info"` | Controller log level. Must be one of: `debug`, `info`, `warn` or `error`. |
+| openperouter.maxReconcileBackoffSeconds | int | `nil` | Maximum retry delay in seconds after failed API reconciliation. Unset uses the controller default rate limiter. |
 | openperouter.nodeSelector | object | `{}` | Node selector to constrain all openperouter pods (router, controller, nodemarker, hostbridge) to nodes with matching labels. |
 | openperouter.nodemarker.resources | object | `{}` |  |
 | openperouter.ovsRunDir | string | `"/var/run/openvswitch"` | OVS run directory to mount. This is the directory containing the OVS socket. |

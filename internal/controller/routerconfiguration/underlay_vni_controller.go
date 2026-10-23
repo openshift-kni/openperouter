@@ -25,12 +25,15 @@ import (
 	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -49,6 +52,7 @@ type PERouterReconciler struct {
 	client.Client
 	Scheme               *runtime.Scheme
 	MyNode               string
+	MaxReconcileBackoff  time.Duration
 	MyNamespace          string
 	LogLevel             string
 	Logger               *slog.Logger
@@ -402,6 +406,9 @@ func validatePassword(password string) error {
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *PERouterReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	if r.MaxReconcileBackoff < 0 {
+		return fmt.Errorf("maximum reconciliation backoff must not be negative")
+	}
 	filterLocalNodeStatus := predicate.NewPredicateFuncs(func(object client.Object) bool {
 		if o, ok := object.(*v1alpha1.RouterNodeConfigurationStatus); ok {
 			return o.Name == r.MyNode
@@ -461,27 +468,100 @@ func (r *PERouterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 
+	filterLocalNode := r.filterCurrentNodeOnly(func() (*v1.Node, error) {
+		node := &v1.Node{}
+		err := r.Get(context.Background(), client.ObjectKey{Name: r.MyNode}, node)
+		return node, err
+	})
+
+	enqueueLocalNodeRequestForObject := handler.EnqueueRequestsFromMapFunc(r.nodeRequestFor)
+
 	builder := ctrl.NewControllerManagedBy(mgr).
-		For(&v1alpha1.Underlay{}).
-		Watches(&v1.Node{}, &handler.EnqueueRequestForObject{}).
-		Watches(&v1.Pod{}, &handler.EnqueueRequestForObject{}).
-		Watches(&v1alpha1.L3VNI{}, &handler.EnqueueRequestForObject{}).
-		Watches(&v1alpha1.L2VNI{}, &handler.EnqueueRequestForObject{}).
-		Watches(&v1alpha1.L3VPN{}, &handler.EnqueueRequestForObject{}).
-		Watches(&v1alpha1.L3Passthrough{}, &handler.EnqueueRequestForObject{}).
-		Watches(&v1alpha1.RawFRRConfig{}, &handler.EnqueueRequestForObject{}).
-		Watches(&v1alpha1.RouterNodeConfigurationStatus{}, &handler.EnqueueRequestForObject{}).
-		Watches(&v1.Secret{}, &handler.EnqueueRequestForObject{}).
+		Named("routercontroller").
+		WithOptions(controller.Options{RateLimiter: rateLimiter(r.MaxReconcileBackoff)}).
+		Watches(&v1alpha1.Underlay{}, enqueueLocalNodeRequestForObject).
+		Watches(&v1.Node{}, enqueueLocalNodeRequestForObject).
+		Watches(&v1.Pod{}, enqueueLocalNodeRequestForObject).
+		Watches(&v1alpha1.L3VNI{}, enqueueLocalNodeRequestForObject).
+		Watches(&v1alpha1.L2VNI{}, enqueueLocalNodeRequestForObject).
+		Watches(&v1alpha1.L3VPN{}, enqueueLocalNodeRequestForObject).
+		Watches(&v1alpha1.L3Passthrough{}, enqueueLocalNodeRequestForObject).
+		Watches(&v1alpha1.RawFRRConfig{}, enqueueLocalNodeRequestForObject).
+		Watches(&v1alpha1.RouterNodeConfigurationStatus{}, enqueueLocalNodeRequestForObject).
+		Watches(&v1.Secret{}, enqueueLocalNodeRequestForObject).
 		WithEventFilter(filterNonRouterPods).
 		WithEventFilter(filterLocalNodeStatus).
 		WithEventFilter(filterUpdates).
-		Named("routercontroller")
+		WithEventFilter(filterLocalNode)
 
 	if r.TriggerChan != nil {
-		builder = builder.WatchesRawSource(source.Channel(r.TriggerChan, &handler.EnqueueRequestForObject{}))
+		builder = builder.WatchesRawSource(source.Channel(r.TriggerChan, enqueueLocalNodeRequestForObject))
 	}
 
 	return builder.Complete(r)
+}
+
+func (r *PERouterReconciler) nodeRequestFor(context.Context, client.Object) []ctrl.Request {
+	return []ctrl.Request{{NamespacedName: types.NamespacedName{Name: r.MyNode}}}
+}
+
+func (r *PERouterReconciler) filterCurrentNodeOnly(getNode func() (*v1.Node, error)) predicate.Funcs {
+	concerns := func(obj client.Object) bool {
+		if node, ok := obj.(*v1.Node); ok {
+			return node.Name == r.MyNode
+		}
+		sel := nodeSelectorOf(obj)
+		if sel == nil {
+			return true
+		}
+		node, err := getNode()
+		if err != nil {
+			return true
+		}
+		matches, err := filter.NodeSelectorMatches(node, sel)
+		if err != nil {
+			return true
+		}
+		return matches
+	}
+	return predicate.Funcs{
+		CreateFunc: func(e event.CreateEvent) bool { return concerns(e.Object) },
+		DeleteFunc: func(e event.DeleteEvent) bool { return concerns(e.Object) },
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			return concerns(e.ObjectOld) || concerns(e.ObjectNew)
+		},
+		GenericFunc: func(e event.GenericEvent) bool {
+			if _, ok := e.Object.(*v1.Node); ok {
+				return concerns(e.Object)
+			}
+			return true
+		},
+	}
+}
+
+func nodeSelectorOf(obj client.Object) *metav1.LabelSelector {
+	switch o := obj.(type) {
+	case *v1alpha1.Underlay:
+		return o.Spec.NodeSelector
+	case *v1alpha1.L3VNI:
+		return o.Spec.NodeSelector
+	case *v1alpha1.L2VNI:
+		return o.Spec.NodeSelector
+	case *v1alpha1.L3VPN:
+		return o.Spec.NodeSelector
+	case *v1alpha1.L3Passthrough:
+		return o.Spec.NodeSelector
+	case *v1alpha1.RawFRRConfig:
+		return o.Spec.NodeSelector
+	}
+	return nil
+}
+
+func rateLimiter(maxBackoff time.Duration) workqueue.TypedRateLimiter[ctrl.Request] {
+	if maxBackoff == 0 {
+		return nil
+	}
+	return workqueue.NewTypedItemExponentialFailureRateLimiter[ctrl.Request](5*time.Millisecond, maxBackoff)
 }
 
 func setPodNodeNameIndex(mgr ctrl.Manager) error {
