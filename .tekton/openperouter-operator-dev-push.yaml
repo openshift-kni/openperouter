@@ -16,7 +16,6 @@ metadata:
   labels:
     appstudio.openshift.io/application: openperouter-operator-4-22
     appstudio.openshift.io/component: openperouter-operator-bundle-4-22
-    pipelines.appstudio.openshift.io/type: build
   name: openperouter-operator-bundle-dev-push
   namespace: telco-5g-tenant
 spec:
