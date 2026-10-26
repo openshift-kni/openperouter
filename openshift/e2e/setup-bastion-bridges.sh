@@ -2,9 +2,9 @@
 # Bastion-only helper: create toswitch1/toswitch2 Linux bridges for ocp.clab.yml
 # and optionally attach lab NICs. Does NOT change eth0 / default route.
 #
-# Cluster 7 map (tagging on hypervisor; guest sees untagged NICs):
-#   VLAN 101 → bastion eth1 → toswitch1 (leafkind1)
-#   VLAN 177 → bastion eth2 → toswitch2 (leafkind2)
+# Typical layout (tagging often on the hypervisor; guest sees untagged NICs):
+#   leaf1 path → bastion eth1 → toswitch1 (leafkind1)
+#   leaf2 path → bastion eth2 → toswitch2 (leafkind2)
 #
 # Usage:
 #   set -a && source openshift/e2e/bastion.env.example && set +a
@@ -20,7 +20,7 @@
 #   - CLAB_BASTION_ATTACH_LAB_IFACE: only the literal "true" enables attach
 #   - Requires working passwordless (or cached) sudo
 #   - lab-* NM profiles created here are not removed by teardown-clab (intentional)
-# VLAN 101/177 comments below are hlxcl7 lab map; override ifaces via env elsewhere.
+# Override guest ifaces via CLAB_BASTION_LAB_IFACE_TOSWITCH1/2 (or aliases).
 set -euo pipefail
 
 MGMT_IFACE="${CLAB_BASTION_MGMT_IFACE:-eth0}"
@@ -31,7 +31,7 @@ ATTACH_LAB="${CLAB_BASTION_ATTACH_LAB_IFACE:-${OPENPE_BASTION_ATTACH_LAB_IFACE:-
 
 echo "=== Bastion bridges for ocp.clab.yml ==="
 echo "  mgmt: ${MGMT_IFACE} (SSH / default only)"
-echo "  map: ${IFACE_TS1} -> toswitch1 (VLAN 101), ${IFACE_TS2} -> toswitch2 (VLAN 177)"
+echo "  map: ${IFACE_TS1} -> toswitch1 (leafkind1), ${IFACE_TS2} -> toswitch2 (leafkind2)"
 
 if ! sudo -n true 2>/dev/null; then
   echo "ERROR: passwordless sudo required (sudo -n true failed)" >&2

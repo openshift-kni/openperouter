@@ -6,7 +6,7 @@
 # No EXIT trap here — e2e-bastion.sh owns cleanup; standalone runs must tear down manually.
 #
 # Usage (on bastion / CI):
-#   export KUBECONFIG=/path/to/hlxcl7/auth/kubeconfig
+#   export KUBECONFIG=/path/to/ocp/kubeconfig
 #   set -a && source openshift/e2e/bastion.env.example && set +a
 #   ./openshift/e2e/deploy-bastion.sh
 #

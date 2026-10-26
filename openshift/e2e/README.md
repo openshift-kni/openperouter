@@ -34,7 +34,7 @@ Prerequisites: `EXTRA_NETWORK_NAMES` / post-install `toswitch1` `toswitch2`, Doc
 
 ## Bastion lab (opt-in)
 
-Target: QE bastions (e.g. `bastion-hlxcl7`) with:
+Target: QE bastions with:
 
 - `eth0` = mgmt / SSH / **default route only**
 - `eth1` = lab VLAN → `toswitch1` (no gateway; `ipv4.never-default yes`)
@@ -76,7 +76,7 @@ For selective cleanup, leave that unset and use `OPENPE_E2E_TEARDOWN_WORKER_NET`
 
 Same bastion will later host MetalLB **external FRR** containers. Use one var set:
 
-| Variable | Purpose | Example (hlxcl7) |
+| Variable | Purpose | Example |
 | --- | --- | --- |
 | `CLAB_EXECUTOR` | `local` (CI/bastion) or `ssh` (laptop later) | `local` |
 | `CLAB_BASTION_HOST` / `SSH` / `WORKDIR` | Future / MetalLB laptop→bastion; **unused** by OpenPE when `CLAB_EXECUTOR=local` | (optional) |
@@ -93,7 +93,7 @@ See `bastion.env.example`. Phase 1: **`CLAB_EXECUTOR=local` only** (run tests + 
 ```bash
 set -a && source openshift/e2e/bastion.env.example && set +a
 export KUBECONFIG=/path/to/ocp/kubeconfig
-# bastion.env sets OPENPE_UNDERLAY_IFACE (required; e.g. ens8f0np0 on hlxcl7)
+# bastion.env sets OPENPE_UNDERLAY_IFACE (required; e.g. eth1.100 or ens1f0)
 
 # Bring-up only (no tests / no teardown):
 ./openshift/e2e/deploy-bastion.sh
@@ -115,7 +115,7 @@ export KUBECONFIG=/path/to/ocp/kubeconfig
 - Writes planned `nodelink.json` only (worker IPs applied later by `configure-bastion-worker-net.sh`)
 - Refuses to continue if default route is on `eth1`/`eth2`
 
-**Worker underlay IPs:** `e2e-bastion` runs `configure-bastion-worker-net.sh` after clab (applies addresses from `nodelink.json` onto `OPENPE_UNDERLAY_IFACE`) and removes them in EXIT via `teardown-bastion-worker-net.sh`. `run_tests.sh` exports `OPENPE_UNDERLAY_IFACE*` into `make e2etests` / Ginkgo (hydrates from configure state if unset). When the switch native VLAN is not the leaf VLAN, use tagged `parent.VID` (leaf1/leaf2: cl1 `171/172`, cl2 `173/174`, cl3 `175/176`, cl7 `177/178` — not legacy/native `101/102/103/159`); configure creates the vlan subifs and teardown deletes them.
+**Worker underlay IPs:** `e2e-bastion` runs `configure-bastion-worker-net.sh` after clab (applies addresses from `nodelink.json` onto `OPENPE_UNDERLAY_IFACE`) and removes them in EXIT via `teardown-bastion-worker-net.sh`. `run_tests.sh` exports `OPENPE_UNDERLAY_IFACE*` into `make e2etests` / Ginkgo (hydrates from configure state if unset). When the switch native VLAN is not the leaf VLAN, use tagged `parent.VID` (e.g. `eth1.100` / `eth2.200`); configure creates the vlan subifs and teardown deletes them.
 
 ## KIND
 
@@ -126,7 +126,7 @@ Unaffected by this directory. Use the existing Kind-based developer and CI flows
 | File | Role |
 | --- | --- |
 | `ocp.clab.yml` | Fabric topo; bridges `toswitch1`/`toswitch2` (shared by virtual OCP + bastion) |
-| `bastion.env.example` | Lab env template (hlxcl7 examples — replace for your lab) |
+| `bastion.env.example` | Bastion env template (replace placeholders for your site) |
 | `setup-clab.sh` | Deploy fabric, IPs, setups, nodelink (provider-aware) |
 | `teardown-clab.sh` | Destroy fabric only (podman-safe); keep bridges/mgmt; assert eth0 default |
 | `setup_extra_networks.sh` | **Virtual OCP only** — libvirt extra nets |

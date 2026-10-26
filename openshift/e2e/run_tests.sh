@@ -89,7 +89,7 @@ if [[ "${PROVIDER}" == "bastion" ]]; then
 		OPENPE_UNDERLAY_IFACE2="$(python3 -c "import json; print(json.load(open('${STATE_FILE}')).get('underlayIface2') or '')")"
 	fi
 	if [[ -z "${OPENPE_UNDERLAY_IFACE:-}" ]]; then
-		echo "ERROR: OPENPE_UNDERLAY_IFACE must be set on bastion (e.g. ens8f0np0)" >&2
+		echo "ERROR: OPENPE_UNDERLAY_IFACE must be set on bastion (e.g. eth1.100 or ens1f0)" >&2
 		echo "  setup-clab does not rename worker NICs; default toswitch1 is not safe here" >&2
 		exit 1
 	fi

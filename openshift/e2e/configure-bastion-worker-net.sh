@@ -15,12 +15,12 @@
 # (test owns IPv4 on that NIC for the run).
 #
 # Tagged underlay (required when switch native-vlan != leaf VLAN): set
-#   OPENPE_UNDERLAY_IFACE=ens5f0.173
-#   OPENPE_UNDERLAY_IFACE2=ens5f1.174
-# Never put underlay on the native VLAN (hlxcl2: native 102 strips tags → BGP fails).
-# VLAN map: cl1 171/172 | cl2 173/174 | cl3 175/176 | cl7 177/178 (leaf1/leaf2).
+#   OPENPE_UNDERLAY_IFACE=eth1.100
+#   OPENPE_UNDERLAY_IFACE2=eth2.200
+# Never put underlay on the switch native VLAN when it differs from the leaf VLAN
+# (native strips 802.1Q → BGP to tagged clab leaves fails).
 # If iface is parent.VID and missing, create `ip link add … type vlan id VID`.
-# Also flushes IPv4 on the parent so leftovers on bare ens5f* cannot steal routes.
+# Also flushes IPv4 on the parent so leftovers on the bare parent cannot steal routes.
 # Teardown deletes the planned address and removes vlan subifs we recorded.
 #
 # Re-run after a partial apply is safe. Planned state is rewritten in full before
@@ -47,7 +47,7 @@ fi
 
 # Bastion does not virsh-rename NICs to toswitch*; require the real worker iface.
 if [[ -z "${OPENPE_UNDERLAY_IFACE:-}" ]]; then
-  echo "ERROR: OPENPE_UNDERLAY_IFACE must be set on bastion (e.g. ens5f0.173)" >&2
+  echo "ERROR: OPENPE_UNDERLAY_IFACE must be set on bastion (e.g. eth1.100 or ens1f0)" >&2
   echo "  setup-clab does not rename worker NICs; default toswitch1 is not safe here" >&2
   exit 1
 fi
@@ -106,7 +106,7 @@ for name, nc in cfg.get("nodes", {}).items():
             entries.append({"node": name, "iface": iface2, "ip": ip2, "prefix": 24})
             print(f"{name}|{iface2}|{ip2}|24")
 def is_vlan_iface(name: str) -> bool:
-    # parent.VID — VID is numeric (ens5f1.173). Avoid matching e.g. br-ex.
+    # parent.VID — VID is numeric (eth1.100). Avoid matching e.g. br-ex.
     if "." not in name:
         return False
     parent, _, vid = name.rpartition(".")

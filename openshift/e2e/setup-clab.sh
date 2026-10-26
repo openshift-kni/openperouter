@@ -227,7 +227,7 @@ OPENPE_NS="${OPENPE_E2E_NAMESPACE:-openshift-openperouter}"
 # Bastion is single-homed unless OPENPE_UNDERLAY_IFACE2 is set (matches DualLeafEnabled).
 # Require real worker NIC name — bastion does not virsh-rename to toswitch*.
 if [[ "${PROVIDER}" == "bastion" && -z "${OPENPE_UNDERLAY_IFACE:-}" ]]; then
-    echo "ERROR: OPENPE_UNDERLAY_IFACE must be set for bastion (e.g. ens8f0np0)" >&2
+    echo "ERROR: OPENPE_UNDERLAY_IFACE must be set for bastion (e.g. eth1.100 or ens1f0)" >&2
     echo "  workers keep vendor NIC names; default toswitch1 is not safe" >&2
     exit 1
 fi
@@ -361,7 +361,7 @@ elif [[ "${PROVIDER}" == "bastion" ]]; then
     done
 fi
 
-# underlayHostIfaces: bastion uses OPENPE_UNDERLAY_IFACE*; never hardcode ens5f0.
+# underlayHostIfaces: bastion uses OPENPE_UNDERLAY_IFACE*; never hardcode a lab NIC.
 if [[ "${PROVIDER}" == "bastion" ]]; then
     if [[ -n "${BASTION_IFACE2}" ]]; then
         UNDERLAY_HOST_IFACES_JSON="[\"${BASTION_IFACE1}\", \"${BASTION_IFACE2}\"]"
@@ -393,5 +393,5 @@ if [[ "${PROVIDER}" == "bastion" ]]; then
     echo "  - Fabric is up on host bridges toswitch1/toswitch2"
     echo "  - Default route must stay on ${CLAB_BASTION_MGMT_IFACE:-eth0} (mgmt)"
     echo "  - Lab NICs: ${CLAB_BASTION_LAB_IFACE_TOSWITCH1:-eth1}->toswitch1, ${CLAB_BASTION_LAB_IFACE_TOSWITCH2:-eth2}->toswitch2"
-    echo "  - Worker underlay IPs: configure-bastion-worker-net.sh (OPENPE_UNDERLAY_IFACE, e.g. ens8f0np0)"
+    echo "  - Worker underlay IPs: configure-bastion-worker-net.sh (OPENPE_UNDERLAY_IFACE, e.g. eth1.100)"
 fi
