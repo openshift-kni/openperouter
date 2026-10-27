@@ -7,6 +7,16 @@ COPY --chown=yq:yq operator/bundle/metadata /metadata/
 COPY --chown=yq:yq operator/bundle/overlay/ /overlay/
 COPY telco5g-konflux/scripts/bundle/konflux-bundle-overlay.sh /konflux-bundle-overlay.sh
 
+ENV CSV=/manifests/openperouter-operator.clusterserviceversion.yaml
+
+# Downstream only: add NetworkPolicy RBAC to the "operator" service account,
+# required by Conforma (olm.required_network_policy_rbac_for_operands).
+# The first step fails the build if upstream renames the service account,
+# otherwise the patch would silently match nothing.
+RUN yq -e '.spec.install.spec.permissions[] | select(.serviceAccountName == "operator")' "$CSV" > /dev/null
+RUN yq -i '(.spec.install.spec.permissions[] | select(.serviceAccountName == "operator") | .rules) \
+             += load("/overlay/networkpolicy_rbac.in.yaml")' "$CSV"
+
 RUN if [ -n "$OPERATOR_IMAGE" ]; then \
       yq -i '(.[] | select(.key == "operator")).target = "'"$OPERATOR_IMAGE"'"' /overlay/pin_images.in.yaml && \
       /konflux-bundle-overlay.sh \
