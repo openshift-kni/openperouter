@@ -160,6 +160,7 @@ spec:
             - SETGID
             - CHOWN
             - DAC_OVERRIDE
+            - KILL
           seccompProfile:
             type: Unconfined
         image: {{ .Values.openperouter.image.repository }}:{{ .Values.openperouter.image.tag | default .Chart.AppVersion }}
@@ -186,7 +187,7 @@ spec:
           - name: grout-socket
             mountPath: /var/run/grout
           {{- end }}
-        # The command is FRR's default entrypoint & waiting for the log file to appear and tailing it.
+        # The command waits for the router netns and starts FRR in it through frr-tools/frr-start.
         # If the log file isn't created in 60 seconds the tail fails and the container is restarted.
         # This workaround is needed to have the frr logs as part of kubectl logs -c frr < k8s-frr-podname >.
         command:
@@ -205,13 +206,17 @@ spec:
               fi
             done
             exec nsenter --net=/var/run/netns/perouter /sbin/tini -- /usr/lib/frr/docker-start
-        # Use the same probe as the reloader. If FRR's health is not o.k., both
-        # the frr and the reloader container must be restarted.
+        startupProbe:
+          httpGet:
+            path: /healthz
+            port: 9080
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 24
         livenessProbe:
           httpGet:
             path: /healthz
             port: 9080
-          initialDelaySeconds: 15
           periodSeconds: 20
           timeoutSeconds: 10
           failureThreshold: 3
@@ -253,11 +258,17 @@ spec:
         - containerPort: 9080
           name: health
           protocol: TCP
+        startupProbe:
+          httpGet:
+            path: /healthz
+            port: 9080
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 24
         readinessProbe:
           httpGet:
             path: /readyz
             port: 9080
-          initialDelaySeconds: 5
           periodSeconds: 10
           timeoutSeconds: 10
           failureThreshold: 3
@@ -265,7 +276,6 @@ spec:
           httpGet:
             path: /healthz
             port: 9080
-          initialDelaySeconds: 15
           periodSeconds: 20
           timeoutSeconds: 10
           failureThreshold: 3
@@ -306,6 +316,10 @@ spec:
             value: "128"
           - name: GROUT_PORT_QUEUE_SIZE
             value: "128"
+          {{- with .Values.openperouter.grout.maxMTU }}
+          - name: GROUT_MAX_MTU
+            value: {{ . | quote }}
+          {{- end }}
           {{- if .Values.openperouter.grout.testMode }}
           # DUMMY skips the LPM tables that dominate the per-VRF FIB cost.
           - name: GROUT_FIB4_ALGORITHM
