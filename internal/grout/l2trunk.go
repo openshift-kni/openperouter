@@ -12,6 +12,7 @@ import (
 	"github.com/openperouter/openperouter/internal/hostnetwork"
 	"github.com/openperouter/openperouter/internal/netnamespace"
 	"github.com/openperouter/openperouter/internal/pci"
+	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netns"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
@@ -36,6 +37,22 @@ func GroutPortNameForTrunk(params hostnetwork.L2TrunkParams) string {
 	return fmt.Sprintf("%s%02x", pfNameSuffix(params.SRIOV.PFName, trunkPFChars), params.SRIOV.VFIndex)
 }
 
+// trunkVFPCIAddress returns the PCI address of the trunk VF. The PF may be
+// selected by an alternative name, which sysfs does not expose, so the name
+// is resolved to the primary one through netlink first. A PF unknown to
+// netlink keeps its configured name, which the sysfs lookup then reports.
+func trunkVFPCIAddress(sriov *hostnetwork.SRIOVTrunkParams, sysfs pci.Sysfs) (string, error) {
+	pfName := sriov.PFName
+	link, err := netlink.LinkByName(pfName)
+	switch {
+	case err == nil:
+		pfName = link.Attrs().Name
+	case !errors.As(err, &netlink.LinkNotFoundError{}):
+		return "", fmt.Errorf("failed to find PF %s: %w", pfName, err)
+	}
+	return sysfs.PCIAddressForVF(pfName, int(sriov.VFIndex))
+}
+
 // SetupL2Trunk binds the VF of an SR-IOV L2Trunk to grout as a dedicated DPDK
 // port. The PF-side settings of the VF are left to the user. The original state of the VF
 // is saved in store, keyed by the trunk's port name, before it is touched, so it can
@@ -54,9 +71,11 @@ func SetupL2Trunk(
 	if params.SRIOV == nil {
 		return errUnsupportedTrunk
 	}
+
 	if params.SRIOV.VFIndex < 0 || params.SRIOV.VFIndex > MaxTrunkVFIndex {
 		return fmt.Errorf("vfIndex %d must be between 0 and %d", params.SRIOV.VFIndex, MaxTrunkVFIndex)
 	}
+
 	portName := GroutPortNameForTrunk(params)
 	state, err := ensureTrunkDeviceState(portName, params.SRIOV, store, sysfs)
 	if err != nil {
