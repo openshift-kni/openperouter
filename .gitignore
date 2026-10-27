@@ -33,8 +33,6 @@ go.work
 *.swp
 *.swo
 *~
-
-!vendor/**
 logs_*/
 
 cmd/hostbridge/hostbridge

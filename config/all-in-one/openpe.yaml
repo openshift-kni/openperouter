@@ -228,6 +228,15 @@ spec:
                     type: object
                 type: object
                 x-kubernetes-map-type: atomic
+              rdAssignedNumber:
+                description: |-
+                  rdAssignedNumber sets the Route Distinguisher's Assigned Number subfield.
+                  The Administrator subfield is the originating node's router ID, forming
+                  a Type 1 Route Distinguisher as defined in RFC4364.
+                format: int32
+                maximum: 65535
+                minimum: 1
+                type: integer
               routingDomain:
                 description: |-
                   routingDomain optionally attaches this L2VNI to a routing domain
@@ -671,6 +680,15 @@ spec:
                     type: object
                 type: object
                 x-kubernetes-map-type: atomic
+              rdAssignedNumber:
+                description: |-
+                  rdAssignedNumber sets the Route Distinguisher's Assigned Number subfield.
+                  The Administrator subfield is the originating node's router ID, forming
+                  a Type 1 Route Distinguisher as defined in RFC4364.
+                format: int32
+                maximum: 65535
+                minimum: 1
+                type: integer
               underlayAddressFamily:
                 description: |-
                   underlayAddressFamily selects which VTEP address family to use for this VNI's
@@ -2052,21 +2070,6 @@ metadata:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: controller-privileged-scc-role
-  namespace: openperouter-system
-rules:
-- apiGroups:
-  - security.openshift.io
-  resourceNames:
-  - privileged
-  resources:
-  - securitycontextconstraints
-  verbs:
-  - use
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: openperouter
@@ -2116,21 +2119,6 @@ rules:
   - secrets
   verbs:
   - update
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: perouter-privileged-scc-role
-  namespace: openperouter-system
-rules:
-- apiGroups:
-  - security.openshift.io
-  resourceNames:
-  - privileged
-  resources:
-  - securitycontextconstraints
-  verbs:
-  - use
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -2257,23 +2245,6 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: openperouter
-  name: controller-privileged-scc-rolebinding
-  namespace: openperouter-system
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: controller-privileged-scc-role
-subjects:
-- kind: ServiceAccount
-  name: controller
-  namespace: openperouter-system
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  labels:
-    app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: openperouter
   name: controller-rolebinding
   namespace: openperouter-system
 roleRef:
@@ -2300,23 +2271,6 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: nodemarker
-  namespace: openperouter-system
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  labels:
-    app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: openperouter
-  name: perouter-privileged-scc-rolebinding
-  namespace: openperouter-system
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: perouter-privileged-scc-role
-subjects:
-- kind: ServiceAccount
-  name: perouter
   namespace: openperouter-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
