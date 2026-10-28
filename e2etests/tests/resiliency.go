@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openperouter/openperouter/api/v1alpha1"
@@ -76,11 +75,11 @@ var _ = Describe("Alpha: Named netns and kernel objects survive FRR crash", Orde
 			return openperouter.AreReady(routers)
 		}, 2*time.Minute, time.Second).ShouldNot(HaveOccurred())
 
-		routers.Dump(ginkgo.GinkgoWriter)
+		routers.Dump(GinkgoWriter)
 
 		err = Updater.Update(config.Resources{
 			Underlays: []v1alpha1.Underlay{
-				infra.Underlay,
+				infra.Underlay(infra.Default),
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -211,11 +210,21 @@ func allNodes(cs clientset.Interface) map[string]bool {
 // A DeferCleanup is NOT registered; callers are responsible for waiting on pod restart.
 func killFRREntrypoint(frrExec executor.Executor) {
 	GinkgoHelper()
-	psOut, err := frrExec.Exec("pgrep", "-f", "/sbin/tini -- /usr/lib/frr/docker-start")
-	Expect(err).NotTo(HaveOccurred(), "failed to find FRR entrypoint PID")
-	pids := strings.Split(strings.TrimSpace(psOut), "\n")
-	Expect(pids).NotTo(BeEmpty(), "FRR entrypoint PID should not be empty")
-	frrPID := strings.TrimSpace(pids[0])
+	// awk: in each line, search for the line starting with 'Name:'' and save the value to 'n'.
+	// If the value of n is 'tini' and if one of the lines starts with 'Pid:', print that value.
+	searchExpr := `awk '$1=="Name:" {n=$2}; $1=="Pid:" && n=="tini" {print $2}' /proc/*/status`
+
+	var frrPID string
+	Eventually(func(g Gomega) {
+		psOut, err := frrExec.Exec("/bin/bash", "-c", searchExpr)
+		g.Expect(err).NotTo(HaveOccurred(), "failed to find FRR entrypoint PID")
+
+		pids := strings.Split(strings.TrimSpace(psOut), "\n") // Always guaranteed to hold at the very least one empty elem.
+		frrPID = strings.TrimSpace(pids[0])
+		g.Expect(frrPID).NotTo(BeEmpty(), "FRR entrypoint PID should not be empty")
+	}, 10*time.Second, time.Second).Should(Succeed())
+
+	GinkgoWriter.Printf("killing PID %s\n", frrPID)
 	output, err := frrExec.Exec("kill", frrPID)
 	Expect(err).NotTo(HaveOccurred(), "failed to kill FRR process %q: %v", frrPID, output)
 }
@@ -266,11 +275,11 @@ var _ = Describe("Beta: Named netns auto-rebuilds after deletion", Ordered, func
 			return openperouter.AreReady(routers)
 		}, 2*time.Minute, time.Second).ShouldNot(HaveOccurred())
 
-		underlayWithGR := infra.Underlay.DeepCopy()
+		underlayWithGR := infra.Underlay(infra.Default)
 		underlayWithGR.Spec.GracefulRestart = &v1alpha1.GracefulRestartConfig{}
 
 		err = Updater.Update(config.Resources{
-			Underlays: []v1alpha1.Underlay{*underlayWithGR},
+			Underlays: []v1alpha1.Underlay{underlayWithGR},
 		})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -560,21 +569,21 @@ var _ = Describe("Beta: Named netns auto-rebuilds after deletion", Ordered, func
 		urlStr := url.Format("http://%s/clientip", hostPort)
 
 		DeferCleanup(func() {
-			if !ginkgo.CurrentSpecReport().Failed() {
+			if !CurrentSpecReport().Failed() {
 				return
 			}
 			leafExec := executor.ForContainer(infra.KindLeaf)
 			out, err := leafExec.Exec("vtysh", "-c", "show bgp l2vpn evpn route type macip")
 			if err != nil {
-				ginkgo.GinkgoWriter.Printf("failed to dump leafkind Type-2 routes: %v\n", err)
+				GinkgoWriter.Printf("failed to dump leafkind Type-2 routes: %v\n", err)
 			} else {
-				ginkgo.GinkgoWriter.Printf("=== leafkind Type-2 EVPN routes ===\n%s\n", out)
+				GinkgoWriter.Printf("=== leafkind Type-2 EVPN routes ===\n%s\n", out)
 			}
 			out, err = leafExec.Exec("vtysh", "-c", "show evpn mac vni all")
 			if err != nil {
-				ginkgo.GinkgoWriter.Printf("failed to dump leafkind EVPN MACs: %v\n", err)
+				GinkgoWriter.Printf("failed to dump leafkind EVPN MACs: %v\n", err)
 			} else {
-				ginkgo.GinkgoWriter.Printf("=== leafkind EVPN MACs ===\n%s\n", out)
+				GinkgoWriter.Printf("=== leafkind EVPN MACs ===\n%s\n", out)
 			}
 		})
 
@@ -705,7 +714,7 @@ func (tr trafficTestResult) String() string {
 }
 
 func dumpUnderlayVeths(cs clientset.Interface, label string) {
-	w := ginkgo.GinkgoWriter
+	w := GinkgoWriter
 	w.Printf("=== DIAG [%s]: underlay veth state ===\n", label)
 
 	nodes, err := k8s.GetNodes(cs)
@@ -746,7 +755,7 @@ func dumpUnderlayVeths(cs clientset.Interface, label string) {
 }
 
 func dumpPreTrafficState(cs clientset.Interface, nodeName string) {
-	w := ginkgo.GinkgoWriter
+	w := GinkgoWriter
 
 	routerPods, err := openperouter.RouterPodsForNodes(cs, map[string]bool{nodeName: true})
 	if err != nil || len(routerPods) == 0 {
@@ -787,6 +796,7 @@ func dumpPreTrafficState(cs clientset.Interface, nodeName string) {
 
 var _ = Describe("Configuration Resiliency", Ordered, func() {
 	var cs clientset.Interface
+	var nodes []v1.Node
 
 	goodL3VNI := v1alpha1.L3VNI{
 		ObjectMeta: metav1.ObjectMeta{
@@ -831,14 +841,18 @@ var _ = Describe("Configuration Resiliency", Ordered, func() {
 	}
 
 	BeforeAll(func() {
-		Expect(Updater.CleanAll()).To(Succeed())
-
+		var err error
 		cs = k8sclient.New()
+		nodes, err = k8s.GetNodes(cs)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(len(nodes)).To(BeNumerically(">=", 1), "Expected at least 1 node, but got fewer")
+
+		Expect(Updater.CleanAll()).To(Succeed())
 
 		Expect(openperouter.DisableWebhooksForNamespace(cs, openperouter.Namespace)).To(Succeed())
 
 		Expect(Updater.Update(config.Resources{
-			Underlays: []v1alpha1.Underlay{infra.Underlay},
+			Underlays: []v1alpha1.Underlay{infra.Underlay(infra.Default)},
 		})).To(Succeed())
 	})
 
@@ -861,8 +875,8 @@ var _ = Describe("Configuration Resiliency", Ordered, func() {
 		Expect(Updater.CleanButUnderlay()).To(Succeed())
 
 		Eventually(func(g Gomega) {
-			expectNodeCondition(g, infra.KindControlPlane, "Ready", metav1.ConditionTrue)
-			expectNodeCondition(g, infra.KindControlPlane, "Degraded", metav1.ConditionFalse)
+			expectNodeCondition(g, nodes[0].Name, "Ready", metav1.ConditionTrue)
+			expectNodeCondition(g, nodes[0].Name, "Degraded", metav1.ConditionFalse)
 		}, time.Minute, time.Second).Should(Succeed())
 	})
 
@@ -874,7 +888,7 @@ var _ = Describe("Configuration Resiliency", Ordered, func() {
 			})).To(Succeed())
 
 			Eventually(func(g Gomega) {
-				status, err := openperouter.GetNodeStatus(Updater.Client(), infra.KindControlPlane)
+				status, err := openperouter.GetNodeStatus(Updater.Client(), nodes[0].Name)
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(status.Status.FailedResources).To(HaveLen(1))
 				failed := status.Status.FailedResources[0]
@@ -883,8 +897,8 @@ var _ = Describe("Configuration Resiliency", Ordered, func() {
 				g.Expect(failed.Reason).To(Equal(v1alpha1.FailedResourceReasonValidationFailed))
 				g.Expect(failed.Message).To(ContainSubstring("duplicate vni"))
 
-				expectNodeCondition(g, infra.KindControlPlane, "Ready", metav1.ConditionFalse)
-				expectNodeCondition(g, infra.KindControlPlane, "Degraded", metav1.ConditionTrue)
+				expectNodeCondition(g, nodes[0].Name, "Ready", metav1.ConditionFalse)
+				expectNodeCondition(g, nodes[0].Name, "Degraded", metav1.ConditionTrue)
 			}, time.Minute, time.Second).Should(Succeed())
 		})
 	})
@@ -920,7 +934,7 @@ var _ = Describe("Configuration Resiliency", Ordered, func() {
 			})).To(Succeed())
 
 			Eventually(func(g Gomega) {
-				status, err := openperouter.GetNodeStatus(Updater.Client(), infra.KindControlPlane)
+				status, err := openperouter.GetNodeStatus(Updater.Client(), nodes[0].Name)
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(status.Status.FailedResources).To(HaveLen(2))
 
@@ -938,7 +952,7 @@ var _ = Describe("Configuration Resiliency", Ordered, func() {
 				g.Expect(failedByName["cascade-l2"].Reason).To(Equal(v1alpha1.FailedResourceReasonDependencyFailed))
 				g.Expect(failedByName["cascade-l2"].Message).To(ContainSubstring(`referenced L3VNI "bad-rt-l3" not found`))
 
-				expectNodeCondition(g, infra.KindControlPlane, "Ready", metav1.ConditionFalse)
+				expectNodeCondition(g, nodes[0].Name, "Ready", metav1.ConditionFalse)
 			}, time.Minute, time.Second).Should(Succeed())
 		})
 	})
@@ -962,7 +976,7 @@ var _ = Describe("Configuration Resiliency", Ordered, func() {
 			})).To(Succeed())
 
 			Eventually(func(g Gomega) {
-				status, err := openperouter.GetNodeStatus(Updater.Client(), infra.KindControlPlane)
+				status, err := openperouter.GetNodeStatus(Updater.Client(), nodes[0].Name)
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(status.Status.FailedResources).To(HaveLen(1))
 				failed := status.Status.FailedResources[0]
@@ -971,7 +985,7 @@ var _ = Describe("Configuration Resiliency", Ordered, func() {
 				g.Expect(failed.Reason).To(Equal(v1alpha1.FailedResourceReasonDependencyFailed))
 				g.Expect(failed.Message).To(ContainSubstring(`referenced L3VNI "nonexistent" not found`))
 
-				expectNodeCondition(g, infra.KindControlPlane, "Ready", metav1.ConditionFalse)
+				expectNodeCondition(g, nodes[0].Name, "Ready", metav1.ConditionFalse)
 			}, time.Minute, time.Second).Should(Succeed())
 		})
 	})
@@ -985,7 +999,7 @@ var _ = Describe("Configuration Resiliency", Ordered, func() {
 			})).To(Succeed())
 
 			Eventually(func(g Gomega) {
-				status, err := openperouter.GetNodeStatus(Updater.Client(), infra.KindControlPlane)
+				status, err := openperouter.GetNodeStatus(Updater.Client(), nodes[0].Name)
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(status.Status.FailedResources).To(HaveLen(1))
 				g.Expect(status.Status.FailedResources[0].Name).To(Equal("l2-conflict"))
@@ -1001,12 +1015,12 @@ var _ = Describe("Configuration Resiliency", Ordered, func() {
 			})).To(Succeed())
 
 			Eventually(func(g Gomega) {
-				status, err := openperouter.GetNodeStatus(Updater.Client(), infra.KindControlPlane)
+				status, err := openperouter.GetNodeStatus(Updater.Client(), nodes[0].Name)
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(status.Status.FailedResources).To(BeEmpty())
 
-				expectNodeCondition(g, infra.KindControlPlane, "Ready", metav1.ConditionTrue)
-				expectNodeCondition(g, infra.KindControlPlane, "Degraded", metav1.ConditionFalse)
+				expectNodeCondition(g, nodes[0].Name, "Ready", metav1.ConditionTrue)
+				expectNodeCondition(g, nodes[0].Name, "Degraded", metav1.ConditionFalse)
 			}, time.Minute, time.Second).Should(Succeed())
 		})
 	})

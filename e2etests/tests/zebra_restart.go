@@ -59,14 +59,14 @@ var _ = Describe("Data plane continuity during zebra restart", PodModeOnly, Orde
 			return openperouter.AreReady(routers)
 		}, 2*time.Minute, time.Second).Should(Succeed())
 
-		underlayWithGR := infra.Underlay.DeepCopy()
+		underlayWithGR := infra.Underlay(infra.Default)
 		underlayWithGR.Spec.GracefulRestart = &v1alpha1.GracefulRestartConfig{
 			RestartTimeSeconds:   new(int64(120)),
 			StalePathTimeSeconds: new(int64(360)),
 		}
 
 		Expect(Updater.Update(config.Resources{
-			Underlays: []v1alpha1.Underlay{*underlayWithGR},
+			Underlays: []v1alpha1.Underlay{underlayWithGR},
 		})).To(Succeed())
 
 		Eventually(func() error {
@@ -181,10 +181,13 @@ var _ = Describe("Data plane continuity during zebra restart", PodModeOnly, Orde
 		nodeName := routerPod.Spec.NodeName
 		frrExec := executor.ForPod(openperouter.Namespace, routerPod.Name, "frr")
 
-		zebraPids, err := pidsForProcesses(frrExec, []string{"zebra"})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(zebraPids["zebra"]).To(HaveLen(1), "expected exactly one live zebra process")
-		zebraPid := zebraPids["zebra"][0]
+		var zebraPid string
+		Eventually(func(g Gomega) {
+			zebraPids, err := pidsForProcesses(frrExec, []string{"zebra"})
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(zebraPids["zebra"]).To(HaveLen(1), "expected exactly one live zebra process")
+			zebraPid = zebraPids["zebra"][0]
+		}, 10*time.Second, time.Second).Should(Succeed())
 
 		By("starting continuous traffic measurement")
 		stopAndCount := measureTrafficLoss(clientExec, urlStr)
