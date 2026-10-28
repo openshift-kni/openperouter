@@ -14,7 +14,6 @@ metadata:
   labels:
     appstudio.openshift.io/application: openperouter-operator-5-0
     appstudio.openshift.io/component: openperouter-operator-bundle-5-0
-    pipelines.appstudio.openshift.io/type: build
   name: openperouter-operator-bundle-dev-pull-request
   namespace: telco-5g-tenant
 spec:
@@ -25,8 +24,6 @@ spec:
     value: '{{revision}}'
   - name: output-image
     value: quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-bundle-5-0:test-{{revision}}
-  - name: output-image-edge
-    value: quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-bundle-5-0:edge-{{revision}}
   - name: image-expires-after
     value: 5d
   - name: build-platforms
@@ -46,14 +43,9 @@ spec:
     value: 'true'
   - name: operator-image-test
     value: quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-5-0:on-pr-{{revision}}
-  - name: operator-image-edge
-    value: quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-edge-5-0:on-pr-{{revision}}
   - name: additional-tags-test
     value:
     - test-pr-{{pull_request_number}}
-  - name: additional-tags-edge
-    value:
-    - edge-pr-{{pull_request_number}}
   pipelineRef:
     name: dev-pipeline
   taskRunTemplate:
