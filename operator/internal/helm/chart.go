@@ -31,13 +31,6 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-const (
-	// ContainerRuntimeContainerd is the containerd container runtime identifier
-	ContainerRuntimeContainerd = "containerd"
-	// ContainerRuntimeCrio is the CRI-O container runtime identifier
-	ContainerRuntimeCrio = "crio"
-)
-
 // Chart contains references which helps to
 // to retrieve manifests from chart after patching given custom values.
 type Chart struct {
@@ -95,10 +88,6 @@ func (h *Chart) Objects(envConfig envconfig.EnvConfig, crdConfig *operatorapi.Op
 }
 
 func patchChartValues(envConfig envconfig.EnvConfig, crdConfig *operatorapi.OpenPERouter, valuesMap map[string]any) error {
-	cri := ContainerRuntimeContainerd
-	if envConfig.IsOpenshift {
-		cri = ContainerRuntimeCrio
-	}
 	openperouterValues := map[string]any{
 		"logLevel": logLevelValue(crdConfig),
 		"image": map[string]any{
@@ -126,7 +115,6 @@ func patchChartValues(envConfig envconfig.EnvConfig, crdConfig *operatorapi.Open
 		"crds": map[string]any{
 			"enabled": false,
 		},
-		"cri": cri,
 	}
 
 	// Only set nodeSelector/tolerations/affinity when explicitly provided on the
@@ -172,6 +160,10 @@ func patchChartValues(envConfig envconfig.EnvConfig, crdConfig *operatorapi.Open
 		openperouterValues["bgpListenLimit"] = *crdConfig.Spec.BGPListenLimit
 	}
 
+	if crdConfig.Spec.ControllerMaxReconcileBackoffSeconds != nil {
+		openperouterValues["maxReconcileBackoffSeconds"] = *crdConfig.Spec.ControllerMaxReconcileBackoffSeconds
+	}
+
 	datapath := ptr.Deref(crdConfig.Spec.Datapath, "kernel")
 	openperouterValues["datapath"] = datapath
 	if datapath == "grout" {
@@ -183,13 +175,19 @@ func patchChartValues(envConfig envconfig.EnvConfig, crdConfig *operatorapi.Open
 			}
 		}
 
-		openperouterValues["grout"] = map[string]any{
-			"enabled": true,
+		groutValues := map[string]any{
+			"enabled":     true,
+			"testMode":    envConfig.GroutTestMode,
+			"tapUnderlay": envConfig.GroutTapUnderlay,
 			"image": map[string]any{
 				"repository": groutImage.Repo,
 				"tag":        groutImage.Tag,
 			},
 		}
+		if envConfig.GroutMaxMTU > 0 {
+			groutValues["maxMTU"] = envConfig.GroutMaxMTU
+		}
+		openperouterValues["grout"] = groutValues
 	}
 
 	valuesMap["openperouter"] = openperouterValues

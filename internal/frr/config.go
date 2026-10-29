@@ -30,7 +30,8 @@ type Config struct {
 	Loglevel    string
 	Hostname    string
 	Underlay    UnderlayConfig
-	VNIs        []L3VNIConfig
+	L2VNIs      []L2VNIConfig
+	L3VNIs      []L3VNIConfig
 	VPNs        []L3VPNConfig
 	Passthrough *PassthroughConfig
 	BFDProfiles []BFDProfile
@@ -97,6 +98,7 @@ type UnderlayISIS struct {
 	Net                  ISISNet
 	Level                int32
 	AdvertisePassiveOnly bool
+	MultiTopology        bool
 	Interfaces           []ISISInterface
 }
 
@@ -134,6 +136,12 @@ type L3VNIConfig struct {
 	ImportRTs       []string
 }
 
+type L2VNIConfig struct {
+	VNI       int32
+	ExportRTs []string
+	ImportRTs []string
+}
+
 type L3VPNConfig struct {
 	ASN                int64
 	ToAdvertiseIPv4    []string
@@ -144,6 +152,7 @@ type L3VPNConfig struct {
 	ExportRTs          []string
 	ImportRTs          []string
 	RouteDistinguisher string
+	UDT4UDT6           bool
 }
 
 type BFDProfile struct {
@@ -206,7 +215,7 @@ func (n NeighborConfig) IsRouteReflectorClientFor(afi networklayerprotocol.AFI, 
 	return nlp.Properties.RouteReflectorClient
 }
 
-var frrPasswordRe = regexp.MustCompile(`(neighbor .*) password (.*)`)
+var frrPasswordRe = regexp.MustCompile(`(neighbor[ \t]+\S+[ \t]+password[ \t]+)[^\r\n]*`)
 
 func (nc NeighborConfig) LogValue() slog.Value {
 	type noLogValuer NeighborConfig
@@ -216,7 +225,7 @@ func (nc NeighborConfig) LogValue() slog.Value {
 }
 
 func RedactPasswords(config string) string {
-	return frrPasswordRe.ReplaceAllString(config, "${1} password <REDACTED>")
+	return frrPasswordRe.ReplaceAllString(config, "${1}<REDACTED>")
 }
 
 // shouldRenderUnderlayEVPN tells whether the underlay needs the l2vpn evpn
