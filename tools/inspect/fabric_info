@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+
+# SPDX-License-Identifier:Apache-2.0
+
+# Collects FRR and network state from a containerlab fabric container
+# (leaves, spine). Piped to the container's bash by inspect_fabric.
+# The vtysh sections are skipped when the container does not run FRR.
+
+readonly VTYSH="timeout 10s vtysh"
+
+readonly FRR_COMMANDS=(\
+"show version" \
+"show running-config" \
+"show bgp vrf all summary" \
+"show bgp vrf all neighbor" \
+"show bgp vrf all ipv4" \
+"show bgp vrf all ipv6" \
+"show bgp l2vpn evpn" \
+"show bgp ipv4 vpn" \
+"show bgp ipv6 vpn" \
+"show isis database" \
+"show isis interface" \
+"show isis neighbor" \
+"show ip route" \
+"show ipv6 route" \
+"show interface" \
+)
+
+readonly NET_COMMANDS=(\
+"ip link" \
+"ip address" \
+"ip neigh" \
+"ip -s -s link ls" \
+"ip vrf" \
+"ip route show table all" \
+"bridge fdb show" \
+)
+
+if command -v vtysh > /dev/null 2>&1; then
+	echo "### FRR state:"
+	for cmd in "${FRR_COMMANDS[@]}"; do
+		echo ""
+		echo "$ vtysh -c '${cmd}'"
+		$VTYSH -c "${cmd}" 2>&1
+	done
+else
+	echo "### vtysh not found, skipping FRR state"
+fi
+
+echo ""
+echo "### Network state:"
+for cmd in "${NET_COMMANDS[@]}"; do
+	echo ""
+	echo "$ ${cmd}"
+	${cmd} 2>&1
+done
+
+echo ""
+echo "### FRR log (tail):"
+tail -n 2000 /etc/frr/frr.log 2> /dev/null || echo "no /etc/frr/frr.log"
+
+echo ""
+echo "### done"
