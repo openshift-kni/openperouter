@@ -1,7 +1,7 @@
 set -euo pipefail
 
 # Create OpenPERouter CR
-cat <<'EOF' | oc apply -f -
+cat <<EOF | oc apply -f -
 apiVersion: network.openperouter.io/v1alpha1
 kind: OpenPERouter
 metadata:
@@ -9,6 +9,7 @@ metadata:
   namespace: openshift-openperouter
 spec:
   logLevel: debug
+  datapath: ${OPENPEROUTER_DATAPATH:-kernel}
 EOF
 
 # Wait for controller and router daemonsets to be created and rolled out
