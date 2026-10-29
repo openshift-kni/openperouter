@@ -9,7 +9,7 @@ metadata:
   namespace: openshift-openperouter
 spec:
   logLevel: debug
-  datapath: ${OPENPEROUTER_DATAPATH:-kernel}
+  datapath: ${OPENPEROUTER_DATAPATH:-grout}
 EOF
 
 # Wait for controller and router daemonsets to be created and rolled out
