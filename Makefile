@@ -734,6 +734,11 @@ INSPECT_DIR ?= /tmp/openperouter-inspect
 inspect:
 	tools/inspect/inspect --k8s-client=$(KUBECTL) --namespace=$(NAMESPACE) --dest-dir=$(INSPECT_DIR) --since=$(SINCE)
 
+INSPECT_FABRIC_DIR ?= /tmp/openperouter-fabric-inspect
+.PHONY: inspect-fabric
+inspect-fabric:
+	tools/inspect/inspect_fabric --dest-dir=$(INSPECT_FABRIC_DIR) --container-runtime=$(CONTAINER_ENGINE)
+
 # INSPECT_SYSTEMD_MODE_DIR is the root artifacts directory on the local machine, containing
 # one subdirectory per inspected node.
 INSPECT_SYSTEMD_MODE_DIR ?= /tmp/openperouter-systemd-mode-inspect
