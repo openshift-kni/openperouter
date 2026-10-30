@@ -1,7 +1,28 @@
 set -euo pipefail
 
+echo "=== Patching OpenPerouter CSV to set GROUT_TEST_MODE and GROUT_TAP_UNDERLAY  ==="
+echo "Needed until https://github.com/openperouter/openperouter/issues/866 is fixed"
+
+CSV_NAME=$(oc get csv -n openshift-openperouter -o jsonpath='{.items[0].metadata.name}')
+echo "Found CSV: $CSV_NAME"
+
+CSV_FILE=/tmp/opencode/csv.yaml
+mkdir -p /tmp/opencode
+oc get csv "$CSV_NAME" -n openshift-openperouter -o yaml > "$CSV_FILE"
+
+# strip the "-grout" suffix the CI image registry appends to GROUT_IMAGE
+sed -i 's/-grout$//' "$CSV_FILE"
+sed -i '/name: GROUT_TEST_MODE/{n;s|value: "false"|value: "true"|}' "$CSV_FILE"
+sed -i '/name: GROUT_TAP_UNDERLAY/{n;s|value: "false"|value: "true"|}' "$CSV_FILE"
+sed -i '/name: GROUT_MAX_MTU/{n;s|value: "0"|value: "9500"|}' "$CSV_FILE"
+
+cat "$CSV_FILE"
+
+oc replace -f "$CSV_FILE"
+
+
 # Create OpenPERouter CR
-cat <<'EOF' | oc apply -f -
+cat <<EOF | oc apply -f -
 apiVersion: network.openperouter.io/v1alpha1
 kind: OpenPERouter
 metadata:
@@ -9,6 +30,7 @@ metadata:
   namespace: openshift-openperouter
 spec:
   logLevel: debug
+  datapath: ${OPENPEROUTER_DATAPATH:-grout}
 EOF
 
 # Wait for controller and router daemonsets to be created and rolled out

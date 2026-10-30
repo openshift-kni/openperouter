@@ -9,11 +9,13 @@ pushd "$SCRIPT_DIR"/../..
 
 CONTAINER_RUNTIME=docker make e2etests \
 	TEST_ARGS="--nodelink-config=$SCRIPT_DIR/nodelink.json \
+		--groutmode \
 		--frrk8s-namespace=openshift-frr-k8s \
 		--openperouter-namespace=openshift-openperouter" \
 	KUBECONFIG_PATH=$KUBECONFIG \
 	GINKGO_ARGS="--junit-report=junit_e2e.xml \
 		--label-filter=\!'systemd-mode' \
+		--label-filter=grout-support \
         --focus='Single.Session.Baseline' \
 		--skip='editing.the.underlay.parameters|auto-recover.when.the.named.netns.is.deleted|Webhook|Unnumbered|Router.Host.configuration|DHCP'"
 
