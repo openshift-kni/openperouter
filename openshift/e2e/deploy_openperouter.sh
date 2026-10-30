@@ -11,7 +11,7 @@ mkdir -p /tmp/opencode
 oc get csv "$CSV_NAME" -n openshift-openperouter -o yaml > "$CSV_FILE"
 
 # strip the "-grout" suffix the CI image registry appends to GROUT_IMAGE
-sed -i 's/-grout"$/"/' "$CSV_FILE"
+sed -i 's/-grout$//' "$CSV_FILE"
 sed -i '/name: GROUT_TEST_MODE/{n;s|value: "false"|value: "true"|}' "$CSV_FILE"
 sed -i '/name: GROUT_TAP_UNDERLAY/{n;s|value: "false"|value: "true"|}' "$CSV_FILE"
 sed -i '/name: GROUT_MAX_MTU/{n;s|value: "0"|value: "9500"|}' "$CSV_FILE"
