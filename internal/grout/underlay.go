@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"slices"
 	"syscall"
 
 	"github.com/openperouter/openperouter/internal/grout/devicestate"
@@ -17,6 +18,7 @@ import (
 	"github.com/openperouter/openperouter/internal/sysctl"
 	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netns"
+	"golang.org/x/sys/unix"
 )
 
 const UnderlayPortNamePrefix = "u_"
@@ -225,7 +227,7 @@ func retrieveAndSaveDeviceState(
 	if err != nil {
 		return devicestate.State{}, err
 	}
-	if err := store.Save(state); err != nil {
+	if err := store.Save(interfaceName, state); err != nil {
 		return devicestate.State{}, fmt.Errorf("failed to save device state for %s: %w", interfaceName, err)
 	}
 	return state, nil
@@ -263,7 +265,10 @@ func setupTunnelEndpoint(ctx context.Context, client *Client, ep hostnetwork.Und
 		return fmt.Errorf("at least one tunnel endpoint IP must be provided (IPv4 or IPv6)")
 	}
 
-	opts := portOptions{Devargs: "net_null_vtep_lo,no-rx=1"}
+	opts := portOptions{
+		Devargs: "net_null_vtep_lo,no-rx=1",
+		QSize:   new(int32(1)), // qsize 1 is the minimum allowed value
+	}
 	if err := client.ensurePort(ctx, hostnetwork.TunnelLoopback, opts); err != nil {
 		return fmt.Errorf("failed to create the tunnel endpoint port: %w", err)
 	}
@@ -319,12 +324,22 @@ func deleteUnderlayPort(ctx context.Context, client *Client, ns netns.NsHandle, 
 // backing a TAP port, or a bifurcated device) back to the host namespace and
 // re-applies its saved addresses.
 func restoreNetdev(ctx context.Context, targetNS string, state devicestate.State) error {
-	if err := hostnetwork.RestoreUnderlayNetDevInterface(ctx, targetNS, state.InterfaceName); err != nil {
-		return fmt.Errorf("failed to move netdev %s back to the host namespace: %w", state.InterfaceName, err)
+	name, err := netdevNameInNamespace(targetNS, state)
+	if err != nil {
+		return err
+	}
+	if err := hostnetwork.RestoreUnderlayNetDevInterface(ctx, targetNS, name); err != nil {
+		return fmt.Errorf("failed to move netdev %s back to the host namespace: %w", name, err)
 	}
 
-	link, err := netlink.LinkByName(state.InterfaceName)
-	if errors.As(err, &netlink.LinkNotFoundError{}) {
+	handle, err := netlink.NewHandle()
+	if err != nil {
+		return fmt.Errorf("failed to get netlink handle: %w", err)
+	}
+	defer handle.Close()
+
+	link, err := findNetdev(handle, state.InterfaceName, state.PCIAddress)
+	if errors.Is(err, errNetdevNotFound) {
 		slog.WarnContext(ctx, "kernel netdev is gone, nothing to restore", "interfaceName", state.InterfaceName)
 		return nil
 	}
@@ -335,7 +350,43 @@ func restoreNetdev(ctx context.Context, targetNS string, state devicestate.State
 	return applyStateToLink(ctx, link, state)
 }
 
+// netdevNameInNamespace returns the current name of the device's netdev in
+// the namespace at nsPath, or the saved name when the netdev is not there.
+func netdevNameInNamespace(nsPath string, state devicestate.State) (string, error) {
+	if state.PCIAddress == "" {
+		return state.InterfaceName, nil
+	}
+
+	ns, err := netns.GetFromPath(nsPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to find network namespace %s: %w", nsPath, err)
+	}
+	defer func() {
+		if err := ns.Close(); err != nil {
+			slog.Error("failed to close namespace", "namespace", nsPath, "error", err)
+		}
+	}()
+	handle, err := netlink.NewHandleAt(ns)
+	if err != nil {
+		return "", fmt.Errorf("failed to get netlink handle for namespace %s: %w", nsPath, err)
+	}
+	defer handle.Close()
+
+	link, err := findNetdev(handle, state.InterfaceName, state.PCIAddress)
+	if errors.Is(err, errNetdevNotFound) {
+		return state.InterfaceName, nil
+	}
+	if err != nil {
+		return "", err
+	}
+	return link.Attrs().Name, nil
+}
+
 func applyStateToLink(ctx context.Context, link netlink.Link, state devicestate.State) error {
+	// The configured name may only resolve again once its alternative name is restored.
+	if err := restoreAltNames(ctx, link, state.AltNames); err != nil {
+		return err
+	}
 	name := link.Attrs().Name
 	if state.MTU > 0 {
 		if err := netlink.LinkSetMTU(link, state.MTU); err != nil {
@@ -364,6 +415,10 @@ func configureUnderlayTapPort(
 	underlayInterface := state.InterfaceName
 	portName := UnderlayPortName(underlayInterface)
 
+	if err := hostnetwork.SuppressAutoconf(underlayInterface); err != nil {
+		return fmt.Errorf("failed to suppress autoconf on underlay interface %s: %w", underlayInterface, err)
+	}
+
 	// Suppress the netdev's kernel IPv6 link-local so it doesn't collide with
 	// the identical EUI-64 link-local on the grout port's kernel interface,
 	// which shares the netdev's MAC. The collision makes DAD strip the port's
@@ -379,15 +434,6 @@ func configureUnderlayTapPort(
 	opts.MTU = state.MTU
 	if err := client.ensurePort(ctx, portName, opts); err != nil {
 		return fmt.Errorf("failed to create grout underlay port: %w", err)
-	}
-
-	// Disable SLAAC on the underlying netlink interface: once the intended
-	// addresses are migrated to the grout port, the kernel must not
-	// autoconfigure new ones from Router Advertisements. A SLAAC address
-	// on the netlink device would be picked up on the next reconcile and
-	// clash with the existing connected route in grout's RIB (EBUSY).
-	if err := sysctl.Ensure(sysctl.DisableAcceptRA(underlayInterface)); err != nil {
-		return fmt.Errorf("failed to disable accept_ra on underlay interface %s: %w", underlayInterface, err)
 	}
 
 	if err := assignAddressesToGroutPort(ctx, client, portName, state.Addresses); err != nil {
@@ -413,21 +459,23 @@ func retrieveDeviceState(
 	mode UnderlayPortMode,
 	sysfs pci.Sysfs,
 ) (devicestate.State, error) {
+	link, err := netlink.LinkByName(interfaceName)
+	if err != nil {
+		return devicestate.State{}, fmt.Errorf("failed to find interface %s: %w", interfaceName, err)
+	}
+	primaryName := link.Attrs().Name
 	state := devicestate.State{InterfaceName: interfaceName}
 
 	if mode == PortModeAccelerated {
-		pciAddr, driver, err := retrievePCIState(interfaceName, sysfs)
+		pciAddr, driver, err := retrievePCIState(primaryName, sysfs)
 		if err != nil {
 			return devicestate.State{}, err
 		}
 		state.PCIAddress = pciAddr
 		state.OriginalDriver = driver
+		state.AltNames = link.Attrs().AltNames
 	}
 
-	link, err := netlink.LinkByName(interfaceName)
-	if err != nil {
-		return devicestate.State{}, fmt.Errorf("failed to find interface %s: %w", interfaceName, err)
-	}
 	state.MTU = link.Attrs().MTU
 
 	netlinkAddrs, err := hostnetwork.AddressesForInterface(interfaceName, hostnetwork.ExcludeLinkLocal())
@@ -435,18 +483,40 @@ func retrieveDeviceState(
 		return devicestate.State{}, fmt.Errorf("failed to read addresses from %s: %w", interfaceName, err)
 	}
 	for _, a := range netlinkAddrs {
+		// SLAAC addresses must not be migrated or restored as static addresses.
+		if a.IP.To4() == nil && a.Flags&unix.IFA_F_PERMANENT == 0 {
+			continue
+		}
 		state.Addresses = append(state.Addresses, a.IPNet.String())
 	}
 
-	state.AddrGenMode, err = sysctl.Read(sysctl.AddrGenMode(interfaceName, ""))
+	state.AddrGenMode, err = sysctl.Read(sysctl.AddrGenMode(primaryName, ""))
 	if err != nil {
 		return devicestate.State{}, fmt.Errorf("failed to read addr_gen_mode of %s: %w", interfaceName, err)
 	}
-	state.AcceptRA, err = sysctl.Read(sysctl.AcceptRA(interfaceName, ""))
+	state.AcceptRA, err = sysctl.Read(sysctl.AcceptRA(primaryName, ""))
 	if err != nil {
 		return devicestate.State{}, fmt.Errorf("failed to read accept_ra of %s: %w", interfaceName, err)
 	}
 	return state, nil
+}
+
+func restoreAltNames(ctx context.Context, link netlink.Link, names []string) error {
+	for _, name := range names {
+		if name == link.Attrs().Name || slices.Contains(link.Attrs().AltNames, name) {
+			continue
+		}
+		err := netlink.LinkAddAltName(link, name)
+		if errors.Is(err, syscall.EEXIST) {
+			slog.WarnContext(ctx, "alternative name already taken, skipping restore",
+				"interfaceName", link.Attrs().Name, "altName", name)
+			continue
+		}
+		if err != nil {
+			return fmt.Errorf("failed to restore alternative name %s on %s: %w", name, link.Attrs().Name, err)
+		}
+	}
+	return nil
 }
 
 // restoreIPv6Settings re-applies the IPv6 sysctls the setup overrides to keep
@@ -486,6 +556,9 @@ func retrievePCIState(netdev string, sysfs pci.Sysfs) (string, string, error) {
 // A netdev no longer in the host namespace (moved, or unbound from its kernel
 // driver) has nothing left to remove.
 func removeSavedAddressesFromKernel(state devicestate.State) error {
+	if len(state.Addresses) == 0 {
+		return nil
+	}
 	link, err := netlink.LinkByName(state.InterfaceName)
 	if errors.As(err, &netlink.LinkNotFoundError{}) {
 		return nil
