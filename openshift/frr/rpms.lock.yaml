@@ -403,13 +403,13 @@ arches:
     name: perl-Time-Local
     evr: 2:1.350-511.el10
     sourcerpm: perl-Time-Local-1.350-511.el10.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/appstream/os/Packages/p/perl-URI-5.27-3.el10_2.1.noarch.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/appstream/os/Packages/p/perl-URI-5.27-4.el10_3.noarch.rpm
     repoid: rhel-10-for-x86_64-appstream-rpms
-    size: 143091
-    checksum: sha256:c0203a91034072a91427ff92195c140497e367dc8170f3f64c7e2e17f60ca033
+    size: 143037
+    checksum: sha256:956cf33f691a0af481b0d3240c2aa99b89b72634155e551c4164e1ad6902783e
     name: perl-URI
-    evr: 5.27-3.el10_2.1
-    sourcerpm: perl-URI-5.27-3.el10_2.1.src.rpm
+    evr: 5.27-4.el10_3
+    sourcerpm: perl-URI-5.27-4.el10_3.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/appstream/os/Packages/p/perl-Unicode-Normalize-1.32-511.el10.x86_64.rpm
     repoid: rhel-10-for-x86_64-appstream-rpms
     size: 80187
@@ -557,13 +557,13 @@ arches:
     name: tcpdump
     evr: 14:4.99.4-10.el10
     sourcerpm: tcpdump-4.99.4-10.el10.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/baseos/os/Packages/c/c-ares-1.34.6-4.el10.x86_64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/baseos/os/Packages/c/c-ares-1.34.6-5.el10_3.2.x86_64.rpm
     repoid: rhel-10-for-x86_64-baseos-rpms
-    size: 126132
-    checksum: sha256:f4fad6e9bd0694b3d079186c6ee9c262030c5f7d5e7c3623ccb80508f23c4166
+    size: 126244
+    checksum: sha256:8b1b03253f24069caad8883345f8addc34250b43979132252569453e014adcc3
     name: c-ares
-    evr: 1.34.6-4.el10
-    sourcerpm: c-ares-1.34.6-4.el10.src.rpm
+    evr: 1.34.6-5.el10_3.2
+    sourcerpm: c-ares-1.34.6-5.el10_3.2.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/baseos/os/Packages/d/diffutils-3.10-8.el10.x86_64.rpm
     repoid: rhel-10-for-x86_64-baseos-rpms
     size: 423166
@@ -620,13 +620,13 @@ arches:
     name: libnl3
     evr: 3.11.0-1.el10
     sourcerpm: libnl3-3.11.0-1.el10.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/baseos/os/Packages/l/libpcap-1.10.4-7.el10_2.1.x86_64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/baseos/os/Packages/l/libpcap-1.10.4-7.el10_3.2.x86_64.rpm
     repoid: rhel-10-for-x86_64-baseos-rpms
-    size: 184042
-    checksum: sha256:47c8fcd70b24298c4a399bd60d01e0fd4a44dc1f31355690117cc333509b2919
+    size: 184171
+    checksum: sha256:93bc3a2ee59ccf04f641d72c17f4631dbac1aaa6385a78f4c92633593fa7e90c
     name: libpcap
-    evr: 14:1.10.4-7.el10_2.1
-    sourcerpm: libpcap-1.10.4-7.el10_2.1.src.rpm
+    evr: 14:1.10.4-7.el10_3.2
+    sourcerpm: libpcap-1.10.4-7.el10_3.2.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/baseos/os/Packages/l/libselinux-utils-3.11-2.el10.x86_64.rpm
     repoid: rhel-10-for-x86_64-baseos-rpms
     size: 137331
@@ -683,13 +683,13 @@ arches:
     name: python3-setools
     evr: 4.7.1-1.1.el10_3
     sourcerpm: setools-4.7.1-1.1.el10_3.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/baseos/os/Packages/r/rpm-plugin-selinux-4.19.1.1-25.el10.x86_64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/baseos/os/Packages/r/rpm-plugin-selinux-4.19.1.1-29.el10_3.x86_64.rpm
     repoid: rhel-10-for-x86_64-baseos-rpms
-    size: 23853
-    checksum: sha256:18fd03a3df0a1cad882137be9ca4edbe19fa0c8b2e3e7aba9b8ff731d04f46cc
+    size: 23649
+    checksum: sha256:bd4b5c7826c62fd197e54b64a6cd3b1a03b017dba587e980bbbbd3345b41174e
     name: rpm-plugin-selinux
-    evr: 4.19.1.1-25.el10
-    sourcerpm: rpm-4.19.1.1-25.el10.src.rpm
+    evr: 4.19.1.1-29.el10_3
+    sourcerpm: rpm-4.19.1.1-29.el10_3.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/baseos/os/Packages/s/selinux-policy-42.1.27-2.el10_3.2.noarch.rpm
     repoid: rhel-10-for-x86_64-baseos-rpms
     size: 67942
