@@ -17,4 +17,5 @@ packages:
   - name: grout
   - name: grout-frr
   - name: iproute
+  - name: wget
   - name: shadow-utils
