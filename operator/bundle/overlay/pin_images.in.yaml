@@ -1,4 +1,4 @@
 # Do not modify the manager 'key' value: 'manager'
 - key: operator
   source: quay.io/openperouter/router:main
-  target: quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-4-21@sha256:7fb35bcf5cc2c23d1c7a3bd6f0c9e4b0f4b8f7bab2b1a706f5b50b7b2a4a7703
+  target: quay.io/redhat-user-workloads/telco-5g-tenant/openperouter-operator-4-21@sha256:90d172555deae41eec68226d468948f9bdc1327cb1b3e4bb0ef37cb0360d67af
