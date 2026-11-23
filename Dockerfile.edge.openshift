@@ -1,0 +1,170 @@
+# Tekton piplines override this with a UBI image
+ARG BASE_IMAGE=quay.io/centos/centos:stream10
+
+# Build the manager binary
+FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_9_golang_1.26 AS builder
+
+ARG GIT_COMMIT=dev
+ARG GIT_BRANCH=dev
+ARG TARGETOS
+ARG TARGETARCH
+
+WORKDIR $GOPATH/openperouter
+
+COPY . .
+
+RUN GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -mod=vendor -tags strictfipsruntime  -o reloader ./cmd/reloader \
+  && \
+  GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -mod=vendor -tags strictfipsruntime  -o controller ./cmd/hostcontroller \
+  && \
+  GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -mod=vendor -tags strictfipsruntime  -o nodemarker ./cmd/nodemarker \
+  && \
+  GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -mod=vendor -tags strictfipsruntime  -o hostbridge ./cmd/hostbridge \
+  && \
+  GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -mod=vendor -tags strictfipsruntime  -o operatorbinary ./operator
+
+# Build grout and FRR
+FROM ${BASE_IMAGE} AS grout-builder
+
+RUN . /etc/os-release && \
+      if [ "$ID" = "rhel" ] || [ "$ID" = "ubi" ]; then \
+        dnf config-manager --set-enabled "codeready-builder-for-rhel-10-x86_64-rpms,rhel-10-for-x86_64-baseos-rpms,rhel-10-for-x86_64-appstream-rpms"; \
+      else \
+        dnf config-manager --set-enabled "crb,baseos,appstream"; \
+      fi
+
+
+# install build dependencies
+
+# TODO: install libyang-devel from codeready-builder repo once RHEL-119430 is solved
+COPY openshift/libyang-devel-2.1.148-2.el10.x86_64.rpm /
+RUN . /etc/os-release && \
+      if [ "$ID" = "rhel" ] || [ "$ID" = "ubi" ]; then \
+        dnf --nogpgcheck install -y /libyang-devel-2.1.148-2.el10.x86_64.rpm; \
+      else \
+        dnf --nogpgcheck install -y libyang-devel; \
+      fi
+
+RUN dnf --nogpgcheck install --setopt=install_weak_deps=0 --nodocs -y \
+  gcc make meson ninja-build pkgconf python3-pyelftools json-c-devel \
+  libedit-devel libevent-devel libmnl-devel rdma-core-devel \
+  patch autoconf automake libtool bison elfutils-libelf-devel flex \
+  libcap-devel protobuf-c-compiler protobuf-c-devel \
+  python3-devel readline-devel rpm-build numactl-devel \
+  groff pam-devel systemd-devel openssl-devel libarchive-devel
+
+COPY openshift/grout /src
+COPY openshift/deps/dpdk /src/subprojects/dpdk-stable-25.11.3
+COPY openshift/deps/libecoli /src/subprojects/libecoli-0.11.6
+COPY openshift/deps/frr /src/subprojects/frr-frr-10.7.1
+
+WORKDIR /src
+
+# Apply dpdk patches (meson skips diff_files for pre-existing directories)
+RUN for p in `sed -En 's%[[:space:]]*(dpdk/.*\.patch),?$%\1%p' subprojects/dpdk-25.11.wrap`; do \
+               patch -d subprojects/dpdk-stable-25.11.3 -p1 < "subprojects/packagefiles/$p" || exit; \
+       done
+
+# Apply frr overlay files (meson skips patch_directory for pre-existing directories)
+RUN cp subprojects/packagefiles/frr/* subprojects/frr-frr-10.7.1/
+
+# Create frr tarball in packagecache (make frr-rpm expects it there)
+RUN mkdir -p subprojects/packagecache && \
+    tar -C subprojects -czf subprojects/packagecache/frr-10.7.1.tar.gz frr-frr-10.7.1/
+
+
+# Update frr.wrap source_hash to match the locally created tarball
+RUN HASH=$(sha256sum subprojects/packagecache/frr-10.7.1.tar.gz | cut -d' ' -f1) && \
+    sed -i "s/^source_hash = .*/source_hash = $HASH/" subprojects/frr-10.7.wrap
+
+RUN make frr-rpm FRR=10.7
+
+RUN dnf --nogpgcheck install -y \
+   frr-headers.noarch.rpm
+
+RUN make rpm FRR=10.7 WITHOUT="tests docs systemd"
+
+ENTRYPOINT ["/bin/bash"]
+
+FROM registry.redhat.io/openshift4/ose-container-networking-plugins-rhel9:v4.22.0-202606220442.p2.g659bc0a.assembly.stream.el9 as openshift-cni-binaries
+
+FROM ${BASE_IMAGE}
+
+WORKDIR /
+
+COPY --from=builder /go/openperouter/reloader /reloader
+COPY --from=builder /go/openperouter/controller /controller
+COPY --from=builder /go/openperouter/hostbridge /hostbridge
+COPY --from=builder /go/openperouter/nodemarker /nodemarker
+COPY --from=builder /go/openperouter/operatorbinary /operator
+COPY operator/bindata /bindata
+
+COPY --from=openshift-cni-binaries usr/src/plugins/bin/macvlan /opt/openperouter/cni/bin/
+COPY --from=openshift-cni-binaries usr/src/plugins/bin/ipvlan /opt/openperouter/cni/bin/
+COPY --from=openshift-cni-binaries usr/src/plugins/bin/static /opt/openperouter/cni/bin/
+COPY --from=openshift-cni-binaries usr/src/plugins/bin/dhcp /opt/openperouter/cni/bin/
+
+RUN dnf --nogpgcheck install --setopt=install_weak_deps=0 --nodocs -y \
+	--releasever 10 \
+	glibc-minimal-langpack less shadow-utils tcpdump \
+	libedit libevent libmnl rdma-core libibverbs numactl json-c libcap \
+	libyang elfutils-libelf protobuf-c python3 readline catatonit \
+  wget iproute
+RUN ln -s /usr/libexec/podman/catatonit /sbin/tini
+
+# Pin FRR GIDs before RPM install so they match the supplementalGroups
+# in the Kubernetes pod spec. The grout FRR RPM uses sysusers.d which
+# assigns dynamic GIDs; pre-creating the groups forces stable values.
+# GID 92: frr group (VTY sockets are owned frr:frr in this image)
+# GID 102: frrvty group (VTY sockets are owned frr:frrvty in the Alpine image)
+RUN groupadd --system --gid 92 frr && \
+    useradd --system --uid 92 --gid frr --home-dir /var/run/frr --shell /sbin/nologin --comment "FRRouting suite" frr && \
+    groupadd --system --gid 102 frrvty && \
+    usermod --append --groups frrvty frr
+
+COPY --from=grout-builder /src/*.rpm /grout/
+RUN dnf --nogpgcheck install -y \
+    /grout/frr.x86_64.rpm \
+    /grout/grout.x86_64.rpm \
+    /grout/grout-frr.x86_64.rpm \
+    /grout/frr-debuginfo.x86_64.rpm \
+    /grout/grout-debuginfo.x86_64.rpm \
+    /grout/grout-frr-debuginfo.x86_64.rpm
+
+
+RUN . /etc/os-release && \
+      if [ "$ID" = "rhel" ] || [ "$ID" = "ubi" ]; then \
+        dnf config-manager --set-enabled "codeready-builder-for-rhel-10-x86_64-rpms,rhel-10-for-x86_64-baseos-rpms,rhel-10-for-x86_64-appstream-rpms"; \
+      else \
+        dnf config-manager --set-enabled "crb,baseos,appstream"; \
+      fi
+
+
+# Copy FRR startup configuration to the default location
+COPY systemdmode/frrconfig/daemons /etc/frr/daemons
+COPY systemdmode/frrconfig/vtysh.conf /etc/frr/vtysh.conf
+COPY systemdmode/frrconfig/frr.conf /etc/frr/frr.conf
+COPY openshift/frr-docker-start /usr/lib/frr/docker-start
+
+RUN ln -s /usr/libexec/frr/frr-reload.py /usr/lib/frr/frr-reload.py
+
+RUN chmod 640 /etc/frr/* && chown -R frr:frr /etc/frr
+
+# Hack for https://github.com/FRRouting/frr/issues/20355
+#          https://github.com/FRRouting/frr/pull/20378 
+COPY openshift/frr-reload.py.patched /usr/lib/frr/frr-reload.py
+
+LABEL com.redhat.component="openperouter" \
+   name="openshift4-dev-preview-beta/openperouter-edge-rhel10-operator" \
+   summary="openperouter" \
+   io.openshift.expose-services="" \
+   io.openshift.tags="openperouter" \
+   io.k8s.display-name="openperouter" \
+   io.k8s.description="openperouter" \
+   description="openperouter" \
+   distribution-scope="public" \
+   release="5.1" \
+   url="https://github.com/openperouter/openperouter" \
+   vendor="Red Hat, Inc."
+
+ENTRYPOINT ["/controller"]
