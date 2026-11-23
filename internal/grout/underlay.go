@@ -4,10 +4,13 @@ package grout
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"log/slog"
 	"net"
+	"regexp"
+	"strings"
 	"syscall"
 
 	"github.com/openperouter/openperouter/internal/grout/devicestate"
@@ -26,6 +29,94 @@ const UnderlayPortNamePrefix = "u_"
 // underlay interface.
 func UnderlayPortName(underlayInterface string) string {
 	return UnderlayPortNamePrefix + underlayInterface
+}
+
+const underlayTAPKernelNamePrefix = "tap_"
+
+// Matches RHEL-style netdev bases such as ens1f0np0 (VLAN suffix parsed separately).
+var underlayTAPPCIBase = regexp.MustCompile(`^(?:ens|enp)(\d+)f(\d+)(?:np(\d+))?$`)
+
+// UnderlayTAPKernelName is the DPDK TAP iface= name (max 15 chars).
+func UnderlayTAPKernelName(underlayInterface string) string {
+	full := underlayTAPKernelNamePrefix + underlayInterface
+	if len(full) < unix.IFNAMSIZ {
+		return full
+	}
+	return underlayTAPKernelNameHashed(underlayInterface)
+}
+
+// ValidateUnderlayTAPKernelNamesUnique reports if two underlays would share a TAP iface= name.
+func ValidateUnderlayTAPKernelNamesUnique(ifaces []string) error {
+	seen := make(map[string]string, len(ifaces))
+	for _, iface := range ifaces {
+		tap := UnderlayTAPKernelName(iface)
+		if prev, ok := seen[tap]; ok {
+			return fmt.Errorf("underlay interfaces %q and %q share TAP kernel name %q", prev, iface, tap)
+		}
+		seen[tap] = iface
+	}
+	return nil
+}
+
+// underlayTAPPCIStyleBody abbreviates a PCI-style base name (no VLAN suffix).
+func underlayTAPPCIStyleBody(base string) string {
+	matches := underlayTAPPCIBase.FindStringSubmatch(base)
+	if matches == nil {
+		return ""
+	}
+	body := fmt.Sprintf("%sf%s", matches[1], matches[2])
+	if matches[3] != "" {
+		body += "n" + matches[3]
+	}
+	return body
+}
+
+func underlayTAPKernelNameHashed(iface string) string {
+	const maxBody = unix.IFNAMSIZ - 1 - len(underlayTAPKernelNamePrefix)
+	const hashLen = 4
+	hashSuffix := fmt.Sprintf("%x", sha256.Sum256([]byte(iface)))[:hashLen]
+
+	base := iface
+	vid := ""
+	if dot := strings.LastIndex(iface, "."); dot > 0 {
+		suffix := iface[dot+1:]
+		if underlayTAPAllDigits(suffix) {
+			base = iface[:dot]
+			vid = suffix
+		}
+	}
+
+	headBudget := maxBody - hashLen
+	vidSuffix := ""
+	if vid != "" && 1+len(vid) <= headBudget {
+		vidSuffix = "." + vid
+		headBudget -= 1 + len(vid)
+	}
+
+	head := ""
+	if headBudget > 0 {
+		head = underlayTAPPCIStyleBody(base)
+		if head == "" {
+			head = base
+		}
+		if len(head) > headBudget {
+			head = head[:headBudget]
+		}
+	}
+	body := head + hashSuffix + vidSuffix
+	return underlayTAPKernelNamePrefix + body
+}
+
+func underlayTAPAllDigits(s string) bool {
+	if s == "" {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		if s[i] < '0' || s[i] > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 // UnderlayPortMode selects how grout attaches to an underlay device.
@@ -59,6 +150,16 @@ func SetupUnderlay(
 			slog.Error("failed to close namespace", "namespace", params.TargetNS, "error", err)
 		}
 	}()
+
+	if mode == PortModeTAP {
+		names := make([]string, 0, len(params.UnderlayInterfaces))
+		for _, iface := range params.UnderlayInterfaces {
+			names = append(names, iface.InterfaceName)
+		}
+		if err := ValidateUnderlayTAPKernelNamesUnique(names); err != nil {
+			return err
+		}
+	}
 
 	// If any existing underlay interfaces were removed from the new list,
 	// clean them up before setting up the new ones, tearing down their
@@ -383,8 +484,9 @@ func configureUnderlayTapPort(
 		return fmt.Errorf("failed to suppress link-local on underlay interface %s: %w", underlayInterface, err)
 	}
 
+	tapIface := UnderlayTAPKernelName(underlayInterface)
 	opts.Devargs = fmt.Sprintf("net_tap%s,remote=%s,iface=%s",
-		makeTapRandomString(), underlayInterface, "tap_"+underlayInterface)
+		makeTapRandomString(), underlayInterface, tapIface)
 	opts.MTU = state.MTU
 	if err := client.ensurePort(ctx, portName, opts); err != nil {
 		return fmt.Errorf("failed to create grout underlay port: %w", err)
