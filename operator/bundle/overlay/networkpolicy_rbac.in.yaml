@@ -1,0 +1,14 @@
+# Downstream-only RBAC appended to the "operator" service account permissions
+# in the CSV, required by Conforma olm.required_network_policy_rbac_for_operands.
+- apiGroups:
+    - networking.k8s.io
+  resources:
+    - networkpolicies
+  verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
