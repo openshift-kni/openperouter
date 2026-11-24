@@ -571,6 +571,13 @@ arches:
     name: python3-policycoreutils
     evr: 3.6-5.el9
     sourcerpm: policycoreutils-3.6-5.el9.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/appstream/os/Packages/t/tcpdump-4.99.0-9.el9.x86_64.rpm
+    repoid: rhel-9-for-x86_64-appstream-rpms
+    size: 559754
+    checksum: sha256:b558071af95cce3f67455ab1625f36b1172ed240c0391d554b8d54c6b7f965ae
+    name: tcpdump
+    evr: 4.99.0-9.el9
+    sourcerpm: tcpdump-4.99.0-9.el9.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/a/acl-2.4.0-1.el9_8.x86_64.rpm
     repoid: rhel-9-for-x86_64-baseos-rpms
     size: 85269
@@ -998,6 +1005,13 @@ arches:
     name: libidn2
     evr: 2.3.0-7.el9
     sourcerpm: libidn2-2.3.0-7.el9.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/l/less-590-6.el9.x86_64.rpm
+    repoid: rhel-9-for-x86_64-baseos-rpms
+    size: 166025
+    checksum: sha256:5bd040f9dd813167935fc390d546c119d90e0a9c77447a3d9ed1ef69c6f5a32a
+    name: less
+    evr: 590-6.el9
+    sourcerpm: less-590-6.el9.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/l/libmnl-1.0.4-16.el9_4.x86_64.rpm
     repoid: rhel-9-for-x86_64-baseos-rpms
     size: 30949
@@ -1019,6 +1033,13 @@ arches:
     name: libnghttp2
     evr: 1.43.0-6.el9_8.2
     sourcerpm: nghttp2-1.43.0-6.el9_8.2.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/l/libpcap-1.10.0-4.el9.x86_64.rpm
+    repoid: rhel-9-for-x86_64-baseos-rpms
+    size: 180846
+    checksum: sha256:3c0c51cc6b947970812238914713f1f96aa5e9bdaaceb6ee50249540ad89f05b
+    name: libpcap
+    evr: 1.10.0-4.el9
+    sourcerpm: libpcap-1.10.0-4.el9.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/l/libnl3-3.11.0-1.el9.x86_64.rpm
     repoid: rhel-9-for-x86_64-baseos-rpms
     size: 376137
