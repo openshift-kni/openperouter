@@ -18,20 +18,20 @@ arches:
     name: frr-selinux
     evr: 10.7.1-3.el10fdp
     sourcerpm: frr-10.7.1-3.el10fdp.src.rpm
-  - url: https://cdn.redhat.com/content/dist/layered/rhel10/x86_64/fast-datapath/os/Packages/g/grout-0.19.3-1.el10fdp.x86_64.rpm
+  - url: https://cdn.redhat.com/content/dist/layered/rhel10/x86_64/fast-datapath/os/Packages/g/grout-0.20.1-1.el10fdp.x86_64.rpm
     repoid: fast-datapath-for-rhel-10-x86_64-rpms
-    size: 3139856
-    checksum: sha256:3e09c998882d7049a543ae5ab159b69a8385a39746590100c9aa547c9ec1f674
+    size: 3138098
+    checksum: sha256:97357ebf34ffffad7dabe3f759c3c6d6d2ee156618545dcade8b413b2d6a8a69
     name: grout
-    evr: 0.19.3-1.el10fdp
-    sourcerpm: grout-0.19.3-1.el10fdp.src.rpm
-  - url: https://cdn.redhat.com/content/dist/layered/rhel10/x86_64/fast-datapath/os/Packages/g/grout-frr-0.19.3-1.el10fdp.x86_64.rpm
+    evr: 0.20.1-1.el10fdp
+    sourcerpm: grout-0.20.1-1.el10fdp.src.rpm
+  - url: https://cdn.redhat.com/content/dist/layered/rhel10/x86_64/fast-datapath/os/Packages/g/grout-frr-0.20.1-1.el10fdp.x86_64.rpm
     repoid: fast-datapath-for-rhel-10-x86_64-rpms
-    size: 55267
-    checksum: sha256:89fc3fd9708fc04ff869edc0b2431bbc951241a62b153dd155b523c1c5b4983a
+    size: 55255
+    checksum: sha256:a7182e87403c59567ca7b082dd0e8cc1aa4892cd2be5c05bc0d623c749e43701
     name: grout-frr
-    evr: 0.19.3-1.el10fdp
-    sourcerpm: grout-0.19.3-1.el10fdp.src.rpm
+    evr: 0.20.1-1.el10fdp
+    sourcerpm: grout-0.20.1-1.el10fdp.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/appstream/os/Packages/c/catatonit-0.2.1-4.el10.x86_64.rpm
     repoid: rhel-10-for-x86_64-appstream-rpms
     size: 330829
