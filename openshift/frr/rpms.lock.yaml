@@ -32,6 +32,27 @@ arches:
     name: grout-frr
     evr: 0.20.1-1.el10fdp
     sourcerpm: grout-0.20.1-1.el10fdp.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/appstream/os/Packages/b/bind-libs-9.18.33-30.el10_3.1.x86_64.rpm
+    repoid: rhel-10-for-x86_64-appstream-rpms
+    size: 1357278
+    checksum: sha256:d229a2ca981b1f1f2f391d636d292ecf6716db9d45f988fe341675276c9739a9
+    name: bind-libs
+    evr: 32:9.18.33-30.el10_3.1
+    sourcerpm: bind-9.18.33-30.el10_3.1.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/appstream/os/Packages/b/bind-license-9.18.33-30.el10_3.1.noarch.rpm
+    repoid: rhel-10-for-x86_64-appstream-rpms
+    size: 22027
+    checksum: sha256:c27548981ad32fb00722105d174792e9de91eedb56e07e2811b18a3216291117
+    name: bind-license
+    evr: 32:9.18.33-30.el10_3.1
+    sourcerpm: bind-9.18.33-30.el10_3.1.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/appstream/os/Packages/b/bind-utils-9.18.33-30.el10_3.1.x86_64.rpm
+    repoid: rhel-10-for-x86_64-appstream-rpms
+    size: 241760
+    checksum: sha256:02a6e62581df61450cba9a41ecc1a5e74e7e33afb326fabe2ae7a8498e25efdd
+    name: bind-utils
+    evr: 32:9.18.33-30.el10_3.1
+    sourcerpm: bind-9.18.33-30.el10_3.1.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/appstream/os/Packages/c/catatonit-0.2.1-4.el10.x86_64.rpm
     repoid: rhel-10-for-x86_64-appstream-rpms
     size: 330829
@@ -53,6 +74,27 @@ arches:
     name: checkpolicy
     evr: 3.11-2.el10
     sourcerpm: checkpolicy-3.11-2.el10.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/appstream/os/Packages/f/fstrm-0.6.1-12.el10.x86_64.rpm
+    repoid: rhel-10-for-x86_64-appstream-rpms
+    size: 31392
+    checksum: sha256:d371f7289d274ce9a93ff820cc34815d7ab6036a46883a84aa1ac48eb4732818
+    name: fstrm
+    evr: 0.6.1-12.el10
+    sourcerpm: fstrm-0.6.1-12.el10.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/appstream/os/Packages/l/libmaxminddb-1.9.1-4.el10.x86_64.rpm
+    repoid: rhel-10-for-x86_64-appstream-rpms
+    size: 47041
+    checksum: sha256:d9aa498927955e755c20ec45827ca0870729da0d3aa57edbb9582a20913eddaf
+    name: libmaxminddb
+    evr: 1.9.1-4.el10
+    sourcerpm: libmaxminddb-1.9.1-4.el10.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/appstream/os/Packages/l/libuv-1.52.1-1.el10_2.x86_64.rpm
+    repoid: rhel-10-for-x86_64-appstream-rpms
+    size: 278919
+    checksum: sha256:46ff203b97efdfdc81764b7eca1f56b71d26afd16fcf26db5e86afbc0fcaa73d
+    name: libuv
+    evr: 1:1.52.1-1.el10_2
+    sourcerpm: libuv-1.52.1-1.el10_2.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/appstream/os/Packages/l/libyang-2.1.148-4.el10_2.x86_64.rpm
     repoid: rhel-10-for-x86_64-appstream-rpms
     size: 497075
@@ -578,6 +620,13 @@ arches:
     name: diffutils
     evr: 3.10-8.el10
     sourcerpm: diffutils-3.10-8.el10.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/baseos/os/Packages/e/ethtool-6.19-1.el10.x86_64.rpm
+    repoid: rhel-10-for-x86_64-baseos-rpms
+    size: 341088
+    checksum: sha256:24333b73a026b19d2eee7e52413336046d5e39cf3779c4c042379cdf58d3fec0
+    name: ethtool
+    evr: 2:6.19-1.el10
+    sourcerpm: ethtool-6.19-1.el10.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/baseos/os/Packages/g/groff-base-1.23.0-10.el10.x86_64.rpm
     repoid: rhel-10-for-x86_64-baseos-rpms
     size: 1182753
@@ -592,6 +641,13 @@ arches:
     name: hostname
     evr: 3.23-14.el10
     sourcerpm: hostname-3.23-14.el10.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/baseos/os/Packages/i/iputils-20240905-5.el10.x86_64.rpm
+    repoid: rhel-10-for-x86_64-baseos-rpms
+    size: 200856
+    checksum: sha256:7194f2ece5e60ce90aef8729be71f44483efb061fa288b74e571425ae367c152
+    name: iputils
+    evr: 20240905-5.el10
+    sourcerpm: iputils-20240905-5.el10.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/baseos/os/Packages/l/less-661-3.el10.x86_64.rpm
     repoid: rhel-10-for-x86_64-baseos-rpms
     size: 199873
@@ -641,6 +697,13 @@ arches:
     name: libselinux-utils
     evr: 3.11-2.el10
     sourcerpm: libselinux-3.11-2.el10.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/baseos/os/Packages/l/lmdb-libs-0.9.32-4.el10.x86_64.rpm
+    repoid: rhel-10-for-x86_64-baseos-rpms
+    size: 65446
+    checksum: sha256:83b34a97fc0201716a490c4ccd64d6119d2ccd2d84160d0ad146934cfee36522
+    name: lmdb-libs
+    evr: 0.9.32-4.el10
+    sourcerpm: lmdb-0.9.32-4.el10.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/baseos/os/Packages/m/mariadb-connector-c-3.4.4-2.el10_2.x86_64.rpm
     repoid: rhel-10-for-x86_64-baseos-rpms
     size: 221790
@@ -725,5 +788,12 @@ arches:
     name: publicsuffix-list-dafsa
     evr: 20240107-5.el10
     sourcerpm: publicsuffix-list-20240107-5.el10.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/baseos/os/Packages/t/traceroute-2.1.6-3.el10.x86_64.rpm
+    repoid: rhel-10-for-x86_64-baseos-rpms
+    size: 65364
+    checksum: sha256:2b649dad58f16eca5226acb830f13a552429605caffbb129ad9134f39ed01ec4
+    name: traceroute
+    evr: 3:2.1.6-3.el10
+    sourcerpm: traceroute-2.1.6-3.el10.src.rpm
   source: []
   module_metadata: []
