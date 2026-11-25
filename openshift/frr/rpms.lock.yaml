@@ -578,6 +578,13 @@ arches:
     name: tcpdump
     evr: 4.99.0-9.el9
     sourcerpm: tcpdump-4.99.0-9.el9.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/appstream/os/Packages/w/wget-1.21.1-11.el9_8.x86_64.rpm
+    repoid: rhel-9-for-x86_64-appstream-rpms
+    size: 809606
+    checksum: sha256:42de6fc18dc14722a1793284c2f0692c4159837663168f1dd56925020c1f28f3
+    name: wget
+    evr: 1.21.1-11.el9_8
+    sourcerpm: wget-1.21.1-11.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/a/acl-2.4.0-1.el9_8.x86_64.rpm
     repoid: rhel-9-for-x86_64-baseos-rpms
     size: 85269
@@ -788,6 +795,13 @@ arches:
     name: gmp
     evr: 1:6.2.0-13.el9
     sourcerpm: gmp-6.2.0-13.el9.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/g/gnutls-3.8.10-9.el9_8.x86_64.rpm
+    repoid: rhel-9-for-x86_64-baseos-rpms
+    size: 1453587
+    checksum: sha256:c3cf86f785c672da854c018b68dd83719a486a78a11512143861aa3ba3856293
+    name: gnutls
+    evr: 3.8.10-9.el9_8
+    sourcerpm: gnutls-3.8.10-9.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/g/grep-3.6-5.el9.x86_64.rpm
     repoid: rhel-9-for-x86_64-baseos-rpms
     size: 279174
@@ -1229,6 +1243,13 @@ arches:
     name: ncurses-libs
     evr: 6.2-12.20210508.el9
     sourcerpm: ncurses-6.2-12.20210508.el9.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/n/nettle-3.10.1-1.el9.x86_64.rpm
+    repoid: rhel-9-for-x86_64-baseos-rpms
+    size: 581160
+    checksum: sha256:96c048fba3e8dd11493aaf317349ad040f607740facd11cc7b04fbca507a46ce
+    name: nettle
+    evr: 3.10.1-1.el9
+    sourcerpm: nettle-3.10.1-1.el9.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/n/numactl-libs-2.0.19-3.el9.x86_64.rpm
     repoid: rhel-9-for-x86_64-baseos-rpms
     size: 31071
