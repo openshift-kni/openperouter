@@ -8,11 +8,16 @@ arches:
 packages:
   # FRR is consumed from Fast Datapath (FDP) instead of a prebuilt FRR base
   # image. This scope is prefetched for Dockerfile.openshift.
+  - name: bind-utils
   - name: catatonit
+  - name: ethtool
   - name: frr
   - name: frr-selinux
   - name: grout
   - name: grout-frr
   - name: iproute
+  - name: iputils
+  - name: tcpdump
+  - name: traceroute
   - name: wget
   - name: shadow-utils
