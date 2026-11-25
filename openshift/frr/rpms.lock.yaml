@@ -39,6 +39,13 @@ arches:
     name: catatonit
     evr: 5:0.2.1-4.el10
     sourcerpm: catatonit-0.2.1-4.el10.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/appstream/os/Packages/w/wget-1.24.5-8.el10_2.x86_64.rpm
+    repoid: rhel-10-for-x86_64-appstream-rpms
+    size: 834836
+    checksum: sha256:06e5a4443fddde1d95bec655972d37d4ca01f41532f7b84b0fb3f27988170037
+    name: wget
+    evr: 1.24.5-8.el10_2
+    sourcerpm: wget-1.24.5-8.el10_2.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/appstream/os/Packages/c/checkpolicy-3.11-2.el10.x86_64.rpm
     repoid: rhel-10-for-x86_64-appstream-rpms
     size: 386762
@@ -704,5 +711,19 @@ arches:
     name: selinux-policy-targeted
     evr: 42.1.27-2.el10_3.2
     sourcerpm: selinux-policy-42.1.27-2.el10_3.2.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/baseos/os/Packages/l/libpsl-0.21.5-6.el10.x86_64.rpm
+    repoid: rhel-10-for-x86_64-baseos-rpms
+    size: 68382
+    checksum: sha256:788a2a36172ce893fe7ab6fec513eff4dc6c5d36737c25efec6bbf0253138ca6
+    name: libpsl
+    evr: 0.21.5-6.el10
+    sourcerpm: libpsl-0.21.5-6.el10.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel10/10/x86_64/baseos/os/Packages/p/publicsuffix-list-dafsa-20240107-5.el10.noarch.rpm
+    repoid: rhel-10-for-x86_64-baseos-rpms
+    size: 61540
+    checksum: sha256:53b2a71e7240613288d9d4922d2c1886f785637d981f9498c0caadda77a686ee
+    name: publicsuffix-list-dafsa
+    evr: 20240107-5.el10
+    sourcerpm: publicsuffix-list-20240107-5.el10.src.rpm
   source: []
   module_metadata: []
