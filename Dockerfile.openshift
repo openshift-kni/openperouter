@@ -20,7 +20,7 @@ RUN GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=
   && \
   GOEXPERIMENT=strictfipsruntime CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -mod=vendor -tags strictfipsruntime  -o operatorbinary ./operator
 
-FROM registry.redhat.io/openshift4/ose-container-networking-plugins-rhel9:v4.22.0-202606220442.p2.g659bc0a.assembly.stream.el9 as openshift-cni-binaries
+FROM quay.io/openshift-release-dev/ocp-v5.0-art-dev@sha256:a4ed770a6b1ce9d6f58b13240e541110c4cc2aa3dd029a9a10a95e6220bd8760 as openshift-cni-binaries
 
 FROM registry.redhat.io/ubi10/ubi:10.3-1795201936 as operator-runtime
 
